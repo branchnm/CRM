@@ -398,14 +398,19 @@ export function CustomerManagement({ customers, onUpdateCustomers }: CustomerMan
                         {customer.nextCutDate && (
                           <div className="flex items-center gap-1">
                             <Calendar className="h-4 w-4 text-green-600" />
-                            <span className={`font-medium ${isOverdue(customer.nextCutDate) ? 'text-red-600' : 'text-green-600'}`}>
+                            <span className={`font-medium ${isOverdue(customer.nextCutDate) ? 'text-red-600' : getDaysUntil(customer.nextCutDate) === 0 ? 'text-yellow-600' : 'text-green-600'}`}>
                               Next: {formatDate(customer.nextCutDate)}
                               {isOverdue(customer.nextCutDate) && <AlertCircle className="inline h-3 w-3 ml-1" />}
                             </span>
                             {getDaysUntil(customer.nextCutDate) !== null && (
-                              <Badge variant={getDaysUntil(customer.nextCutDate)! < 0 ? "destructive" : "secondary"} className="text-xs">
+                              <Badge 
+                                variant={getDaysUntil(customer.nextCutDate)! < 0 ? "destructive" : getDaysUntil(customer.nextCutDate) === 0 ? "default" : "secondary"} 
+                                className={`text-xs ${getDaysUntil(customer.nextCutDate) === 0 ? 'bg-yellow-600 hover:bg-yellow-700' : ''}`}
+                              >
                                 {getDaysUntil(customer.nextCutDate)! < 0 
                                   ? `${Math.abs(getDaysUntil(customer.nextCutDate)!)} days overdue` 
+                                  : getDaysUntil(customer.nextCutDate) === 0
+                                  ? '🔔 Cut today!'
                                   : `in ${getDaysUntil(customer.nextCutDate)} days`}
                               </Badge>
                             )}

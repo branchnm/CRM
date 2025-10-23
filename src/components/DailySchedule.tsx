@@ -39,12 +39,16 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
     return a.scheduledTime.localeCompare(b.scheduledTime);
   });
 
-  // Calculate daily stats
+  // Calculate daily stats - only count houses due TODAY
   const customersDueWithoutJobs = customersDueToday.filter(c => 
     !todayJobs.some(j => j.customerId === c.id)
   ).length;
-  const totalScheduled = todayJobs.length + customersDueWithoutJobs;
-  const completed = todayJobs.filter(j => j.status === 'completed').length;
+  const totalDueToday = customersDueToday.length; // Total customers whose nextCutDate is today
+  const completedToday = todayJobs.filter(j => {
+    // Only count completed jobs for customers that are due today
+    const customer = customers.find(c => c.id === j.customerId);
+    return j.status === 'completed' && customer?.nextCutDate === today;
+  }).length;
   const inProgress = todayJobs.filter(j => j.status === 'in-progress').length;
   const totalWorkTime = todayJobs
     .filter(j => j.status === 'completed' && j.totalTime)
@@ -255,12 +259,12 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
-              <p className="text-gray-600 mb-1">Scheduled</p>
-              <p className="text-green-800">{totalScheduled} jobs</p>
+              <p className="text-gray-600 mb-1">Due Today</p>
+              <p className="text-green-800">{totalDueToday} {totalDueToday === 1 ? 'house' : 'houses'}</p>
             </div>
             <div>
               <p className="text-gray-600 mb-1">Completed</p>
-              <p className="text-green-800">{completed} / {totalScheduled}</p>
+              <p className="text-green-800">{completedToday} / {totalDueToday}</p>
             </div>
             <div>
               <p className="text-gray-600 mb-1">Work Time</p>

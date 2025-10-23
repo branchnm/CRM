@@ -1,4 +1,12 @@
 /**
+ * Parse date string in local timezone (avoids UTC timezone issues)
+ */
+function parseLocalDate(dateString: string): Date {
+  const [year, month, day] = dateString.split('-').map(Number);
+  return new Date(year, month - 1, day);
+}
+
+/**
  * Calculate the next cut date based on frequency and last cut date
  */
 export function calculateNextCutDate(
@@ -7,7 +15,7 @@ export function calculateNextCutDate(
 ): string | undefined {
   if (!lastCutDate) return undefined;
 
-  const last = new Date(lastCutDate);
+  const last = parseLocalDate(lastCutDate);
   const next = new Date(last);
 
   switch (frequency) {
@@ -22,7 +30,10 @@ export function calculateNextCutDate(
       break;
   }
 
-  return next.toISOString().split('T')[0];
+  const year = next.getFullYear();
+  const month = String(next.getMonth() + 1).padStart(2, '0');
+  const day = String(next.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 /**
@@ -31,7 +42,7 @@ export function calculateNextCutDate(
 export function formatDate(dateString: string | undefined): string {
   if (!dateString) return 'Not set';
   
-  const date = new Date(dateString);
+  const date = parseLocalDate(dateString);
   return date.toLocaleDateString('en-US', { 
     month: 'short', 
     day: 'numeric',
@@ -45,7 +56,7 @@ export function formatDate(dateString: string | undefined): string {
 export function isOverdue(dateString: string | undefined): boolean {
   if (!dateString) return false;
   
-  const date = new Date(dateString);
+  const date = parseLocalDate(dateString);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   
@@ -58,7 +69,7 @@ export function isOverdue(dateString: string | undefined): boolean {
 export function getDaysUntil(dateString: string | undefined): number | null {
   if (!dateString) return null;
   
-  const date = new Date(dateString);
+  const date = parseLocalDate(dateString);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   date.setHours(0, 0, 0, 0);
