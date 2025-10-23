@@ -27,6 +27,8 @@ export interface Customer {
   frequency: "weekly" | "biweekly" | "monthly";
   dayOfWeek?: number; // 0-6 for Sun-Sat
   notes?: string;
+  lastCutDate?: string; // ISO date string (YYYY-MM-DD)
+  nextCutDate?: string; // ISO date string (YYYY-MM-DD)
 }
 
 export interface Job {

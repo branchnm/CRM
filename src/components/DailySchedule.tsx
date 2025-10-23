@@ -7,7 +7,6 @@ import { Clock, MapPin, Navigation, CheckCircle, Play, Phone, AlertTriangle, Clo
 import { toast } from 'sonner';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { Textarea } from './ui/textarea';
-import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from './ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from './ui/alert-dialog';
@@ -30,13 +29,21 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
   const [nextJobToNotify, setNextJobToNotify] = useState<Job | null>(null);
 
   const today = new Date().toISOString().split('T')[0];
+  
+  // Get customers who need service today based on their nextCutDate
+  const customersDueToday = customers.filter(c => c.nextCutDate === today);
+  
+  // Combine existing jobs with customers due today
   const todayJobs = jobs.filter(j => j.date === today).sort((a, b) => {
     if (!a.scheduledTime || !b.scheduledTime) return 0;
     return a.scheduledTime.localeCompare(b.scheduledTime);
   });
 
   // Calculate daily stats
-  const totalScheduled = todayJobs.length;
+  const customersDueWithoutJobs = customersDueToday.filter(c => 
+    !todayJobs.some(j => j.customerId === c.id)
+  ).length;
+  const totalScheduled = todayJobs.length + customersDueWithoutJobs;
   const completed = todayJobs.filter(j => j.status === 'completed').length;
   const inProgress = todayJobs.filter(j => j.status === 'in-progress').length;
   const totalWorkTime = todayJobs
@@ -280,16 +287,92 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
 
       {/* Job List */}
       <div className="space-y-3">
-        {todayJobs.length === 0 ? (
+        {/* Show customers due today */}
+        {customersDueToday.length === 0 && todayJobs.length === 0 ? (
           <Card className="bg-white/80 backdrop-blur">
             <CardContent className="pt-6">
-              <p className="text-center text-gray-600">No jobs scheduled for today. Add jobs in the Customers tab.</p>
+              <p className="text-center text-gray-600">No customers scheduled for today.</p>
             </CardContent>
           </Card>
         ) : (
-          todayJobs.map((job) => {
-            const customer = getCustomer(job.customerId);
-            if (!customer) return null;
+          <>
+            {/* Display customers due today who don't have a job yet */}
+            {customersDueToday.some(c => !todayJobs.some(j => j.customerId === c.id)) && (
+              <div className="mb-2">
+                <h3 className="text-sm font-semibold text-yellow-700 uppercase tracking-wide">Customers Due Today</h3>
+              </div>
+            )}
+            {customersDueToday.map((customer) => {
+              // Skip if they already have a job today
+              const hasJobToday = todayJobs.some(j => j.customerId === customer.id);
+              if (hasJobToday) return null;
+
+              return (
+                <Card key={`customer-${customer.id}`} className="bg-yellow-50/80 backdrop-blur border-yellow-300">
+                  <CardContent className="pt-6">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-start justify-between mb-2">
+                          <div>
+                            <h3 className="text-green-800 mb-1">{customer.name}</h3>
+                            <div className="flex items-center gap-2 text-gray-600 mb-1">
+                              <MapPin className="h-4 w-4" />
+                              <span>{customer.address}</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-yellow-700">
+                              <Clock className="h-4 w-4" />
+                              <span className="font-medium">Due today</span>
+                            </div>
+                          </div>
+                          <Badge className="bg-yellow-600">Needs Service</Badge>
+                        </div>
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {customer.isHilly && <Badge variant="secondary">Hilly</Badge>}
+                          {customer.hasFencing && <Badge variant="secondary">Fenced</Badge>}
+                          {customer.hasObstacles && <Badge variant="secondary">Obstacles</Badge>}
+                          <Badge variant="outline">{customer.squareFootage.toLocaleString()} sq ft</Badge>
+                          <Badge variant="outline">${customer.price}</Badge>
+                          <Badge variant="outline">{customer.frequency}</Badge>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col gap-2 md:w-48">
+                        <Button
+                          variant="outline"
+                          size="lg"
+                          className="w-full"
+                          onClick={() => window.open(`https://maps.google.com/?q=${encodeURIComponent(customer.address)}`, '_blank')}
+                        >
+                          <Navigation className="h-5 w-5 mr-2" />
+                          Navigate
+                        </Button>
+                        {customer.phone && (
+                          <Button
+                            variant="outline"
+                            size="lg"
+                            className="w-full"
+                            onClick={() => window.open(`tel:${customer.phone}`, '_self')}
+                          >
+                            <Phone className="h-5 w-5 mr-2" />
+                            Call
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+
+            {/* Display existing jobs */}
+            {todayJobs.length > 0 && (
+              <div className="mt-4 mb-2">
+                <h3 className="text-sm font-semibold text-green-700 uppercase tracking-wide">Scheduled Jobs</h3>
+              </div>
+            )}
+            {todayJobs.map((job) => {
+              const customer = getCustomer(job.customerId);
+              if (!customer) return null;
 //this job.id is where i can control the colors of the background for the cards. 
             return (
               <Card key={job.id} className={`bg-white/80 backdrop-blur ${job.status === 'completed' ? 'opacity-60' : ''}`}>
@@ -489,7 +572,8 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
                 </CardContent>
               </Card>
             );
-          })
+          })}
+          </>
         )}
       </div>
 

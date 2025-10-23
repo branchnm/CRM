@@ -8,10 +8,11 @@ import { Switch } from './ui/switch';
 import { Textarea } from './ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
 import type { Customer } from '../App';
-import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, Calendar, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from './ui/badge';
 import { deleteCustomer, addCustomer, updateCustomer } from '../services/customers';
+import { calculateNextCutDate, formatDate, isOverdue, getDaysUntil } from '../utils/dateHelpers';
 
 interface CustomerManagementProps {
   customers: Customer[];
@@ -34,6 +35,8 @@ export function CustomerManagement({ customers, onUpdateCustomers }: CustomerMan
     frequency: 'weekly' | 'biweekly' | 'monthly';
     dayOfWeek: string;
     notes: string;
+    lastCutDate: string;
+    nextCutDate: string;
   }>({
     name: '',
     address: '',
@@ -47,6 +50,8 @@ export function CustomerManagement({ customers, onUpdateCustomers }: CustomerMan
     frequency: 'weekly',
     dayOfWeek: '',
     notes: '',
+    lastCutDate: '',
+    nextCutDate: '',
   });
 
   const resetForm = () => {
@@ -63,6 +68,8 @@ export function CustomerManagement({ customers, onUpdateCustomers }: CustomerMan
       frequency: 'weekly',
       dayOfWeek: '',
       notes: '',
+      lastCutDate: '',
+      nextCutDate: '',
     });
   };
 
@@ -86,6 +93,8 @@ export function CustomerManagement({ customers, onUpdateCustomers }: CustomerMan
         frequency: formData.frequency,
         dayOfWeek: formData.dayOfWeek ? parseInt(formData.dayOfWeek) : undefined,
         notes: formData.notes,
+        lastCutDate: formData.lastCutDate || undefined,
+        nextCutDate: formData.nextCutDate || undefined,
       };
 
       const newCustomer = await addCustomer(newCustomerData);
@@ -117,6 +126,8 @@ export function CustomerManagement({ customers, onUpdateCustomers }: CustomerMan
         frequency: formData.frequency,
         dayOfWeek: formData.dayOfWeek ? parseInt(formData.dayOfWeek) : undefined,
         notes: formData.notes,
+        lastCutDate: formData.lastCutDate || undefined,
+        nextCutDate: formData.nextCutDate || undefined,
       };
 
       const updatedCustomer = await updateCustomer(updatedCustomerData);
@@ -164,6 +175,8 @@ export function CustomerManagement({ customers, onUpdateCustomers }: CustomerMan
       frequency: customer.frequency,
       dayOfWeek: customer.dayOfWeek?.toString() || '',
       notes: customer.notes || '',
+      lastCutDate: customer.lastCutDate || '',
+      nextCutDate: customer.nextCutDate || '',
     });
   };
 
@@ -309,6 +322,32 @@ export function CustomerManagement({ customers, onUpdateCustomers }: CustomerMan
                     />
                   </div>
 
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="lastCutDate">Last Cut Date</Label>
+                      <Input
+                        id="lastCutDate"
+                        type="date"
+                        value={formData.lastCutDate}
+                        onChange={(e) => {
+                          const lastCutDate = e.target.value;
+                          const nextCutDate = lastCutDate ? calculateNextCutDate(lastCutDate, formData.frequency) : '';
+                          setFormData({ ...formData, lastCutDate, nextCutDate: nextCutDate || '' });
+                        }}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="nextCutDate">Next Cut Date (auto-calculated)</Label>
+                      <Input
+                        id="nextCutDate"
+                        type="date"
+                        value={formData.nextCutDate}
+                        onChange={(e) => setFormData({ ...formData, nextCutDate: e.target.value })}
+                      />
+                      <p className="text-xs text-gray-500">Auto-calculated from last cut + frequency</p>
+                    </div>
+                  </div>
+
                   <Button onClick={handleAddCustomer} className="w-full bg-green-600 hover:bg-green-700" size="lg">
                     Add Customer
                   </Button>
@@ -346,6 +385,37 @@ export function CustomerManagement({ customers, onUpdateCustomers }: CustomerMan
                     <p className="text-gray-600">📞 {customer.phone}</p>
                     {customer.email && <p className="text-gray-600">✉️ {customer.email}</p>}
                     {customer.notes && <p className="text-gray-600 mt-2 text-sm italic">{customer.notes}</p>}
+                    
+                    {/* Cut Date Information */}
+                    <div className="mt-3 pt-3 border-t border-gray-200">
+                      <div className="flex flex-wrap gap-3 text-sm">
+                        {customer.lastCutDate && (
+                          <div className="flex items-center gap-1">
+                            <Calendar className="h-4 w-4 text-gray-500" />
+                            <span className="text-gray-600">Last: {formatDate(customer.lastCutDate)}</span>
+                          </div>
+                        )}
+                        {customer.nextCutDate && (
+                          <div className="flex items-center gap-1">
+                            <Calendar className="h-4 w-4 text-green-600" />
+                            <span className={`font-medium ${isOverdue(customer.nextCutDate) ? 'text-red-600' : 'text-green-600'}`}>
+                              Next: {formatDate(customer.nextCutDate)}
+                              {isOverdue(customer.nextCutDate) && <AlertCircle className="inline h-3 w-3 ml-1" />}
+                            </span>
+                            {getDaysUntil(customer.nextCutDate) !== null && (
+                              <Badge variant={getDaysUntil(customer.nextCutDate)! < 0 ? "destructive" : "secondary"} className="text-xs">
+                                {getDaysUntil(customer.nextCutDate)! < 0 
+                                  ? `${Math.abs(getDaysUntil(customer.nextCutDate)!)} days overdue` 
+                                  : `in ${getDaysUntil(customer.nextCutDate)} days`}
+                              </Badge>
+                            )}
+                          </div>
+                        )}
+                        {!customer.lastCutDate && !customer.nextCutDate && (
+                          <span className="text-gray-400 text-sm">No cut dates set</span>
+                        )}
+                      </div>
+                    </div>
                   </div>
                   <div className="flex md:flex-col gap-2">
                     <Dialog open={editingCustomer?.id === customer.id} onOpenChange={(open) => !open && setEditingCustomer(null)}>
@@ -451,6 +521,32 @@ export function CustomerManagement({ customers, onUpdateCustomers }: CustomerMan
                                   onCheckedChange={(checked) => setFormData({ ...formData, hasObstacles: checked })}
                                 />
                               </div>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="edit-lastCutDate">Last Cut Date</Label>
+                              <Input
+                                id="edit-lastCutDate"
+                                type="date"
+                                value={formData.lastCutDate}
+                                onChange={(e) => {
+                                  const lastCutDate = e.target.value;
+                                  const nextCutDate = lastCutDate ? calculateNextCutDate(lastCutDate, formData.frequency) : '';
+                                  setFormData({ ...formData, lastCutDate, nextCutDate: nextCutDate || '' });
+                                }}
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="edit-nextCutDate">Next Cut Date (auto-calculated)</Label>
+                              <Input
+                                id="edit-nextCutDate"
+                                type="date"
+                                value={formData.nextCutDate}
+                                onChange={(e) => setFormData({ ...formData, nextCutDate: e.target.value })}
+                              />
+                              <p className="text-xs text-gray-500">Auto-calculated from last cut + frequency</p>
                             </div>
                           </div>
 

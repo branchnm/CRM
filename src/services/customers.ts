@@ -60,6 +60,8 @@ export async function fetchCustomers(): Promise<Customer[]> {
     frequency: row.frequency,
     dayOfWeek: row.day_of_week,
     notes: row.notes,
+    lastCutDate: row.last_cut_date,
+    nextCutDate: row.next_cut_date,
   }));
 }
 
@@ -81,6 +83,8 @@ export async function addCustomer(customer: Omit<Customer, "id">): Promise<Custo
     frequency: customer.frequency,
     day_of_week: customer.dayOfWeek || null,
     notes: customer.notes || "",
+    last_cut_date: customer.lastCutDate || null,
+    next_cut_date: customer.nextCutDate || null,
   };
 
   const { data, error } = await supabase
@@ -109,6 +113,8 @@ export async function addCustomer(customer: Omit<Customer, "id">): Promise<Custo
     frequency: data.frequency,
     dayOfWeek: data.day_of_week,
     notes: data.notes,
+    lastCutDate: data.last_cut_date,
+    nextCutDate: data.next_cut_date,
   };
 }
 
@@ -130,6 +136,8 @@ export async function updateCustomer(customer: Customer): Promise<Customer> {
     frequency: customer.frequency,
     day_of_week: customer.dayOfWeek || null,
     notes: customer.notes || "",
+    last_cut_date: customer.lastCutDate || null,
+    next_cut_date: customer.nextCutDate || null,
   };
 
   const { data, error } = await supabase
@@ -159,5 +167,7 @@ export async function updateCustomer(customer: Customer): Promise<Customer> {
     frequency: data.frequency,
     dayOfWeek: data.day_of_week,
     notes: data.notes,
+    lastCutDate: data.last_cut_date,
+    nextCutDate: data.next_cut_date,
   };
 }
