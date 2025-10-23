@@ -11,6 +11,10 @@ import {
   Users,
   Settings as SettingsIcon,
 } from "lucide-react";
+import {
+  projectId,
+  publicAnonKey,
+} from "./utils/supabase/info";
 
 export interface Customer {
   id: string;
