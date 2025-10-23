@@ -3,24 +3,11 @@ import * as React from "react";
 import { cn } from "./utils";
 
 function Card({ className, style, ...props }: React.ComponentProps<"div">) {
-  // Inline style fallback ensures the card is visible even if Tailwind classes
-  // are not being applied correctly in the build.
-  const fallbackStyle: React.CSSProperties = {
-    backgroundColor: 'rgba(165, 218, 165, 0.81)',
-    color: '#ffffff',
-    padding: '1.5rem',
-    borderRadius: '1.75rem',
-    border: '1px solid rgba(0,0,0,0)',
-    boxShadow: '0 10px 15px -3px rgba(0,0,0,0.01)',
-  };
-
   return (
     <div
       data-slot="card"
-      // keep cn so any passed className still merges
-      className={cn("bg-blue-500 text-white p-6 flex flex-col gap-6 rounded-xl border border-gray-200 shadow-lg", className)}
-      // merge inline styles with the fallback (user-provided style overrides fallback)
-      style={{ ...fallbackStyle, ...style }}
+      className={cn("bg-card text-card-foreground p-6 flex flex-col gap-6 rounded-xl border border-gray-200 shadow-lg", className)}
+      style={style}
       {...props}
     />
   );
@@ -40,21 +27,11 @@ function CardHeader({ className, ...props }: React.ComponentProps<"div">) {
 }
 
 function CardTitle({ className, style, ...props }: React.ComponentProps<"div">) {
-
-   const fallbackStyle: React.CSSProperties = {
-    backgroundColor: 'rgba(78, 227, 52, 0.81)',
-    color: '#rgba(255, 255, 255, 0.87)',
-    padding: '1.5rem',
-    borderRadius: '1.75rem',
-    border: '1px solid rgba(0,0,0,0)',
-    boxShadow: '0 10px 15px -3px rgba(0,0,0,0.01)',
-  };
-
   return (
     <h4
       data-slot="card-title"
       className={cn("leading-none", className)}
-      style={{ ...fallbackStyle, ...style }}
+      style={style}
       {...props}
     />
   );
