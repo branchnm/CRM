@@ -11,6 +11,7 @@ import type { Customer } from '../App';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from './ui/badge';
+import { deleteCustomer, addCustomer, updateCustomer } from '../services/customers';
 
 interface CustomerManagementProps {
   customers: Customer[];
@@ -20,7 +21,20 @@ interface CustomerManagementProps {
 export function CustomerManagement({ customers, onUpdateCustomers }: CustomerManagementProps) {
   const [isAddingCustomer, setIsAddingCustomer] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    name: string;
+    address: string;
+    phone: string;
+    email: string;
+    squareFootage: string;
+    price: string;
+    isHilly: boolean;
+    hasFencing: boolean;
+    hasObstacles: boolean;
+    frequency: 'weekly' | 'biweekly' | 'monthly';
+    dayOfWeek: string;
+    notes: string;
+  }>({
     name: '',
     address: '',
     phone: '',
@@ -30,7 +44,7 @@ export function CustomerManagement({ customers, onUpdateCustomers }: CustomerMan
     isHilly: false,
     hasFencing: false,
     hasObstacles: false,
-    frequency: 'weekly' as const,
+    frequency: 'weekly',
     dayOfWeek: '',
     notes: '',
   });
@@ -52,67 +66,86 @@ export function CustomerManagement({ customers, onUpdateCustomers }: CustomerMan
     });
   };
 
-  const handleAddCustomer = () => {
+  const handleAddCustomer = async () => {
     if (!formData.name || !formData.address || !formData.phone || !formData.squareFootage || !formData.price) {
       toast.error('Please fill in all required fields');
       return;
     }
 
-    const newCustomer: Customer = {
-      id: Date.now().toString(),
-      name: formData.name,
-      address: formData.address,
-      phone: formData.phone,
-      email: formData.email,
-      squareFootage: parseFloat(formData.squareFootage),
-      price: parseFloat(formData.price),
-      isHilly: formData.isHilly,
-      hasFencing: formData.hasFencing,
-      hasObstacles: formData.hasObstacles,
-      frequency: formData.frequency,
-      dayOfWeek: formData.dayOfWeek ? parseInt(formData.dayOfWeek) : undefined,
-      notes: formData.notes,
-    };
+    try {
+      const newCustomerData = {
+        name: formData.name,
+        address: formData.address,
+        phone: formData.phone,
+        email: formData.email,
+        squareFootage: parseFloat(formData.squareFootage),
+        price: parseFloat(formData.price),
+        isHilly: formData.isHilly,
+        hasFencing: formData.hasFencing,
+        hasObstacles: formData.hasObstacles,
+        frequency: formData.frequency,
+        dayOfWeek: formData.dayOfWeek ? parseInt(formData.dayOfWeek) : undefined,
+        notes: formData.notes,
+      };
 
-    onUpdateCustomers([...customers, newCustomer]);
-    resetForm();
-    setIsAddingCustomer(false);
-    toast.success('Customer added successfully');
+      const newCustomer = await addCustomer(newCustomerData);
+      onUpdateCustomers([...customers, newCustomer]);
+      resetForm();
+      setIsAddingCustomer(false);
+      toast.success('Customer added successfully');
+    } catch (error) {
+      console.error('Failed to add customer:', error);
+      toast.error('Failed to add customer. Please try again.');
+    }
   };
 
-  const handleEditCustomer = () => {
+  const handleEditCustomer = async () => {
     if (!editingCustomer) return;
 
-    const updatedCustomers = customers.map(c =>
-      c.id === editingCustomer.id
-        ? {
-            ...editingCustomer,
-            name: formData.name,
-            address: formData.address,
-            phone: formData.phone,
-            email: formData.email,
-            squareFootage: parseFloat(formData.squareFootage),
-            price: parseFloat(formData.price),
-            isHilly: formData.isHilly,
-            hasFencing: formData.hasFencing,
-            hasObstacles: formData.hasObstacles,
-            frequency: formData.frequency,
-            dayOfWeek: formData.dayOfWeek ? parseInt(formData.dayOfWeek) : undefined,
-            notes: formData.notes,
-          }
-        : c
-    );
+    try {
+      const updatedCustomerData: Customer = {
+        ...editingCustomer,
+        name: formData.name,
+        address: formData.address,
+        phone: formData.phone,
+        email: formData.email,
+        squareFootage: parseFloat(formData.squareFootage),
+        price: parseFloat(formData.price),
+        isHilly: formData.isHilly,
+        hasFencing: formData.hasFencing,
+        hasObstacles: formData.hasObstacles,
+        frequency: formData.frequency,
+        dayOfWeek: formData.dayOfWeek ? parseInt(formData.dayOfWeek) : undefined,
+        notes: formData.notes,
+      };
 
-    onUpdateCustomers(updatedCustomers);
-    resetForm();
-    setEditingCustomer(null);
-    toast.success('Customer updated');
+      const updatedCustomer = await updateCustomer(updatedCustomerData);
+      const updatedCustomers = customers.map(c =>
+        c.id === editingCustomer.id ? updatedCustomer : c
+      );
+
+      onUpdateCustomers(updatedCustomers);
+      resetForm();
+      setEditingCustomer(null);
+      toast.success('Customer updated');
+    } catch (error) {
+      console.error('Failed to update customer:', error);
+      toast.error('Failed to update customer. Please try again.');
+    }
   };
 
-  const handleDeleteCustomer = (id: string, name: string) => {
+  const handleDeleteCustomer = async (id: string, name: string) => {
     if (confirm(`Delete ${name}? This cannot be undone.`)) {
-      onUpdateCustomers(customers.filter(c => c.id !== id));
-      toast.success('Customer deleted');
+      try {
+        console.log('Deleting customer with ID:', id);
+        await deleteCustomer(id);
+        console.log('Successfully deleted from Supabase');
+        onUpdateCustomers(customers.filter(c => c.id !== id));
+        toast.success('Customer deleted');
+      } catch (error) {
+        console.error('Failed to delete customer:', error);
+        toast.error('Failed to delete customer. Please try again.');
+      }
     }
   };
 

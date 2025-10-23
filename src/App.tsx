@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DailySchedule } from "./components/DailySchedule";
 import { CustomerComms } from "./components/CustomerComms";
 import { InsightsDashboard } from "./components/InsightsDashboard";
@@ -11,10 +11,7 @@ import {
   Users,
   Settings as SettingsIcon,
 } from "lucide-react";
-import {
-  projectId,
-  publicAnonKey,
-} from "./utils/supabase/info";
+import { fetchCustomers } from "./services/customers";
 
 export interface Customer {
   id: string;
@@ -70,157 +67,24 @@ export interface Equipment {
 
 function App() {
   const [activeTab, setActiveTab] = useState("schedule");
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Load data from localStorage with sample data
-  const [customers, setCustomers] = useState<Customer[]>(() => {
-    const saved = localStorage.getItem("lawnCareCustomers");
-    if (saved) return JSON.parse(saved);
-
-    // Sample customer data
-    return [
-      {
-        id: "1",
-        name: "Johnson Residence",
-        address: "1234 Maple Street, Springfield, IL 62701",
-        phone: "(217) 555-0123",
-        email: "mjohnson@email.com",
-        squareFootage: 5000,
-        price: 45,
-        isHilly: false,
-        hasFencing: true,
-        hasObstacles: false,
-        frequency: "weekly",
-        notes:
-          "Gate code: 1234. Dog in backyard - call before entering.",
-      },
-      {
-        id: "2",
-        name: "Smith Estate",
-        address: "5678 Oak Avenue, Springfield, IL 62702",
-        phone: "(217) 555-0456",
-        email: "smith.family@email.com",
-        squareFootage: 12000,
-        price: 95,
-        isHilly: true,
-        hasFencing: false,
-        hasObstacles: true,
-        frequency: "weekly",
-        notes:
-          "Large property with multiple flower beds and trees.",
-      },
-      {
-        id: "3",
-        name: "Martinez Property",
-        address: "2345 Pine Road, Springfield, IL 62703",
-        phone: "(217) 555-0789",
-        squareFootage: 3500,
-        price: 35,
-        isHilly: false,
-        hasFencing: false,
-        hasObstacles: false,
-        frequency: "biweekly",
-        notes: "",
-      },
-      {
-        id: "4",
-        name: "Williams Home",
-        address: "8901 Elm Court, Springfield, IL 62704",
-        phone: "(217) 555-0234",
-        email: "twilliams@email.com",
-        squareFootage: 7500,
-        price: 55,
-        isHilly: false,
-        hasFencing: true,
-        hasObstacles: true,
-        frequency: "weekly",
-        notes:
-          "Pool equipment in backyard. Please be careful around it.",
-      },
-      {
-        id: "5",
-        name: "Brown Residence",
-        address: "3456 Cedar Lane, Springfield, IL 62705",
-        phone: "(217) 555-0567",
-        squareFootage: 4200,
-        price: 40,
-        isHilly: true,
-        hasFencing: false,
-        hasObstacles: false,
-        frequency: "weekly",
-        notes: "Steep slope in front yard - use caution.",
-      },
-      {
-        id: "6",
-        name: "Davis Property",
-        address: "6789 Birch Drive, Springfield, IL 62706",
-        phone: "(217) 555-0890",
-        email: "ldavis@email.com",
-        squareFootage: 6000,
-        price: 48,
-        isHilly: false,
-        hasFencing: true,
-        hasObstacles: false,
-        frequency: "weekly",
-        notes: "",
-      },
-      {
-        id: "7",
-        name: "Miller Estate",
-        address: "4567 Willow Way, Springfield, IL 62707",
-        phone: "(217) 555-0345",
-        squareFootage: 15000,
-        price: 120,
-        isHilly: true,
-        hasFencing: true,
-        hasObstacles: true,
-        frequency: "weekly",
-        notes:
-          "Large estate. Enter through side gate. Client prefers service between 8-10 AM.",
-      },
-      {
-        id: "8",
-        name: "Garcia Home",
-        address: "7890 Spruce Street, Springfield, IL 62708",
-        phone: "(217) 555-0678",
-        email: "garcia.family@email.com",
-        squareFootage: 4500,
-        price: 42,
-        isHilly: false,
-        hasFencing: false,
-        hasObstacles: true,
-        frequency: "biweekly",
-        notes: "Lots of garden decorations - trim carefully.",
-      },
-      {
-        id: "9",
-        name: "Anderson Property",
-        address: "2109 Hickory Place, Springfield, IL 62709",
-        phone: "(217) 555-0901",
-        squareFootage: 5500,
-        price: 50,
-        isHilly: false,
-        hasFencing: true,
-        hasObstacles: false,
-        frequency: "weekly",
-        notes: "",
-      },
-      {
-        id: "10",
-        name: "Taylor Residence",
-        address: "3210 Walnut Boulevard, Springfield, IL 62710",
-        phone: "(217) 555-0123",
-        email: "ktaylor@email.com",
-        squareFootage: 8000,
-        price: 65,
-        isHilly: true,
-        hasFencing: false,
-        hasObstacles: true,
-        frequency: "weekly",
-        notes:
-          "Hilly backyard. Client leaves payment under doormat.",
-      },
-    ];
-  });
+  // Load customers from Supabase on mount
+  useEffect(() => {
+    const loadCustomers = async () => {
+      try {
+        const data = await fetchCustomers();
+        setCustomers(data);
+        setLoading(false);
+      } catch (error) {
+        console.error('Failed to load customers:', error);
+        setLoading(false);
+        // Fallback to empty array - users can add new ones
+      }
+    };
+    loadCustomers();
+  }, []);
 
   const [jobs, setJobs] = useState<Job[]>(() => {
     const saved = localStorage.getItem("lawnCareJobs");
@@ -506,6 +370,14 @@ function App() {
     { id: "messages", label: "Messages", icon: MessageSquare },
     { id: "settings", label: "Settings", icon: SettingsIcon },
   ];
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-linear-to-br from-green-50 to-emerald-50 flex items-center justify-center">
+        <div className="text-green-800 text-xl">Loading customers...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-linear-to-br from-green-50 to-emerald-50 pb-20 md:pb-0">
