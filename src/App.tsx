@@ -504,7 +504,7 @@ function App() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-50 pb-20 md:pb-0">
+    <div className="min-h-screen bg-linear-to-br from-green-50 to-emerald-50 pb-20 md:pb-0">
       <div className="container mx-auto p-4 md:p-8 max-w-7xl">
         <div className="mb-6">
           <h1 className="text-green-800 mb-1">Lawn Care CRM</h1>

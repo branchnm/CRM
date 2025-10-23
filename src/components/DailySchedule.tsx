@@ -108,7 +108,7 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
     setShowStartDialog(true);
   };
 
-  const confirmStartJob = (sendMessage: boolean) => {
+  const confirmStartJob = (shouldSendMessage: boolean) => {
     if (!pendingStartJob) return;
 
     const updatedJobs = jobs.map(j =>
@@ -120,7 +120,7 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
     toast.success('Timer started!');
 
     // Send "on the way" message if requested
-    if (sendMessage) {
+    if (shouldSendMessage) {
       const customer = customers.find(c => c.id === pendingStartJob.customerId);
       if (customer) {
         sendMessage(customer, 'on-the-way');
@@ -290,7 +290,7 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
           todayJobs.map((job) => {
             const customer = getCustomer(job.customerId);
             if (!customer) return null;
-
+//this job.id is where i can control the colors of the background for the cards. 
             return (
               <Card key={job.id} className={`bg-white/80 backdrop-blur ${job.status === 'completed' ? 'opacity-60' : ''}`}>
                 <CardContent className="pt-6">
