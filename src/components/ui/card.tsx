@@ -6,7 +6,7 @@ function Card({ className, style, ...props }: React.ComponentProps<"div">) {
   // Inline style fallback ensures the card is visible even if Tailwind classes
   // are not being applied correctly in the build.
   const fallbackStyle: React.CSSProperties = {
-    backgroundColor: 'rgba(27, 217, 27, 0.81)',
+    backgroundColor: 'rgba(165, 218, 165, 0.81)',
     color: '#ffffff',
     padding: '1.5rem',
     borderRadius: '1.75rem',
