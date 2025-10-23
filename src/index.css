@@ -1,9 +1,8 @@
 :root {
   --font-size: 16px;
   --background: #d4c2c2;
+  --button: #eea60c;
   --foreground: oklch(100% 0.00011 271.152);
-  --card: #50964d;
-  --card-foreground: white;
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
   --primary: #030213;
@@ -75,6 +74,7 @@
   --sidebar-border: oklch(0.269 0 0);
   --sidebar-ring: oklch(0.439 0 0);
 }
+
 
 @layer base {
   :root {
@@ -173,9 +173,9 @@
     }
 
     button {
-      font-size: var(200);
+      font-size: sm;
       font-weight: var(--font-weight-medium);
-      line-height: 2.5;
+      line-height: 2000px;
     }
 
     input {
@@ -188,4 +188,12 @@
 
 html {
   font-size: var(--font-size);
+}
+
+
+#root {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 3rem;
+  text-align: center;
 }

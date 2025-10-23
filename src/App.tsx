@@ -15,7 +15,6 @@ import { Label } from "./components/ui/label";
 // } from "./utils/supabase/info";
 // import { Pencil, Trash2, Plus } from "lucide-react";
 
-import './App.css'
 import './index.css'
 
 export default function App() {
@@ -27,7 +26,7 @@ export default function App() {
         <div>
           <Card>
             <CardHeader>
-              <CardTitle className="text-xl">
+              <CardTitle className=".card">
                 {count ? "Edit Customer" : "Add New Customer"}
               </CardTitle>
             </CardHeader>
@@ -59,9 +58,6 @@ export default function App() {
 
         <div>
           <Card>
-            <CardHeader>
-              <CardTitle className="text-xl">Customers</CardTitle>
-            </CardHeader>
             <CardContent>
               <p>List of customers will be displayed here.</p>
             </CardContent>

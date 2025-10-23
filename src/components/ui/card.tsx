@@ -6,7 +6,7 @@ function Card({ className, style, ...props }: React.ComponentProps<"div">) {
   // Inline style fallback ensures the card is visible even if Tailwind classes
   // are not being applied correctly in the build.
   const fallbackStyle: React.CSSProperties = {
-    backgroundColor: '#50964d',
+    backgroundColor: 'rgba(27, 217, 27, 0.81)',
     color: '#ffffff',
     padding: '1.5rem',
     borderRadius: '1.75rem',
@@ -39,11 +39,22 @@ function CardHeader({ className, ...props }: React.ComponentProps<"div">) {
   );
 }
 
-function CardTitle({ className, ...props }: React.ComponentProps<"div">) {
+function CardTitle({ className, style, ...props }: React.ComponentProps<"div">) {
+
+   const fallbackStyle: React.CSSProperties = {
+    backgroundColor: 'rgba(78, 227, 52, 0.81)',
+    color: '#rgba(255, 255, 255, 0.87)',
+    padding: '1.5rem',
+    borderRadius: '1.75rem',
+    border: '1px solid rgba(0,0,0,0)',
+    boxShadow: '0 10px 15px -3px rgba(0,0,0,0.01)',
+  };
+
   return (
     <h4
       data-slot="card-title"
       className={cn("leading-none", className)}
+      style={{ ...fallbackStyle, ...style }}
       {...props}
     />
   );
