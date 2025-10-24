@@ -5,6 +5,7 @@ import { Badge } from './ui/badge';
 import type { Customer, Job, MessageTemplate, Equipment } from '../App';
 import { updateCustomer } from '../services/customers';
 import { addJob, updateJob } from '../services/jobs';
+import { smsService } from '../services/sms';
 import { Clock, MapPin, Navigation, CheckCircle, Play, Phone, AlertTriangle, Cloud, CloudRain, Sun, StopCircle, MessageSquare, Send, Bell } from 'lucide-react';
 import { toast } from 'sonner';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
@@ -134,19 +135,51 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
     return `${mins}m`;
   };
 
-  const sendMessage = (customer: Customer, templateType: 'on-the-way' | 'completed') => {
-    const template = messageTemplates.find(t => t.trigger === templateType);
-    if (template) {
-      const message = template.message
-        .replace('{name}', customer.name)
-        .replace('{address}', customer.address)
-        .replace('{time}', new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+  const sendMessage = async (customer: Customer, templateType: 'starting' | 'on-the-way' | 'completed' | 'scheduled') => {
+    const template = messageTemplates.find(t => t.trigger === templateType && t.active);
+    if (!template) {
+      toast.error(`No active ${templateType} message template found`);
+      return;
+    }
+
+    const message = template.message
+      .replace('{name}', customer.name)
+      .replace('{address}', customer.address)
+      .replace('{time}', new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+    
+    // Validate phone number format
+    const phoneNumber = customer.phone?.replace(/\D/g, ''); // Remove non-digits
+    if (!phoneNumber || phoneNumber.length < 10) {
+      toast.error(`Invalid phone number for ${customer.name}`);
+      return;
+    }
+
+    // Format phone number for SMS (add +1 if US number)
+    const formattedPhone = phoneNumber.length === 10 ? `+1${phoneNumber}` : `+${phoneNumber}`;
+    
+    try {
+      // Show sending toast
+      toast.loading(`Sending message to ${customer.name}...`, { id: 'sms-sending' });
       
-      // In production, this would send via SMS API
-      console.log(`Sending to ${customer.phone}: ${message}`);
-      toast.success(`Message sent to ${customer.name}`, {
-        description: message.substring(0, 60) + '...',
-        duration: 3000,
+      const success = await smsService.sendSMS(formattedPhone, message);
+      
+      if (success) {
+        toast.success(`Message sent to ${customer.name}`, {
+          id: 'sms-sending',
+          description: message.substring(0, 60) + (message.length > 60 ? '...' : ''),
+          duration: 3000,
+        });
+      } else {
+        toast.error(`Failed to send message to ${customer.name}`, {
+          id: 'sms-sending',
+          description: 'Please check SMS service configuration',
+        });
+      }
+    } catch (error) {
+      console.error('SMS sending error:', error);
+      toast.error(`SMS service error`, {
+        id: 'sms-sending',
+        description: 'Unable to send message at this time',
       });
     }
   };
@@ -156,7 +189,7 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
     setShowStartDialog(true);
   };
 
-  const confirmStartJob = (shouldSendMessage: boolean) => {
+  const confirmStartJob = async (shouldSendMessage: boolean) => {
     if (!pendingStartJob) return;
     const startIso = new Date().toISOString();
     const updatedLocal = jobs.map(j =>
@@ -174,11 +207,11 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
     });
     toast.success('Timer started!');
 
-    // Send "on the way" message if requested
+    // Send "starting job" message if requested
     if (shouldSendMessage) {
       const customer = customers.find(c => c.id === pendingStartJob.customerId);
       if (customer) {
-        sendMessage(customer, 'on-the-way');
+        await sendMessage(customer, 'starting');
       }
     }
 
@@ -186,7 +219,7 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
     setPendingStartJob(null);
   };
 
-  const handleCompleteJob = (job: Job, totalMinutes: number, notes: string, sendCompletionMessage: boolean) => {
+  const handleCompleteJob = async (job: Job, totalMinutes: number, notes: string, sendCompletionMessage: boolean) => {
     const endIso = new Date().toISOString();
     const updatedLocal = jobs.map(j =>
       j.id === job.id
@@ -228,7 +261,7 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
     if (sendCompletionMessage) {
       const customer = customers.find(c => c.id === job.customerId);
       if (customer) {
-        sendMessage(customer, 'completed');
+        await sendMessage(customer, 'completed');
       }
     }
 
@@ -252,23 +285,11 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
     setNextJobToNotify(null);
   };
 
-  const sendReminderMessage = (job: Job) => {
+  const sendReminderMessage = async (job: Job) => {
     const customer = customers.find(c => c.id === job.customerId);
     if (!customer) return;
 
-    const template = messageTemplates.find(t => t.trigger === 'scheduled');
-    if (template) {
-      const message = template.message
-        .replace('{name}', customer.name)
-        .replace('{address}', customer.address)
-        .replace('{time}', job.scheduledTime || 'soon');
-      
-      console.log(`Sending reminder to ${customer.phone}: ${message}`);
-      toast.success(`Reminder sent to ${customer.name}`, {
-        description: message.substring(0, 60) + '...',
-        duration: 3000,
-      });
-    }
+    await sendMessage(customer, 'scheduled');
   };
 
   const getCustomer = (customerId: string) => {
@@ -623,9 +644,9 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
                                 {completionMessage !== null && (
                                   <div className="pt-2">
                                     <Button
-                                      onClick={() => {
+                                      onClick={async () => {
                                         const timeToUse = selectedTime !== null ? selectedTime : (elapsedTime[job.id] || 0);
-                                        handleCompleteJob(job, timeToUse, jobNotes, completionMessage);
+                                        await handleCompleteJob(job, timeToUse, jobNotes, completionMessage);
                                         // Reset state
                                         setCompletionMessage(null);
                                         setSelectedTime(null);
@@ -717,7 +738,7 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
                 <>
                   Ready to start job for <strong>{getCustomer(pendingStartJob.customerId)?.name}</strong>.
                   <br /><br />
-                  Would you like to notify the customer that you're on the way?
+                  Would you like to notify the customer that you're starting work now?
                 </>
               )}
             </AlertDialogDescription>
@@ -737,7 +758,7 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
             </Button>
             <AlertDialogAction onClick={() => confirmStartJob(true)} className="bg-green-600 hover:bg-green-700">
               <Send className="h-4 w-4 mr-2" />
-              Start & Send Message
+              Send "Starting Now"
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

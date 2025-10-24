@@ -56,7 +56,7 @@ export interface Job {
 export interface MessageTemplate {
   id: string;
   name: string;
-  trigger: "scheduled" | "on-the-way" | "completed" | "manual";
+  trigger: "starting" | "scheduled" | "on-the-way" | "completed" | "manual";
   message: string;
   active: boolean;
 }
@@ -122,34 +122,57 @@ function App() {
     const saved = localStorage.getItem(
       "lawnCareMessageTemplates",
     );
-    return saved
-      ? JSON.parse(saved)
-      : [
-          {
-            id: "1",
-            name: "On the Way",
-            trigger: "on-the-way",
-            message:
-              "Hi {name}! We're on our way to your property at {address}. Expected arrival: {time}.",
-            active: true,
-          },
-          {
-            id: "2",
-            name: "Job Complete",
-            trigger: "completed",
-            message:
-              "Hello {name}, we've finished servicing your lawn at {address}. Everything looks great! Let us know if you have any questions.",
-            active: true,
-          },
-          {
-            id: "3",
-            name: "Reminder",
-            trigger: "scheduled",
-            message:
-              "Hi {name}, just a reminder that we're scheduled to service your lawn tomorrow. See you then!",
-            active: false,
-          },
-        ];
+    const defaultTemplates = [
+      {
+        id: "1",
+        name: "Starting Job",
+        trigger: "starting",
+        message:
+          "Hi {name}! We're starting work on your lawn at {address} now. Started at: {time}.",
+        active: true,
+      },
+      {
+        id: "2",
+        name: "On the Way",
+        trigger: "on-the-way",
+        message:
+          "Hi {name}! We're on our way to your property at {address}. Expected arrival: {time}.",
+        active: true,
+      },
+      {
+        id: "3",
+        name: "Job Complete",
+        trigger: "completed",
+        message:
+          "Hello {name}, we've finished servicing your lawn at {address}. Everything looks great! Let us know if you have any questions.",
+        active: true,
+      },
+      {
+        id: "4",
+        name: "Reminder",
+        trigger: "scheduled",
+        message:
+          "Hi {name}, just a reminder that we're scheduled to service your lawn today. See you soon!",
+        active: true,
+      },
+    ];
+
+    if (saved) {
+      const existingTemplates = JSON.parse(saved);
+      // Check if "starting" template exists, if not, add it
+      const hasStartingTemplate = existingTemplates.some((t: MessageTemplate) => t.trigger === 'starting');
+      if (!hasStartingTemplate) {
+        const startingTemplate = defaultTemplates.find(t => t.trigger === 'starting');
+        if (startingTemplate) {
+          existingTemplates.unshift(startingTemplate); // Add at beginning
+          // Update localStorage with the new template
+          localStorage.setItem("lawnCareMessageTemplates", JSON.stringify(existingTemplates));
+        }
+      }
+      return existingTemplates;
+    }
+    
+    return defaultTemplates;
   });
 
   const [equipment, setEquipment] = useState<Equipment[]>(
