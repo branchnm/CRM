@@ -25,6 +25,10 @@ export function CustomerManagement({ customers, onUpdateCustomers }: CustomerMan
   const [formData, setFormData] = useState<{
     name: string;
     address: string;
+    street: string;
+    city: string;
+    state: string;
+    zipCode: string;
     phone: string;
     email: string;
     squareFootage: string;
@@ -41,6 +45,10 @@ export function CustomerManagement({ customers, onUpdateCustomers }: CustomerMan
   }>({
     name: '',
     address: '',
+    street: '',
+    city: '',
+    state: '',
+    zipCode: '',
     phone: '',
     email: '',
     squareFootage: '',
@@ -60,6 +68,10 @@ export function CustomerManagement({ customers, onUpdateCustomers }: CustomerMan
     setFormData({
       name: '',
       address: '',
+      street: '',
+      city: '',
+      state: '',
+      zipCode: '',
       phone: '',
       email: '',
       squareFootage: '',
@@ -77,15 +89,22 @@ export function CustomerManagement({ customers, onUpdateCustomers }: CustomerMan
   };
 
   const handleAddCustomer = async () => {
-    if (!formData.name || !formData.address || !formData.phone || !formData.squareFootage || !formData.price) {
+    if (!formData.name || !formData.phone || !formData.squareFootage || !formData.price) {
       toast.error('Please fill in all required fields');
       return;
     }
 
+    // Build full address from components
+    const fullAddress = [
+      formData.street,
+      formData.city && formData.state ? `${formData.city}, ${formData.state}` : formData.city || formData.state,
+      formData.zipCode
+    ].filter(Boolean).join(' ');
+
     try {
       const newCustomerData = {
         name: formData.name,
-        address: formData.address,
+        address: fullAddress || formData.address, // Use combined address or fallback to single field
         phone: formData.phone,
         email: formData.email,
         squareFootage: parseFloat(formData.squareFootage),
@@ -115,11 +134,18 @@ export function CustomerManagement({ customers, onUpdateCustomers }: CustomerMan
   const handleEditCustomer = async () => {
     if (!editingCustomer) return;
 
+    // Build full address from components
+    const fullAddress = [
+      formData.street,
+      formData.city && formData.state ? `${formData.city}, ${formData.state}` : formData.city || formData.state,
+      formData.zipCode
+    ].filter(Boolean).join(' ');
+
     try {
       const updatedCustomerData: Customer = {
         ...editingCustomer,
         name: formData.name,
-        address: formData.address,
+        address: fullAddress || formData.address, // Use combined address or fallback
         phone: formData.phone,
         email: formData.email,
         squareFootage: parseFloat(formData.squareFootage),
@@ -170,6 +196,10 @@ export function CustomerManagement({ customers, onUpdateCustomers }: CustomerMan
     setFormData({
       name: customer.name,
       address: customer.address,
+      street: '',
+      city: '',
+      state: '',
+      zipCode: '',
       phone: customer.phone,
       email: customer.email || '',
       squareFootage: customer.squareFootage.toString(),
@@ -231,13 +261,37 @@ export function CustomerManagement({ customers, onUpdateCustomers }: CustomerMan
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="address">Address *</Label>
-                    <Input
-                      id="address"
-                      value={formData.address}
-                      onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                      placeholder="123 Main St, City, State 12345"
-                    />
+                    <Label htmlFor="address">Address</Label>
+                    <div className="space-y-2">
+                      <Input
+                        id="street"
+                        value={formData.street}
+                        onChange={(e) => setFormData({ ...formData, street: e.target.value })}
+                        placeholder="Street Address (e.g., 123 Main St)"
+                      />
+                      <div className="grid grid-cols-2 gap-2">
+                        <Input
+                          id="city"
+                          value={formData.city}
+                          onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                          placeholder="City"
+                        />
+                        <Input
+                          id="state"
+                          value={formData.state}
+                          onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                          placeholder="State"
+                          maxLength={2}
+                        />
+                      </div>
+                      <Input
+                        id="zipCode"
+                        value={formData.zipCode}
+                        onChange={(e) => setFormData({ ...formData, zipCode: e.target.value })}
+                        placeholder="ZIP Code"
+                        maxLength={10}
+                      />
+                    </div>
                   </div>
 
                   <div className="space-y-2">
@@ -463,12 +517,37 @@ export function CustomerManagement({ customers, onUpdateCustomers }: CustomerMan
                           </div>
 
                           <div className="space-y-2">
-                            <Label htmlFor="edit-address">Address *</Label>
-                            <Input
-                              id="edit-address"
-                              value={formData.address}
-                              onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                            />
+                            <Label htmlFor="edit-address">Address</Label>
+                            <div className="space-y-2">
+                              <Input
+                                id="edit-street"
+                                value={formData.street}
+                                onChange={(e) => setFormData({ ...formData, street: e.target.value })}
+                                placeholder="Street Address (e.g., 123 Main St)"
+                              />
+                              <div className="grid grid-cols-2 gap-2">
+                                <Input
+                                  id="edit-city"
+                                  value={formData.city}
+                                  onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                                  placeholder="City"
+                                />
+                                <Input
+                                  id="edit-state"
+                                  value={formData.state}
+                                  onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                                  placeholder="State"
+                                  maxLength={2}
+                                />
+                              </div>
+                              <Input
+                                id="edit-zipCode"
+                                value={formData.zipCode}
+                                onChange={(e) => setFormData({ ...formData, zipCode: e.target.value })}
+                                placeholder="ZIP Code"
+                                maxLength={10}
+                              />
+                            </div>
                           </div>
 
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

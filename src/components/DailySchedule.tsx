@@ -6,13 +6,15 @@ import type { Customer, Job, MessageTemplate, Equipment } from '../App';
 import { updateCustomer } from '../services/customers';
 import { addJob, updateJob } from '../services/jobs';
 import { smsService } from '../services/sms';
-import { Clock, MapPin, Navigation, CheckCircle, Play, Phone, AlertTriangle, Cloud, CloudRain, Sun, StopCircle, MessageSquare, Send, Bell } from 'lucide-react';
+import { Clock, MapPin, Navigation, CheckCircle, Play, Phone, AlertTriangle, Cloud, CloudRain, Sun, StopCircle, MessageSquare, Send, Route } from 'lucide-react';
 import { toast } from 'sonner';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { Textarea } from './ui/textarea';
 import { Label } from './ui/label';
+import { Input } from './ui/input';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from './ui/alert-dialog';
+import { optimizeRoute, assignRouteOrder } from '../utils/routeOptimization';
 
 interface DailyScheduleProps {
   customers: Customer[];
@@ -33,12 +35,28 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
   const [nextJobToNotify, setNextJobToNotify] = useState<Job | null>(null);
   const [completionMessage, setCompletionMessage] = useState<boolean | null>(null);
   const [selectedTime, setSelectedTime] = useState<number | null>(null);
+  const [showRouteDialog, setShowRouteDialog] = useState(false);
+  const [startingAddress, setStartingAddress] = useState(() => {
+    return localStorage.getItem('routeStartingAddress') || '';
+  });
+  const [tempStartingAddress, setTempStartingAddress] = useState(startingAddress);
 
   // Use local date (YYYY-MM-DD) to match stored nextCutDate values
   const today = new Date().toLocaleDateString('en-CA');
   
+  // Calculate tomorrow's date
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrowDate = tomorrow.toLocaleDateString('en-CA');
+  
   // Get customers who need service today based on their nextCutDate
   const customersDueToday = customers.filter(c => c.nextCutDate === today);
+  
+  // Get customers who need service tomorrow based on their nextCutDate
+  const customersDueTomorrow = customers.filter(c => c.nextCutDate === tomorrowDate);
+  
+  // Get jobs scheduled for tomorrow
+  const tomorrowJobs = jobs.filter(j => j.date === tomorrowDate);
   
   // Combine existing jobs with customers due today - sort by order, then by scheduled time
   const todayJobs = jobs.filter(j => j.date === today).sort((a, b) => {
@@ -56,11 +74,19 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
   useEffect(() => {
     const ensureJobs = async () => {
       if (customersDueToday.length === 0) return;
-      const missing = customersDueToday.filter(c => !todayJobs.some(j => j.customerId === c.id));
+      
+      // Get current job IDs to avoid re-creating
+      const existingJobCustomerIds = new Set(jobs.filter(j => j.date === today).map(j => j.customerId));
+      const missing = customersDueToday.filter(c => !existingJobCustomerIds.has(c.id));
+      
       if (missing.length === 0) return;
+      
+      console.log('Auto-creating jobs for', missing.length, 'customers');
+      
       try {
-        // Calculate next order number based on existing jobs
-        const maxOrder = Math.max(0, ...todayJobs.map(j => j.order || 0));
+        // Calculate next order number based on ALL jobs (not just today's filtered list)
+        const todayJobsList = jobs.filter(j => j.date === today);
+        const maxOrder = Math.max(0, ...todayJobsList.map(j => j.order || 0));
         
         await Promise.all(
           missing.map((c, index) =>
@@ -72,6 +98,8 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
             })
           )
         );
+        
+        // Only refresh if we actually created jobs
         await onRefreshJobs?.();
       } catch (e) {
         console.error('Failed to create jobs in Supabase:', e);
@@ -79,7 +107,46 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
       }
     };
     ensureJobs();
-  }, [customersDueToday, todayJobs, today, onRefreshJobs]);
+  }, [customersDueToday.length, jobs.length, today]); // Only run when counts change, not on every job update
+
+  // Auto-create jobs for customers due tomorrow who don't have a job yet (in Supabase)
+  useEffect(() => {
+    const ensureTomorrowJobs = async () => {
+      if (customersDueTomorrow.length === 0) return;
+      
+      // Get current job IDs to avoid re-creating
+      const existingJobCustomerIds = new Set(jobs.filter(j => j.date === tomorrowDate).map(j => j.customerId));
+      const missing = customersDueTomorrow.filter(c => !existingJobCustomerIds.has(c.id));
+      
+      if (missing.length === 0) return;
+      
+      console.log('Auto-creating jobs for tomorrow:', missing.length, 'customers');
+      
+      try {
+        // Calculate next order number based on tomorrow's jobs
+        const tomorrowJobsList = jobs.filter(j => j.date === tomorrowDate);
+        const maxOrder = Math.max(0, ...tomorrowJobsList.map(j => j.order || 0));
+        
+        await Promise.all(
+          missing.map((c, index) =>
+            addJob({ 
+              customerId: c.id, 
+              date: tomorrowDate, 
+              status: 'scheduled',
+              order: maxOrder + index + 1
+            })
+          )
+        );
+        
+        // Only refresh if we actually created jobs
+        await onRefreshJobs?.();
+      } catch (e) {
+        console.error('Failed to create tomorrow\'s jobs in Supabase:', e);
+        toast.error('Failed to create tomorrow\'s jobs.');
+      }
+    };
+    ensureTomorrowJobs();
+  }, [customersDueTomorrow.length, jobs.length, tomorrowDate]); // Only run when counts change, not on every job update
 
   // Calculate daily stats - only count houses due TODAY
   const totalDueToday = customersDueToday.length; // Total customers whose nextCutDate is today
@@ -133,6 +200,51 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
       return `${hours}h ${mins}m`;
     }
     return `${mins}m`;
+  };
+
+  // Estimate drive time between two addresses (simple estimation)
+  const estimateDriveTime = (address1: string, address2: string): string => {
+    // Simple distance estimation based on address components
+    // In production, you'd use Google Maps Distance Matrix API
+    
+    // Extract street number and name
+    const parseAddress = (addr: string) => {
+      const match = addr.match(/^(\d+)\s+(.+?)(?:\s+(?:Birmingham|AL|,).*)?$/i);
+      if (match) {
+        return {
+          number: parseInt(match[1]),
+          street: match[2].toLowerCase().replace(/[^a-z0-9\s]/g, '').trim()
+        };
+      }
+      return { number: 0, street: addr.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim() };
+    };
+    
+    const addr1 = parseAddress(address1);
+    const addr2 = parseAddress(address2);
+    
+    // Same street - calculate based on house number difference
+    if (addr1.street === addr2.street) {
+      const numberDiff = Math.abs(addr1.number - addr2.number);
+      if (numberDiff < 100) return '2 min';
+      if (numberDiff < 300) return '3 min';
+      if (numberDiff < 500) return '4 min';
+      return '5 min';
+    }
+    
+    // Different streets - check if street names are similar
+    const streetSimilarity = addr1.street.split(' ').some(word => 
+      addr2.street.includes(word) && word.length > 3
+    );
+    
+    if (streetSimilarity) return '5 min';
+    
+    // Completely different areas - estimate based on combined factors
+    const numberDiff = Math.abs(addr1.number - addr2.number);
+    if (numberDiff < 500) return '6 min';
+    if (numberDiff < 1000) return '8 min';
+    if (numberDiff < 2000) return '10 min';
+    if (numberDiff < 3000) return '12 min';
+    return '15 min';
   };
 
   const sendMessage = async (customer: Customer, templateType: 'starting' | 'on-the-way' | 'completed' | 'scheduled') => {
@@ -285,11 +397,106 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
     setNextJobToNotify(null);
   };
 
-  const sendReminderMessage = async (job: Job) => {
-    const customer = customers.find(c => c.id === job.customerId);
-    if (!customer) return;
+  const handleOptimizeRoute = async () => {
+    if (!startingAddress.trim()) {
+      toast.error('Please set a starting address first');
+      setShowRouteDialog(true);
+      return;
+    }
 
-    await sendMessage(customer, 'scheduled');
+    try {
+      toast.loading('Optimizing route...', { id: 'optimize-route' });
+      
+      // Get only scheduled jobs for today (don't reorder in-progress or completed)
+      const scheduledJobs = todayJobs.filter(j => j.status === 'scheduled');
+      const nonScheduledJobs = todayJobs.filter(j => j.status !== 'scheduled');
+      
+      if (scheduledJobs.length === 0) {
+        toast.info('No scheduled jobs to optimize', { id: 'optimize-route' });
+        return;
+      }
+
+      if (scheduledJobs.length === 1) {
+        toast.info('Only one scheduled job, no optimization needed', { id: 'optimize-route' });
+        return;
+      }
+
+      console.log('=== STARTING ROUTE OPTIMIZATION ===');
+      console.log('Optimizing', scheduledJobs.length, 'scheduled jobs');
+      console.log('Starting address:', startingAddress);
+      
+      // Optimize the route for scheduled jobs only
+      const optimizedScheduledJobs = await optimizeRoute(scheduledJobs, customers, startingAddress);
+      
+      // Assign new order numbers starting from 1
+      const scheduledWithNewOrder = assignRouteOrder(optimizedScheduledJobs);
+      
+      // Keep non-scheduled jobs with their existing order (or put at end)
+      const maxScheduledOrder = scheduledWithNewOrder.length;
+      const nonScheduledWithOrder = nonScheduledJobs.map((job, index) => ({
+        ...job,
+        order: (job.order && job.order > maxScheduledOrder) ? job.order : maxScheduledOrder + index + 1
+      }));
+      
+      // Combine all jobs
+      const allJobsWithNewOrder = [...scheduledWithNewOrder, ...nonScheduledWithOrder];
+      
+      console.log('=== NEW JOB ORDER ===');
+      allJobsWithNewOrder.forEach(j => {
+        const c = customers.find(cu => cu.id === j.customerId);
+        console.log(`Order ${j.order}: ${c?.name || 'Unknown'} at ${c?.address || 'N/A'} (${j.status})`);
+      });
+      
+      // Update ALL jobs in the jobs array to prevent conflicts
+      const fullyUpdatedJobs = jobs.map(job => {
+        const updatedJob = allJobsWithNewOrder.find(j => j.id === job.id);
+        return updatedJob || job;
+      });
+      
+      // Update local state FIRST for instant UI feedback
+      console.log('Updating local state...');
+      onUpdateJobs(fullyUpdatedJobs);
+      
+      // Then persist to database in background
+      console.log('Persisting to database...');
+      const updatePromises = allJobsWithNewOrder.map(async (job) => {
+        try {
+          await updateJob(job);
+          console.log(`✓ Updated job ${job.order} in database`);
+        } catch (err) {
+          console.error(`✗ Failed to update job ${job.order}:`, err);
+          throw err;
+        }
+      });
+      
+      await Promise.all(updatePromises);
+      
+      console.log('All jobs updated in database, refreshing...');
+      
+      // Small delay to ensure database propagation
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      // Final refresh to ensure sync (but local state should already be correct)
+      await onRefreshJobs?.();
+      
+      console.log('=== ROUTE OPTIMIZATION COMPLETE ===');
+      
+      toast.success(`Route optimized! ${scheduledWithNewOrder.length} stops reordered`, { 
+        id: 'optimize-route',
+        description: 'Jobs are now sorted by optimal driving route'
+      });
+    } catch (error) {
+      console.error('=== ROUTE OPTIMIZATION FAILED ===');
+      console.error('Error details:', error);
+      toast.error('Failed to optimize route', { id: 'optimize-route' });
+    }
+  };
+
+  const handleSaveStartingAddress = () => {
+    setStartingAddress(tempStartingAddress);
+    localStorage.setItem('routeStartingAddress', tempStartingAddress);
+    setShowRouteDialog(false);
+    toast.success('Starting address saved');
   };
 
   const getCustomer = (customerId: string) => {
@@ -367,161 +574,158 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
         </Alert>
       )}
 
+      {/* Route Optimization Controls */}
+      {todayJobs.filter(j => j.status === 'scheduled').length > 1 && (
+        <Card className="bg-blue-50/80 backdrop-blur border-blue-200">
+          <CardContent className="pt-4 pb-4">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-2">
+                <Route className="h-5 w-5 text-blue-600" />
+                <div>
+                  <p className="font-medium text-blue-900">Route Optimization</p>
+                  <p className="text-sm text-blue-700">
+                    {startingAddress ? `Starting from: ${startingAddress}` : 'Set starting address to optimize route'}
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Dialog open={showRouteDialog} onOpenChange={setShowRouteDialog}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      <MapPin className="h-4 w-4 mr-2" />
+                      {startingAddress ? 'Change Start' : 'Set Start'}
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Set Starting Address</DialogTitle>
+                      <DialogDescription>
+                        Enter your starting location (home, office, etc.) to optimize the route
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 mt-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="start-address">Starting Address</Label>
+                        <Input
+                          id="start-address"
+                          value={tempStartingAddress}
+                          onChange={(e) => setTempStartingAddress(e.target.value)}
+                          placeholder="123 Main St, City, State 12345"
+                        />
+                      </div>
+                      <Button onClick={handleSaveStartingAddress} className="w-full">
+                        Save Address
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+                <Button 
+                  onClick={handleOptimizeRoute}
+                  className="bg-blue-600 hover:bg-blue-700"
+                  size="sm"
+                  disabled={!startingAddress}
+                >
+                  <Route className="h-4 w-4 mr-2" />
+                  Optimize Route
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Job List */}
       <div className="space-y-3">
-        {/* Show customers due today */}
-        {customersDueToday.length === 0 && todayJobs.length === 0 ? (
+        {customersDueToday.length === 0 && todayJobs.length === 0 && tomorrowJobs.length === 0 ? (
           <Card className="bg-white/80 backdrop-blur">
             <CardContent className="pt-6">
-              <p className="text-center text-gray-600">No customers scheduled for today.</p>
+              <p className="text-center text-gray-600">No customers scheduled for today or tomorrow.</p>
             </CardContent>
           </Card>
         ) : (
           <>
-            {/* Display customers due today who don't have a job yet */}
-            {customersDueToday.some(c => !todayJobs.some(j => j.customerId === c.id)) && (
-              <div className="mb-2">
-                <h3 className="text-sm font-semibold text-yellow-700 uppercase tracking-wide">Customers Due Today</h3>
-              </div>
-            )}
-            {customersDueToday.map((customer) => {
-              // Skip if they already have a job today
-              const hasJobToday = todayJobs.some(j => j.customerId === customer.id);
-              if (hasJobToday) return null;
-
-              return (
-                <Card key={`customer-${customer.id}`} className="bg-yellow-50/80 backdrop-blur border-yellow-300">
-                  <CardContent className="pt-6">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                      <div className="flex-1">
-                        <div className="flex items-start justify-between mb-2">
-                          <div>
-                            <h3 className="text-green-800 mb-1">{customer.name}</h3>
-                            <div className="flex items-center gap-2 text-gray-600 mb-1">
-                              <MapPin className="h-4 w-4" />
-                              <span>{customer.address}</span>
-                            </div>
-                            <div className="flex items-center gap-2 text-yellow-700">
-                              <Clock className="h-4 w-4" />
-                              <span className="font-medium">Due today</span>
-                            </div>
-                          </div>
-                          <Badge className="bg-yellow-600">Needs Service</Badge>
-                        </div>
-                        <div className="flex flex-wrap gap-2 mt-2">
-                          {customer.isHilly && <Badge variant="secondary">Hilly</Badge>}
-                          {customer.hasFencing && <Badge variant="secondary">Fenced</Badge>}
-                          {customer.hasObstacles && <Badge variant="secondary">Obstacles</Badge>}
-                          <Badge variant="outline">{customer.squareFootage.toLocaleString()} sq ft</Badge>
-                          <Badge variant="outline">${customer.price}</Badge>
-                          <Badge variant="outline">{customer.frequency}</Badge>
-                        </div>
-                      </div>
-
-                      <div className="flex flex-col gap-2 md:w-48">
-                        <Button
-                          variant="outline"
-                          size="lg"
-                          className="w-full"
-                          onClick={() => window.open(`https://maps.google.com/?q=${encodeURIComponent(customer.address)}`, '_blank')}
-                        >
-                          <Navigation className="h-5 w-5 mr-2" />
-                          Navigate
-                        </Button>
-                        {customer.phone && (
-                          <Button
-                            variant="outline"
-                            size="lg"
-                            className="w-full"
-                            onClick={() => window.open(`tel:${customer.phone}`, '_self')}
-                          >
-                            <Phone className="h-5 w-5 mr-2" />
-                            Call
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-
-            {/* Display existing jobs */}
+            {/* Display today's jobs first */}
             {todayJobs.length > 0 && (
-              <div className="mt-4 mb-2">
-                <h3 className="text-sm font-semibold text-green-700 uppercase tracking-wide">Scheduled Jobs</h3>
+              <div className="mb-2">
+                <h3 className="text-sm font-semibold text-green-700 uppercase tracking-wide">Today's Jobs</h3>
               </div>
             )}
-            {todayJobs.map((job) => {
+            {todayJobs.map((job, index) => {
               const customer = getCustomer(job.customerId);
               if (!customer) return null;
+              
+              // Get previous job for drive time calculation
+              const previousJob = index > 0 ? todayJobs[index - 1] : null;
+              const previousCustomer = previousJob ? getCustomer(previousJob.customerId) : null;
+              
+              // Calculate drive time based on current order
+              let driveTime: string;
+              if (previousCustomer) {
+                driveTime = estimateDriveTime(previousCustomer.address, customer.address);
+              } else if (startingAddress) {
+                driveTime = estimateDriveTime(startingAddress, customer.address);
+              } else {
+                driveTime = 'Start';
+              }
+              
 //this job.id is where i can control the colors of the background for the cards. 
             return (
               <Card key={job.id} className={`backdrop-blur ${job.status === 'completed' ? 'bg-green-50 border border-green-300' : 'bg-white/80'} ${job.status === 'completed' ? '' : ''}`}>
-                <CardContent className="pt-6">
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div className="flex-1">
-                      <div className="flex items-start justify-between mb-2">
-                        <div>
-                          <h3 className="text-green-800 mb-1">{customer.name}</h3>
-                          <div className="flex items-center gap-2 text-gray-600 mb-1">
-                            <MapPin className="h-4 w-4" />
+                <CardContent className="pt-4 pb-4 min-h-[180px] flex flex-col">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 flex-1">
+                    <div className="flex-1 flex flex-col justify-center">
+                      <div className="flex items-start justify-between mb-1.5">
+                        <div className="flex-1">
+                          <h3 className="text-green-800 mb-1 text-base">{customer.name}</h3>
+                          <div className="flex items-center gap-2 text-gray-600 mb-0.5 text-sm">
+                            <MapPin className="h-3.5 w-3.5" />
                             <span>{customer.address}</span>
                           </div>
-                          <div className="flex items-center gap-2 text-gray-600">
-                            <Clock className="h-4 w-4" />
-                            <span>{job.scheduledTime || 'Not scheduled'}</span>
+                          <div className="flex items-center gap-2 text-gray-500 text-xs">
+                            <Clock className="h-3.5 w-3.5" />
+                            <span>{driveTime} drive</span>
                           </div>
                         </div>
-                        <Badge className={
-                          job.status === 'completed' ? 'bg-green-600' :
-                          job.status === 'in-progress' ? 'bg-blue-600' :
-                          'bg-gray-600'
-                        }>
-                          {job.status === 'completed' ? 'Done' :
-                           job.status === 'in-progress' ? 'In Progress' :
-                           'Scheduled'}
-                        </Badge>
+                        {(job.status === 'completed' || job.status === 'in-progress') && (
+                          <Badge className={
+                            job.status === 'completed' ? 'bg-green-600' :
+                            job.status === 'in-progress' ? 'bg-blue-600' :
+                            'bg-gray-600'
+                          }>
+                            {job.status === 'completed' ? 'Done' :
+                             job.status === 'in-progress' ? 'In Progress' :
+                             'Scheduled'}
+                          </Badge>
+                        )}
                       </div>
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        {customer.isHilly && <Badge variant="secondary">Hilly</Badge>}
-                        {customer.hasFencing && <Badge variant="secondary">Fenced</Badge>}
-                        {customer.hasObstacles && <Badge variant="secondary">Obstacles</Badge>}
-                        <Badge variant="outline">{customer.squareFootage.toLocaleString()} sq ft</Badge>
-                        <Badge variant="outline">${customer.price}</Badge>
+                      <div className="flex flex-wrap gap-1.5 mt-1.5">
+                        {customer.isHilly && <Badge variant="secondary" className="text-xs py-0">Hilly</Badge>}
+                        {customer.hasFencing && <Badge variant="secondary" className="text-xs py-0">Fenced</Badge>}
+                        {customer.hasObstacles && <Badge variant="secondary" className="text-xs py-0">Obstacles</Badge>}
+                        <Badge variant="outline" className="text-xs py-0">{customer.squareFootage.toLocaleString()} sq ft</Badge>
+                        <Badge variant="outline" className="text-xs py-0">${customer.price}</Badge>
                       </div>
                         {/* Toggle moved to right column */}
                     </div>
 
-                      <div className="flex flex-col gap-2 md:w-48">
+                      <div className="flex flex-col gap-1.5 md:w-48 shrink-0">
 
                       {job.status === 'scheduled' && (
                         <>
                           <Button
                             onClick={() => handleStartJobClick(job)}
-                            className="bg-green-600 hover:bg-green-700 w-full"
-                            size="lg"
+                            className="bg-green-600 hover:bg-green-700 w-full h-10"
                           >
-                            <Play className="h-5 w-5 mr-2" />
+                            <Play className="h-4 w-4 mr-2" />
                             Start Job
                           </Button>
                           <Button
                             variant="outline"
-                            size="lg"
-                            className="w-full"
+                            className="w-full h-10"
                             onClick={() => window.open(`https://maps.google.com/?q=${encodeURIComponent(customer.address)}`, '_blank')}
                           >
-                            <Navigation className="h-5 w-5 mr-2" />
+                            <Navigation className="h-4 w-4 mr-2" />
                             Navigate
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="w-full"
-                            onClick={() => sendReminderMessage(job)}
-                          >
-                            <Bell className="h-4 w-4 mr-2" />
-                            Send Reminder
                           </Button>
                         </>
                       )}
@@ -529,14 +733,14 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
                         <>
                           {/* Live Timer Display */}
                           <Card className="bg-blue-50 border-blue-200">
-                            <CardContent className="pt-4 pb-4">
+                            <CardContent className="py-1.5 px-3">
                               <div className="text-center">
-                                <div className="flex items-center justify-center gap-2 mb-1">
-                                  <StopCircle className="h-5 w-5 text-blue-600 animate-pulse" />
-                                  <span className="text-blue-800">Timer Running</span>
-                                </div>
-                                <div className="text-blue-600">
-                                  {formatElapsedTime(elapsedTime[job.id] || 0)}
+                                <div className="flex items-center justify-center gap-1.5">
+                                  <StopCircle className="h-3.5 w-3.5 text-blue-600 animate-pulse" />
+                                  <span className="text-xs text-blue-800">Running</span>
+                                  <span className="text-sm text-blue-600 font-semibold ml-1">
+                                    {formatElapsedTime(elapsedTime[job.id] || 0)}
+                                  </span>
                                 </div>
                               </div>
                             </CardContent>
@@ -550,10 +754,9 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
                                   setCompletionMessage(null);
                                   setSelectedTime(null);
                                 }}
-                                className="bg-blue-600 hover:bg-blue-700 w-full"
-                                size="lg"
+                                className="bg-blue-600 hover:bg-blue-700 w-full h-10"
                               >
-                                <CheckCircle className="h-5 w-5 mr-2" />
+                                <CheckCircle className="h-4 w-4 mr-2" />
                                 Complete Job
                               </Button>
                             </DialogTrigger>
@@ -700,21 +903,20 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
                               toast.error('Failed to revert job status');
                             }
                           }}
-                          className="text-center text-green-600 hover:bg-green-50 rounded-lg p-2 transition-colors"
+                          className="text-center text-green-600 hover:bg-green-50 rounded-lg p-1.5 transition-colors"
                           title="Click to undo completion"
                         >
-                          <CheckCircle className="h-8 w-8 mx-auto mb-1" />
-                          <span>{job.totalTime} min</span>
+                          <CheckCircle className="h-6 w-6 mx-auto" />
+                          <span className="text-sm">{job.totalTime} min</span>
                         </button>
                       )}
                       {customer.phone && (
                         <Button
                           variant="outline"
-                          size="lg"
-                          className="w-full"
+                          className="w-full h-10"
                           onClick={() => window.open(`tel:${customer.phone}`, '_self')}
                         >
-                          <Phone className="h-5 w-5 mr-2" />
+                          <Phone className="h-4 w-4 mr-2" />
                           Call
                         </Button>
                       )}
@@ -724,6 +926,84 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
               </Card>
             );
           })}
+
+          {/* Display tomorrow's jobs at the bottom */}
+          {tomorrowJobs.length > 0 && (
+            <>
+              <div className="mt-6 mb-2">
+                <h3 className="text-sm font-semibold text-yellow-700 uppercase tracking-wide">Tomorrow's Jobs</h3>
+              </div>
+              {tomorrowJobs.map((job, index) => {
+                const customer = customers.find(c => c.id === job.customerId);
+                if (!customer) return null;
+
+                // Get previous job for drive time calculation
+                const previousJob = index > 0 ? tomorrowJobs[index - 1] : null;
+                const previousCustomer = previousJob ? customers.find(c => c.id === previousJob.customerId) : null;
+                const driveTime = previousCustomer 
+                  ? estimateDriveTime(previousCustomer.address, customer.address)
+                  : startingAddress 
+                    ? estimateDriveTime(startingAddress, customer.address)
+                    : 'Start';
+
+                return (
+                  <Card key={`tomorrow-${job.id}`} className="bg-yellow-50/80 backdrop-blur border-yellow-300">
+                    <CardContent className="pt-6">
+                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div className="flex-1">
+                          <div className="flex items-start justify-between mb-2">
+                            <div>
+                              <h3 className="text-green-800 mb-1">{customer.name}</h3>
+                              <div className="flex items-center gap-2 text-gray-600 mb-1">
+                                <MapPin className="h-4 w-4" />
+                                <span>{customer.address}</span>
+                              </div>
+                              <div className="flex items-center gap-2 text-yellow-600 text-sm">
+                                <Clock className="h-4 w-4" />
+                                <span>{driveTime} drive</span>
+                              </div>
+                            </div>
+                            <Badge className="bg-yellow-600">Tomorrow</Badge>
+                          </div>
+                          <div className="flex flex-wrap gap-2 mt-2">
+                            {customer.isHilly && <Badge variant="secondary">Hilly</Badge>}
+                            {customer.hasFencing && <Badge variant="secondary">Fenced</Badge>}
+                            {customer.hasObstacles && <Badge variant="secondary">Obstacles</Badge>}
+                            <Badge variant="outline">{customer.squareFootage.toLocaleString()} sq ft</Badge>
+                            <Badge variant="outline">${customer.price}</Badge>
+                            <Badge variant="outline">{customer.frequency}</Badge>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-col gap-2 md:w-48">
+                          <Button
+                            variant="outline"
+                            size="lg"
+                            className="w-full"
+                            onClick={() => window.open(`https://maps.google.com/?q=${encodeURIComponent(customer.address)}`, '_blank')}
+                          >
+                            <Navigation className="h-5 w-5 mr-2" />
+                            Navigate
+                          </Button>
+                          {customer.phone && (
+                            <Button
+                              variant="outline"
+                              size="lg"
+                              className="w-full"
+                              onClick={() => window.open(`tel:${customer.phone}`, '_self')}
+                            >
+                              <Phone className="h-5 w-5 mr-2" />
+                              Call
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </>
+          )}
           </>
         )}
       </div>

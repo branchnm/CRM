@@ -90,6 +90,7 @@ export async function addJob(job: Omit<Job, "id">): Promise<Job> {
     notes: job.notes || null,
     photo_urls: job.photoUrls || null,
     messages_sent: job.messagesSent || null,
+    order: job.order || null, // Include order field
   };
   const { data, error } = await supabase
     .from("jobs")
@@ -114,6 +115,7 @@ export async function addJob(job: Omit<Job, "id">): Promise<Job> {
     notes: data.notes || undefined,
     photoUrls: data.photo_urls || undefined,
     messagesSent: data.messages_sent || undefined,
+    order: data.order || undefined, // Return order field
   } as Job;
 }
 
@@ -134,6 +136,7 @@ export async function updateJob(job: Job): Promise<Job> {
     notes: job.notes || null,
     photo_urls: job.photoUrls || null,
     messages_sent: job.messagesSent || null,
+    order: job.order || null, // CRITICAL: Include order field!
   };
   const { data, error } = await supabase
     .from("jobs")
@@ -159,6 +162,7 @@ export async function updateJob(job: Job): Promise<Job> {
     notes: data.notes || undefined,
     photoUrls: data.photo_urls || undefined,
     messagesSent: data.messages_sent || undefined,
+    order: data.order || undefined, // CRITICAL: Return order field!
   } as Job;
 }
 
