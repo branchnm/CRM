@@ -37,6 +37,7 @@ export function CustomerManagement({ customers, onUpdateCustomers }: CustomerMan
     notes: string;
     lastCutDate: string;
     nextCutDate: string;
+    status: "incomplete" | "complete" | "inactive";
   }>({
     name: '',
     address: '',
@@ -52,6 +53,7 @@ export function CustomerManagement({ customers, onUpdateCustomers }: CustomerMan
     notes: '',
     lastCutDate: '',
     nextCutDate: '',
+    status: 'incomplete',
   });
 
   const resetForm = () => {
@@ -70,6 +72,7 @@ export function CustomerManagement({ customers, onUpdateCustomers }: CustomerMan
       notes: '',
       lastCutDate: '',
       nextCutDate: '',
+      status: 'incomplete',
     });
   };
 
@@ -95,6 +98,7 @@ export function CustomerManagement({ customers, onUpdateCustomers }: CustomerMan
         notes: formData.notes,
         lastCutDate: formData.lastCutDate || undefined,
         nextCutDate: formData.nextCutDate || undefined,
+        status: formData.status,
       };
 
       const newCustomer = await addCustomer(newCustomerData);
@@ -128,6 +132,7 @@ export function CustomerManagement({ customers, onUpdateCustomers }: CustomerMan
         notes: formData.notes,
         lastCutDate: formData.lastCutDate || undefined,
         nextCutDate: formData.nextCutDate || undefined,
+        status: formData.status,
       };
 
       const updatedCustomer = await updateCustomer(updatedCustomerData);
@@ -173,10 +178,11 @@ export function CustomerManagement({ customers, onUpdateCustomers }: CustomerMan
       hasFencing: customer.hasFencing,
       hasObstacles: customer.hasObstacles,
       frequency: customer.frequency,
-      dayOfWeek: customer.dayOfWeek?.toString() || '',
+      dayOfWeek: customer.dayOfWeek ? customer.dayOfWeek.toString() : '',
       notes: customer.notes || '',
       lastCutDate: customer.lastCutDate || '',
       nextCutDate: customer.nextCutDate || '',
+      status: customer.status || 'incomplete',
     });
   };
 

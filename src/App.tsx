@@ -12,6 +12,7 @@ import {
   Settings as SettingsIcon,
 } from "lucide-react";
 import { fetchCustomers } from "./services/customers";
+import { fetchJobs } from "./services/jobs";
 
 export interface Customer {
   id: string;
@@ -29,6 +30,7 @@ export interface Customer {
   notes?: string;
   lastCutDate?: string; // ISO date string (YYYY-MM-DD)
   nextCutDate?: string; // ISO date string (YYYY-MM-DD)
+  status?: "incomplete" | "complete" | "inactive";
 }
 
 export interface Job {
@@ -88,189 +90,30 @@ function App() {
     loadCustomers();
   }, []);
 
-  const [jobs, setJobs] = useState<Job[]>(() => {
-    const saved = localStorage.getItem("lawnCareJobs");
-    if (saved) return JSON.parse(saved);
+  // Expose a refresh function to children
+  const refreshCustomers = async () => {
+    try {
+      const data = await fetchCustomers();
+      setCustomers(data);
+    } catch (error) {
+      console.error('Failed to refresh customers:', error);
+    }
+  };
 
-    // Sample job data
-    const today = new Date().toISOString().split("T")[0];
-    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000)
-      .toISOString()
-      .split("T")[0];
-    const twoDaysAgo = new Date(
-      Date.now() - 2 * 24 * 60 * 60 * 1000,
-    )
-      .toISOString()
-      .split("T")[0];
-    const threeDaysAgo = new Date(
-      Date.now() - 3 * 24 * 60 * 60 * 1000,
-    )
-      .toISOString()
-      .split("T")[0];
-    const fourDaysAgo = new Date(
-      Date.now() - 4 * 24 * 60 * 60 * 1000,
-    )
-      .toISOString()
-      .split("T")[0];
-    const fiveDaysAgo = new Date(
-      Date.now() - 5 * 24 * 60 * 60 * 1000,
-    )
-      .toISOString()
-      .split("T")[0];
-    const sixDaysAgo = new Date(
-      Date.now() - 6 * 24 * 60 * 60 * 1000,
-    )
-      .toISOString()
-      .split("T")[0];
+  const [jobs, setJobs] = useState<Job[]>([]);
 
-    return [
-      // Today's scheduled jobs
-      {
-        id: "j1",
-        customerId: "1",
-        date: today,
-        scheduledTime: "08:00 AM",
-        status: "scheduled" as const,
-      },
-      {
-        id: "j2",
-        customerId: "4",
-        date: today,
-        scheduledTime: "09:30 AM",
-        status: "scheduled" as const,
-      },
-      {
-        id: "j3",
-        customerId: "6",
-        date: today,
-        scheduledTime: "11:00 AM",
-        status: "scheduled" as const,
-      },
-      {
-        id: "j4",
-        customerId: "9",
-        date: today,
-        scheduledTime: "01:00 PM",
-        status: "scheduled" as const,
-      },
-      {
-        id: "j5",
-        customerId: "10",
-        date: today,
-        scheduledTime: "02:30 PM",
-        status: "scheduled" as const,
-      },
-      // Yesterday's completed jobs
-      {
-        id: "j6",
-        customerId: "2",
-        date: yesterday,
-        scheduledTime: "08:00 AM",
-        status: "completed" as const,
-        totalTime: 75,
-        driveTime: 8,
-      },
-      {
-        id: "j7",
-        customerId: "5",
-        date: yesterday,
-        scheduledTime: "10:30 AM",
-        status: "completed" as const,
-        totalTime: 45,
-        driveTime: 5,
-      },
-      {
-        id: "j8",
-        customerId: "7",
-        date: yesterday,
-        scheduledTime: "12:00 PM",
-        status: "completed" as const,
-        totalTime: 95,
-        driveTime: 10,
-      },
-      // Previous days
-      {
-        id: "j9",
-        customerId: "1",
-        date: twoDaysAgo,
-        status: "completed" as const,
-        totalTime: 40,
-        driveTime: 5,
-      },
-      {
-        id: "j10",
-        customerId: "3",
-        date: twoDaysAgo,
-        status: "completed" as const,
-        totalTime: 35,
-        driveTime: 6,
-      },
-      {
-        id: "j11",
-        customerId: "4",
-        date: threeDaysAgo,
-        status: "completed" as const,
-        totalTime: 50,
-        driveTime: 4,
-      },
-      {
-        id: "j12",
-        customerId: "6",
-        date: threeDaysAgo,
-        status: "completed" as const,
-        totalTime: 42,
-        driveTime: 5,
-      },
-      {
-        id: "j13",
-        customerId: "9",
-        date: fourDaysAgo,
-        status: "completed" as const,
-        totalTime: 48,
-        driveTime: 7,
-      },
-      {
-        id: "j14",
-        customerId: "10",
-        date: fourDaysAgo,
-        status: "completed" as const,
-        totalTime: 62,
-        driveTime: 8,
-      },
-      {
-        id: "j15",
-        customerId: "2",
-        date: fiveDaysAgo,
-        status: "completed" as const,
-        totalTime: 80,
-        driveTime: 9,
-      },
-      {
-        id: "j16",
-        customerId: "5",
-        date: fiveDaysAgo,
-        status: "completed" as const,
-        totalTime: 43,
-        driveTime: 5,
-      },
-      {
-        id: "j17",
-        customerId: "7",
-        date: sixDaysAgo,
-        status: "completed" as const,
-        totalTime: 92,
-        driveTime: 10,
-      },
-      {
-        id: "j18",
-        customerId: "8",
-        date: sixDaysAgo,
-        status: "completed" as const,
-        totalTime: 38,
-        driveTime: 6,
-      },
-    ];
-  });
+  // Load jobs from Supabase on mount
+  useEffect(() => {
+    const loadJobs = async () => {
+      try {
+        const data = await fetchJobs();
+        setJobs(data);
+      } catch (error) {
+        console.error('Failed to load jobs:', error);
+      }
+    };
+    loadJobs();
+  }, []);
 
   const [messageTemplates, setMessageTemplates] = useState<
     MessageTemplate[]
@@ -340,11 +183,17 @@ function App() {
   };
 
   const updateJobs = (newJobs: Job[]) => {
+    // Local setter; service updates happen in components via jobs service
     setJobs(newJobs);
-    localStorage.setItem(
-      "lawnCareJobs",
-      JSON.stringify(newJobs),
-    );
+  };
+
+  const refreshJobs = async () => {
+    try {
+      const data = await fetchJobs();
+      setJobs(data);
+    } catch (error) {
+      console.error('Failed to refresh jobs:', error);
+    }
   };
 
   const updateMessageTemplates = (
@@ -400,6 +249,8 @@ function App() {
               equipment={equipment}
               onUpdateJobs={updateJobs}
               messageTemplates={messageTemplates}
+              onRefreshCustomers={refreshCustomers}
+              onRefreshJobs={refreshJobs}
             />
           )}
           {activeTab === "insights" && (

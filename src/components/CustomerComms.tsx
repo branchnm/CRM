@@ -24,9 +24,9 @@ export function CustomerComms({ customers, messageTemplates, onUpdateTemplates }
   const [customMessage, setCustomMessage] = useState('');
   const [isEditingTemplate, setIsEditingTemplate] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<MessageTemplate | null>(null);
-  const [templateForm, setTemplateForm] = useState({
+  const [templateForm, setTemplateForm] = useState<Pick<MessageTemplate, 'name' | 'trigger' | 'message' | 'active'>>({
     name: '',
-    trigger: 'manual' as const,
+    trigger: 'manual',
     message: '',
     active: true,
   });
@@ -248,7 +248,7 @@ export function CustomerComms({ customers, messageTemplates, onUpdateTemplates }
                     <Label htmlFor="template-trigger">Trigger</Label>
                     <Select
                       value={templateForm.trigger}
-                      onValueChange={(value: any) => setTemplateForm({ ...templateForm, trigger: value })}
+                      onValueChange={(value: MessageTemplate['trigger']) => setTemplateForm({ ...templateForm, trigger: value })}
                     >
                       <SelectTrigger id="template-trigger">
                         <SelectValue />
@@ -339,7 +339,7 @@ export function CustomerComms({ customers, messageTemplates, onUpdateTemplates }
                               <Label htmlFor="edit-template-trigger">Trigger</Label>
                               <Select
                                 value={templateForm.trigger}
-                                onValueChange={(value: any) => setTemplateForm({ ...templateForm, trigger: value })}
+                                onValueChange={(value: MessageTemplate['trigger']) => setTemplateForm({ ...templateForm, trigger: value })}
                               >
                                 <SelectTrigger id="edit-template-trigger">
                                   <SelectValue />

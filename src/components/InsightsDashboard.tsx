@@ -3,7 +3,7 @@ import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { Badge } from './ui/badge';
 import type { Customer, Job, Equipment } from '../App';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
-import { TrendingUp, Users, DollarSign, AlertTriangle, Lightbulb, Clock } from 'lucide-react';
+import { TrendingUp, Users, DollarSign, AlertTriangle, Lightbulb } from 'lucide-react';
 
 interface InsightsDashboardProps {
   customers: Customer[];
@@ -14,12 +14,26 @@ interface InsightsDashboardProps {
 export function InsightsDashboard({ customers, jobs, equipment }: InsightsDashboardProps) {
   const completedJobs = jobs.filter(j => j.status === 'completed');
 
+  // Debug info to help troubleshoot
+  console.log('Debug - Insights Dashboard:', {
+    totalJobs: jobs.length,
+    completedJobs: completedJobs.length,
+    jobs: jobs.map(j => ({ id: j.id, status: j.status, date: j.date })),
+    customers: customers.map(c => ({ id: c.id, name: c.name, nextCutDate: c.nextCutDate }))
+  });
+
   if (completedJobs.length === 0) {
     return (
       <Card className="bg-white/80 backdrop-blur">
         <CardHeader>
           <CardTitle>No Data Yet</CardTitle>
-          <CardDescription>Complete jobs to see insights and recommendations</CardDescription>
+          <CardDescription>
+            Complete jobs to see insights and recommendations
+            <br />
+            <small className="text-gray-500">
+              Debug: {jobs.length} total jobs, {completedJobs.length} completed
+            </small>
+          </CardDescription>
         </CardHeader>
       </Card>
     );

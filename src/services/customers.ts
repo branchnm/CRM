@@ -1,5 +1,6 @@
 import { supabase } from "../lib/supabase";
 import type { Customer } from "../App";
+import { calculateNextCutDate } from "../utils/dateHelpers";
 
 /**
  * Delete a customer from Supabase
@@ -45,24 +46,53 @@ export async function fetchCustomers(): Promise<Customer[]> {
     throw new Error(`Failed to fetch customers: ${error.message}`);
   }
 
+  // Helper: format Date to YYYY-MM-DD
+  const toYMD = (d: Date) => {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  // Helper: next date for a given dayOfWeek (0=Sun..6=Sat)
+  const nextForDayOfWeek = (dow: number | null | undefined): string | undefined => {
+    if (dow === null || dow === undefined) return undefined;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const delta = (dow - today.getDay() + 7) % 7; // 0 means today
+    const next = new Date(today);
+    next.setDate(today.getDate() + delta);
+    return toYMD(next);
+  };
+
   // Convert database rows (snake_case) to app format (camelCase)
-  return data.map((row: any) => ({
-    id: row.id,
-    name: row.name,
-    address: row.address,
-    phone: row.phone,
-    email: row.email,
-    squareFootage: row.square_footage,
-    price: row.price,
-    isHilly: row.is_hilly,
-    hasFencing: row.has_fencing,
-    hasObstacles: row.has_obstacles,
-    frequency: row.frequency,
-    dayOfWeek: row.day_of_week,
-    notes: row.notes,
-    lastCutDate: row.last_cut_date,
-    nextCutDate: row.next_cut_date,
-  }));
+  return data.map((row: any) => {
+    const lastCut: string | undefined = row.last_cut_date || undefined;
+    const fromDBNext: string | undefined = row.next_cut_date || undefined;
+    // Fallbacks: compute next if missing
+    const computedFromLast = calculateNextCutDate(lastCut, row.frequency as Customer["frequency"]);
+    const computedFromDow = nextForDayOfWeek(row.day_of_week);
+    const resolvedNext = fromDBNext || computedFromLast || computedFromDow;
+
+    return {
+      id: row.id,
+      name: row.name,
+      address: row.address,
+      phone: row.phone,
+      email: row.email,
+      squareFootage: row.square_footage,
+      price: row.price,
+      isHilly: row.is_hilly,
+      hasFencing: row.has_fencing,
+      hasObstacles: row.has_obstacles,
+      frequency: row.frequency,
+      dayOfWeek: row.day_of_week,
+      notes: row.notes,
+      lastCutDate: lastCut,
+      nextCutDate: resolvedNext,
+      status: row.status || "incomplete",
+    } as Customer;
+  });
 }
 
 /**
@@ -85,6 +115,7 @@ export async function addCustomer(customer: Omit<Customer, "id">): Promise<Custo
     notes: customer.notes || "",
     last_cut_date: customer.lastCutDate || null,
     next_cut_date: customer.nextCutDate || null,
+    status: customer.status || "incomplete",
   };
 
   const { data, error } = await supabase
@@ -115,6 +146,7 @@ export async function addCustomer(customer: Omit<Customer, "id">): Promise<Custo
     notes: data.notes,
     lastCutDate: data.last_cut_date,
     nextCutDate: data.next_cut_date,
+    status: data.status || "incomplete",
   };
 }
 
@@ -138,6 +170,7 @@ export async function updateCustomer(customer: Customer): Promise<Customer> {
     notes: customer.notes || "",
     last_cut_date: customer.lastCutDate || null,
     next_cut_date: customer.nextCutDate || null,
+    status: customer.status || "incomplete",
   };
 
   const { data, error } = await supabase
@@ -169,5 +202,6 @@ export async function updateCustomer(customer: Customer): Promise<Customer> {
     notes: data.notes,
     lastCutDate: data.last_cut_date,
     nextCutDate: data.next_cut_date,
+    status: data.status || "incomplete",
   };
 }

@@ -3,12 +3,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import type { Customer, Job, MessageTemplate, Equipment } from '../App';
+import { updateCustomer } from '../services/customers';
+import { addJob, updateJob } from '../services/jobs';
 import { Clock, MapPin, Navigation, CheckCircle, Play, Phone, AlertTriangle, Cloud, CloudRain, Sun, StopCircle, MessageSquare, Send, Bell } from 'lucide-react';
 import { toast } from 'sonner';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
+import { Toggle } from './ui/toggle';
 import { Textarea } from './ui/textarea';
 import { Label } from './ui/label';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from './ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from './ui/alert-dialog';
 
 interface DailyScheduleProps {
@@ -17,10 +20,11 @@ interface DailyScheduleProps {
   equipment: Equipment[];
   onUpdateJobs: (jobs: Job[]) => void;
   messageTemplates: MessageTemplate[];
+  onRefreshCustomers: () => Promise<void> | void;
+  onRefreshJobs?: () => Promise<void> | void;
 }
 
-export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messageTemplates }: DailyScheduleProps) {
-  const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messageTemplates, onRefreshCustomers, onRefreshJobs }: DailyScheduleProps) {
   const [jobNotes, setJobNotes] = useState('');
   const [elapsedTime, setElapsedTime] = useState<{ [jobId: string]: number }>({});
   const [showStartDialog, setShowStartDialog] = useState(false);
@@ -28,7 +32,8 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
   const [showNextJobDialog, setShowNextJobDialog] = useState(false);
   const [nextJobToNotify, setNextJobToNotify] = useState<Job | null>(null);
 
-  const today = new Date().toISOString().split('T')[0];
+  // Use local date (YYYY-MM-DD) to match stored nextCutDate values
+  const today = new Date().toLocaleDateString('en-CA');
   
   // Get customers who need service today based on their nextCutDate
   const customersDueToday = customers.filter(c => c.nextCutDate === today);
@@ -39,17 +44,34 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
     return a.scheduledTime.localeCompare(b.scheduledTime);
   });
 
+  // Auto-create jobs for customers due today who don't have a job yet (in Supabase)
+  useEffect(() => {
+    const ensureJobs = async () => {
+      if (customersDueToday.length === 0) return;
+      const missing = customersDueToday.filter(c => !todayJobs.some(j => j.customerId === c.id));
+      if (missing.length === 0) return;
+      try {
+        await Promise.all(
+          missing.map(c =>
+            addJob({ customerId: c.id, date: today, status: 'scheduled' })
+          )
+        );
+        await onRefreshJobs?.();
+      } catch (e) {
+        console.error('Failed to create jobs in Supabase:', e);
+        toast.error('Failed to create today\'s jobs.');
+      }
+    };
+    ensureJobs();
+  }, [customersDueToday, todayJobs, today, onRefreshJobs]);
+
   // Calculate daily stats - only count houses due TODAY
-  const customersDueWithoutJobs = customersDueToday.filter(c => 
-    !todayJobs.some(j => j.customerId === c.id)
-  ).length;
   const totalDueToday = customersDueToday.length; // Total customers whose nextCutDate is today
   const completedToday = todayJobs.filter(j => {
     // Only count completed jobs for customers that are due today
     const customer = customers.find(c => c.id === j.customerId);
     return j.status === 'completed' && customer?.nextCutDate === today;
   }).length;
-  const inProgress = todayJobs.filter(j => j.status === 'in-progress').length;
   const totalWorkTime = todayJobs
     .filter(j => j.status === 'completed' && j.totalTime)
     .reduce((sum, j) => sum + (j.totalTime || 0), 0);
@@ -121,13 +143,20 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
 
   const confirmStartJob = (shouldSendMessage: boolean) => {
     if (!pendingStartJob) return;
-
-    const updatedJobs = jobs.map(j =>
+    const startIso = new Date().toISOString();
+    const updatedLocal = jobs.map(j =>
       j.id === pendingStartJob.id
-        ? { ...j, status: 'in-progress' as const, startTime: new Date().toISOString() }
+        ? { ...j, status: 'in-progress' as const, startTime: startIso }
         : j
     );
-    onUpdateJobs(updatedJobs);
+    onUpdateJobs(updatedLocal);
+    // Persist to Supabase
+    updateJob({ ...pendingStartJob, status: 'in-progress', startTime: startIso }).catch((e) => {
+      console.error('Failed to persist job start:', e);
+      toast.error('Failed to start job in database');
+    }).finally(() => {
+      onRefreshJobs?.();
+    });
     toast.success('Timer started!');
 
     // Send "on the way" message if requested
@@ -143,19 +172,32 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
   };
 
   const handleCompleteJob = (job: Job, totalMinutes: number, notes: string, sendCompletionMessage: boolean) => {
-    const updatedJobs = jobs.map(j =>
+    const endIso = new Date().toISOString();
+    const updatedLocal = jobs.map(j =>
       j.id === job.id
         ? {
             ...j,
             status: 'completed' as const,
-            endTime: new Date().toISOString(),
+            endTime: endIso,
             totalTime: totalMinutes,
             notes: notes || j.notes,
           }
         : j
     );
-    onUpdateJobs(updatedJobs);
-    setSelectedJob(null);
+    onUpdateJobs(updatedLocal);
+    // Persist to Supabase
+    const toPersist: Job = {
+      ...job,
+      status: 'completed',
+      endTime: endIso,
+      totalTime: totalMinutes,
+      notes: notes || job.notes,
+    };
+    updateJob(toPersist).then(() => onRefreshJobs?.()).catch((e) => {
+      console.error('Failed to persist job completion:', e);
+      toast.error('Failed to save job completion');
+    });
+  // selectedJob removed; no longer needed
     setJobNotes('');
     
     // Clear elapsed time for this job
@@ -338,9 +380,26 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
                           <Badge variant="outline">${customer.price}</Badge>
                           <Badge variant="outline">{customer.frequency}</Badge>
                         </div>
+                          {/* Toggle moved to right column */}
                       </div>
 
                       <div className="flex flex-col gap-2 md:w-48">
+                        {/* Status Toggle Button for customers due today (right column) */}
+                        <Toggle
+                          pressed={(customer.status || 'incomplete') === 'complete'}
+                          onPressedChange={async (pressed) => {
+                            const newStatus = pressed ? 'complete' : 'incomplete';
+                            await updateCustomer({ ...customer, status: newStatus });
+                            toast.success(`Status updated to ${newStatus}`);
+                            await onRefreshCustomers?.();
+                          }}
+                          variant="outline"
+                          size="lg"
+                          className={`w-full border ${(customer.status || 'incomplete') === 'complete' ? 'bg-green-100 border-green-400 text-green-800 hover:bg-green-200' : 'bg-green-50 border-green-300 text-green-800 hover:bg-green-100'}`}
+                          aria-label="Mark Complete"
+                        >
+                          {(customer.status || 'incomplete') === 'complete' ? 'Completed' : 'Mark Complete'}
+                        </Toggle>
                         <Button
                           variant="outline"
                           size="lg"
@@ -379,7 +438,7 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
               if (!customer) return null;
 //this job.id is where i can control the colors of the background for the cards. 
             return (
-              <Card key={job.id} className={`bg-white/80 backdrop-blur ${job.status === 'completed' ? 'opacity-60' : ''}`}>
+              <Card key={job.id} className={`backdrop-blur ${job.status === 'completed' ? 'bg-green-50 border border-green-300' : 'bg-white/80'} ${job.status === 'completed' ? '' : ''}`}>
                 <CardContent className="pt-6">
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div className="flex-1">
@@ -412,9 +471,39 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
                         <Badge variant="outline">{customer.squareFootage.toLocaleString()} sq ft</Badge>
                         <Badge variant="outline">${customer.price}</Badge>
                       </div>
+                        {/* Toggle moved to right column */}
                     </div>
 
-                    <div className="flex flex-col gap-2 md:w-48">
+                      <div className="flex flex-col gap-2 md:w-48">
+                        {/* Status Toggle Button for scheduled jobs (right column) */}
+                        <Toggle
+                          pressed={(customer.status || 'incomplete') === 'complete'}
+                          onPressedChange={async (pressed) => {
+                            const newStatus = pressed ? 'complete' : 'incomplete';
+                            await updateCustomer({ ...customer, status: newStatus });
+                            toast.success(`Status updated to ${newStatus}`);
+                            await onRefreshCustomers?.();
+                            // Also update related job status for today in Supabase
+                            try {
+                              const updated: Job = {
+                                ...job,
+                                status: pressed ? 'completed' : 'scheduled',
+                                endTime: pressed ? new Date().toISOString() : undefined,
+                              };
+                              await updateJob(updated);
+                              await onRefreshJobs?.();
+                            } catch (e) {
+                              console.error('Failed to update job status:', e);
+                              toast.error('Failed to update job status');
+                            }
+                          }}
+                          variant="outline"
+                          size="lg"
+                          className={`w-full border ${(customer.status || 'incomplete') === 'complete' ? 'bg-green-100 border-green-400 text-green-800 hover:bg-green-200' : 'bg-green-50 border-green-300 text-green-800 hover:bg-green-100'}`}
+                          aria-label="Mark Complete"
+                        >
+                          {(customer.status || 'incomplete') === 'complete' ? 'Completed' : 'Mark Complete'}
+                        </Toggle>
                       {job.status === 'scheduled' && (
                         <>
                           <Button
@@ -466,7 +555,6 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
                             <DialogTrigger asChild>
                               <Button
                                 onClick={() => {
-                                  setSelectedJob(job);
                                   setJobNotes('');
                                 }}
                                 className="bg-blue-600 hover:bg-blue-700 w-full"

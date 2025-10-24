@@ -8,7 +8,7 @@ import type { Equipment } from '../App';
 import { Plus, Wrench, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from './ui/badge';
-import { Alert, AlertDescription, AlertTitle } from './ui/alert';
+import { Alert, AlertDescription } from './ui/alert';
 
 interface SettingsProps {
   equipment: Equipment[];
