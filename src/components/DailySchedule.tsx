@@ -6,6 +6,8 @@ import type { Customer, Job, MessageTemplate, Equipment } from '../App';
 import { updateCustomer } from '../services/customers';
 import { addJob, updateJob } from '../services/jobs';
 import { smsService } from '../services/sms';
+import { getDriveTime } from '../services/googleMaps';
+import { optimizeRoute as optimizeRouteWithGoogleMaps } from '../services/routeOptimizer';
 import { Clock, MapPin, Navigation, CheckCircle, Play, Phone, AlertTriangle, Cloud, CloudRain, Sun, StopCircle, MessageSquare, Send, Route } from 'lucide-react';
 import { toast } from 'sonner';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
@@ -14,7 +16,6 @@ import { Label } from './ui/label';
 import { Input } from './ui/input';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from './ui/alert-dialog';
-import { optimizeRoute, assignRouteOrder } from '../utils/routeOptimization';
 
 interface DailyScheduleProps {
   customers: Customer[];
@@ -40,6 +41,7 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
     return localStorage.getItem('routeStartingAddress') || '';
   });
   const [tempStartingAddress, setTempStartingAddress] = useState(startingAddress);
+  const [driveTimesCache, setDriveTimesCache] = useState<Map<string, string>>(new Map());
 
   // Use local date (YYYY-MM-DD) to match stored nextCutDate values
   const today = new Date().toLocaleDateString('en-CA');
@@ -202,49 +204,129 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
     return `${mins}m`;
   };
 
-  // Estimate drive time between two addresses (simple estimation)
+  // Estimate drive time between two addresses (with Google Maps API integration)
   const estimateDriveTime = (address1: string, address2: string): string => {
-    // Simple distance estimation based on address components
-    // In production, you'd use Google Maps Distance Matrix API
+    // Check cache first
+    const cacheKey = `${address1}|${address2}`;
+    if (driveTimesCache.has(cacheKey)) {
+      return driveTimesCache.get(cacheKey)!;
+    }
+
+    // Return fallback immediately for rendering
+    // Real API call happens in background useEffect
+    return estimateDriveTimeFallback(address1, address2);
+  };
+
+  // Fetch real drive times from Google Maps API in background
+  useEffect(() => {
+    const fetchDriveTimes = async () => {
+      if (todayJobs.length === 0) return;
+
+      const pairs: Array<{ from: string; to: string }> = [];
+
+      // Collect all address pairs that need drive time calculation
+      todayJobs.forEach((job, index) => {
+        const customer = getCustomer(job.customerId);
+        if (!customer) return;
+
+        if (index === 0 && startingAddress) {
+          // First job - from starting address
+          pairs.push({ from: startingAddress, to: customer.address });
+        } else if (index > 0) {
+          // Subsequent jobs - from previous job
+          const prevJob = todayJobs[index - 1];
+          const prevCustomer = getCustomer(prevJob.customerId);
+          if (prevCustomer) {
+            pairs.push({ from: prevCustomer.address, to: customer.address });
+          }
+        }
+      });
+
+      // Fetch drive times for uncached pairs
+      const newCache = new Map(driveTimesCache);
+      for (const { from, to } of pairs) {
+        const cacheKey = `${from}|${to}`;
+        if (!newCache.has(cacheKey)) {
+          try {
+            const result = await getDriveTime(from, to);
+            if (result) {
+              newCache.set(cacheKey, `${result.durationMinutes} min`);
+            }
+          } catch (error) {
+            // Silently fail and use fallback
+          }
+        }
+      }
+
+      setDriveTimesCache(newCache);
+    };
+
+    fetchDriveTimes();
+  }, [todayJobs.length, startingAddress]); // Re-fetch when jobs or starting address changes
+
+  // Fallback estimation method (improved estimation)
+  const estimateDriveTimeFallback = (address1: string, address2: string): string => {
+    // Better distance estimation based on address components
+    // For production accuracy, integrate Google Maps Distance Matrix API
     
-    // Extract street number and name
+    // Extract street number, name, and type
     const parseAddress = (addr: string) => {
-      const match = addr.match(/^(\d+)\s+(.+?)(?:\s+(?:Birmingham|AL|,).*)?$/i);
+      // Match: number + street name + street type (Lane, Drive, Street, etc)
+      const match = addr.match(/^(\d+)\s+([\w\s]+?)\s+(Lane|Drive|Street|Road|Avenue|Circle|Court|Way|Boulevard|Cir|Dr|St|Rd|Ave|Ln|Blvd)(?:\s|,|$)/i);
       if (match) {
         return {
           number: parseInt(match[1]),
-          street: match[2].toLowerCase().replace(/[^a-z0-9\s]/g, '').trim()
+          name: match[2].toLowerCase().trim(),
+          type: match[3].toLowerCase(),
+          fullStreet: `${match[2]} ${match[3]}`.toLowerCase().trim()
         };
       }
-      return { number: 0, street: addr.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim() };
+      return { 
+        number: 0, 
+        name: addr.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim(),
+        type: '',
+        fullStreet: addr.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim()
+      };
     };
     
     const addr1 = parseAddress(address1);
     const addr2 = parseAddress(address2);
     
-    // Same street - calculate based on house number difference
-    if (addr1.street === addr2.street) {
+    // Same exact street - calculate based on house number difference
+    if (addr1.fullStreet === addr2.fullStreet) {
       const numberDiff = Math.abs(addr1.number - addr2.number);
-      if (numberDiff < 100) return '2 min';
-      if (numberDiff < 300) return '3 min';
-      if (numberDiff < 500) return '4 min';
-      return '5 min';
+      if (numberDiff < 50) return '2 min';
+      if (numberDiff < 200) return '3 min';
+      if (numberDiff < 400) return '5 min';
+      return '7 min';
     }
     
-    // Different streets - check if street names are similar
-    const streetSimilarity = addr1.street.split(' ').some(word => 
-      addr2.street.includes(word) && word.length > 3
-    );
+    // Check if street names share common words (might be parallel/intersecting streets)
+    const name1Words = addr1.name.split(/\s+/);
+    const name2Words = addr2.name.split(/\s+/);
+    const sharedWords = name1Words.filter(w => w.length > 3 && name2Words.includes(w));
     
-    if (streetSimilarity) return '5 min';
+    if (sharedWords.length > 0) {
+      // Similar street names suggest nearby area
+      return '8 min';
+    }
     
-    // Completely different areas - estimate based on combined factors
+    // Different streets - use house number differential as rough distance proxy
+    // Larger number difference suggests further apart geographically
     const numberDiff = Math.abs(addr1.number - addr2.number);
-    if (numberDiff < 500) return '6 min';
-    if (numberDiff < 1000) return '8 min';
-    if (numberDiff < 2000) return '10 min';
-    if (numberDiff < 3000) return '12 min';
-    return '15 min';
+    
+    // Also consider if they're same street type in same numbering area
+    if (addr1.type === addr2.type && numberDiff < 200) {
+      return '10 min';
+    }
+    
+    // General distance estimation based on address number spread
+    if (numberDiff < 100) return '8 min';
+    if (numberDiff < 300) return '12 min';
+    if (numberDiff < 500) return '15 min';
+    if (numberDiff < 1000) return '18 min';
+    if (numberDiff < 2000) return '22 min';
+    return '25 min';
   };
 
   const sendMessage = async (customer: Customer, templateType: 'starting' | 'on-the-way' | 'completed' | 'scheduled') => {
@@ -405,7 +487,7 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
     }
 
     try {
-      toast.loading('Optimizing route...', { id: 'optimize-route' });
+      toast.loading('Calculating optimal route with Google Maps...', { id: 'optimize-route' });
       
       // Get only scheduled jobs for today (don't reorder in-progress or completed)
       const scheduledJobs = todayJobs.filter(j => j.status === 'scheduled');
@@ -421,25 +503,49 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
         return;
       }
 
-      console.log('=== STARTING ROUTE OPTIMIZATION ===');
+      console.log('=== STARTING ROUTE OPTIMIZATION WITH GOOGLE MAPS ===');
       console.log('Optimizing', scheduledJobs.length, 'scheduled jobs');
       console.log('Starting address:', startingAddress);
       
-      // Optimize the route for scheduled jobs only
-      const optimizedScheduledJobs = await optimizeRoute(scheduledJobs, customers, startingAddress);
+      // Convert jobs to the format expected by optimizeRoute
+      const jobsWithAddresses = scheduledJobs.map(job => {
+        const customer = customers.find(c => c.id === job.customerId);
+        return {
+          id: job.id,
+          address: customer?.address || '',
+          order: job.order
+        };
+      });
       
-      // Assign new order numbers starting from 1
-      const scheduledWithNewOrder = assignRouteOrder(optimizedScheduledJobs);
+      // Optimize the route using Google Maps
+      const optimizedRoute = await optimizeRouteWithGoogleMaps(startingAddress, jobsWithAddresses);
+      
+      console.log('=== OPTIMIZATION RESULTS ===');
+      console.log(`Total Duration: ${optimizedRoute.totalDurationText}`);
+      console.log(`Total Distance: ${optimizedRoute.totalDistanceText}`);
+      console.log('Route segments:');
+      optimizedRoute.segments.forEach((seg, i) => {
+        console.log(`  ${i + 1}. ${seg.fromAddress} → ${seg.toAddress}: ${seg.durationText}, ${seg.distanceText}`);
+      });
+      
+      // Map the optimized jobs back to the original job objects with new order
+      const optimizedJobsWithData = optimizedRoute.jobs.map(optimizedJob => {
+        const originalJob = scheduledJobs.find(j => j.id === optimizedJob.id);
+        return {
+          ...originalJob!,
+          order: optimizedJob.order
+        };
+      });
       
       // Keep non-scheduled jobs with their existing order (or put at end)
-      const maxScheduledOrder = scheduledWithNewOrder.length;
+      const maxScheduledOrder = optimizedJobsWithData.length;
       const nonScheduledWithOrder = nonScheduledJobs.map((job, index) => ({
         ...job,
         order: (job.order && job.order > maxScheduledOrder) ? job.order : maxScheduledOrder + index + 1
       }));
       
       // Combine all jobs
-      const allJobsWithNewOrder = [...scheduledWithNewOrder, ...nonScheduledWithOrder];
+      const allJobsWithNewOrder = [...optimizedJobsWithData, ...nonScheduledWithOrder];
       
       console.log('=== NEW JOB ORDER ===');
       allJobsWithNewOrder.forEach(j => {
@@ -481,14 +587,17 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
       
       console.log('=== ROUTE OPTIMIZATION COMPLETE ===');
       
-      toast.success(`Route optimized! ${scheduledWithNewOrder.length} stops reordered`, { 
+      toast.success(`Route optimized! ${optimizedJobsWithData.length} stops reordered`, { 
         id: 'optimize-route',
-        description: 'Jobs are now sorted by optimal driving route'
+        description: `${optimizedRoute.totalDurationText} driving, ${optimizedRoute.totalDistanceText} total`
       });
     } catch (error) {
       console.error('=== ROUTE OPTIMIZATION FAILED ===');
       console.error('Error details:', error);
-      toast.error('Failed to optimize route', { id: 'optimize-route' });
+      toast.error('Failed to optimize route', { 
+        id: 'optimize-route',
+        description: 'Check console for details'
+      });
     }
   };
 
