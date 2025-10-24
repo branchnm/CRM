@@ -556,6 +556,42 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
                                   </div>
                                 </div>
 
+                                {/* Time selection */}
+                                <div>
+                                  <Label className="text-gray-700 mb-3 block">Select time:</Label>
+                                  <div className="grid grid-cols-3 gap-2">
+                                    <Button
+                                      variant={selectedTime === null ? 'default' : 'outline'}
+                                      onClick={() => setSelectedTime(null)}
+                                      className={`h-12 ${selectedTime === null ? 'bg-blue-600 text-white' : 'hover:bg-blue-100 hover:border-blue-300'}`}
+                                    >
+                                      Auto: {formatElapsedTime(elapsedTime[job.id] || 0)}
+                                    </Button>
+                                    {[15, 30, 45, 60, 90, 120].map(min => (
+                                      <Button
+                                        key={min}
+                                        variant={selectedTime === min ? 'default' : 'outline'}
+                                        onClick={() => setSelectedTime(min)}
+                                        className={`h-12 ${selectedTime === min ? 'bg-blue-600 text-white' : 'hover:bg-blue-100 hover:border-blue-300'}`}
+                                      >
+                                        {min} min
+                                      </Button>
+                                    ))}
+                                  </div>
+                                </div>
+
+                                {/* Notes section */}
+                                <div className="space-y-2">
+                                  <Label htmlFor="notes">Notes (optional)</Label>
+                                  <Textarea
+                                    id="notes"
+                                    value={jobNotes}
+                                    onChange={(e) => setJobNotes(e.target.value)}
+                                    placeholder="Any issues or observations..."
+                                    rows={3}
+                                  />
+                                </div>
+
                                 {/* Messaging prompt */}
                                 <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
                                   <div className="flex items-center gap-2 mb-2">
@@ -565,7 +601,7 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
                                   <div className="flex gap-2">
                                     <Button
                                       onClick={() => setCompletionMessage(true)}
-                                      className={`flex-1 ${completionMessage === true ? 'bg-green-600 text-white' : 'bg-green-100 hover:bg-green-200 text-green-800'}`}
+                                      className={`flex-1 ${completionMessage === true ? 'bg-green-600 text-white hover:bg-green-700' : 'hover:bg-green-100 hover:border-green-300'}`}
                                       variant={completionMessage === true ? 'default' : 'outline'}
                                       size="lg"
                                     >
@@ -574,7 +610,7 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
                                     </Button>
                                     <Button
                                       onClick={() => setCompletionMessage(false)}
-                                      className={`flex-1 ${completionMessage === false ? 'bg-gray-600 text-white' : 'hover:bg-gray-100'}`}
+                                      className={`flex-1 ${completionMessage === false ? 'bg-green-600 text-white hover:bg-green-700' : 'hover:bg-green-100 hover:border-green-300'}`}
                                       variant={completionMessage === false ? 'default' : 'outline'}
                                       size="lg"
                                     >
@@ -583,33 +619,9 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
                                   </div>
                                 </div>
 
-                                {/* Manual time override */}
-                                <div className="pt-4 border-t">
-                                  <Label className="text-gray-700 mb-3 block">Select time:</Label>
-                                  <div className="grid grid-cols-3 gap-2">
-                                    <Button
-                                      variant={selectedTime === null ? 'default' : 'outline'}
-                                      onClick={() => setSelectedTime(null)}
-                                      className={`h-12 ${selectedTime === null ? 'bg-blue-600 text-white' : ''}`}
-                                    >
-                                      Auto: {formatElapsedTime(elapsedTime[job.id] || 0)}
-                                    </Button>
-                                    {[15, 30, 45, 60, 90, 120].map(min => (
-                                      <Button
-                                        key={min}
-                                        variant={selectedTime === min ? 'default' : 'outline'}
-                                        onClick={() => setSelectedTime(min)}
-                                        className={`h-12 ${selectedTime === min ? 'bg-blue-600 text-white' : ''}`}
-                                      >
-                                        {min} min
-                                      </Button>
-                                    ))}
-                                  </div>
-                                </div>
-
-                                {/* Complete button - only show when both message and time are selected */}
+                                {/* Complete button - only show when message option is selected */}
                                 {completionMessage !== null && (
-                                  <div className="pt-4 border-t">
+                                  <div className="pt-2">
                                     <Button
                                       onClick={() => {
                                         const timeToUse = selectedTime !== null ? selectedTime : (elapsedTime[job.id] || 0);
@@ -626,17 +638,6 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
                                     </Button>
                                   </div>
                                 )}
-
-                                <div className="space-y-2">
-                                  <Label htmlFor="notes">Notes (optional)</Label>
-                                  <Textarea
-                                    id="notes"
-                                    value={jobNotes}
-                                    onChange={(e) => setJobNotes(e.target.value)}
-                                    placeholder="Any issues or observations..."
-                                    rows={3}
-                                  />
-                                </div>
                               </div>
                             </DialogContent>
                           </Dialog>
