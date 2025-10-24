@@ -687,20 +687,20 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
       {todayJobs.filter(j => j.status === 'scheduled').length > 1 && (
         <Card className="bg-blue-50/80 backdrop-blur border-blue-200">
           <CardContent className="pt-4 pb-4">
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-2">
-                <Route className="h-5 w-5 text-blue-600" />
-                <div>
+            <div className="flex flex-col gap-3">
+              <div className="flex items-start gap-2">
+                <Route className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
+                <div className="min-w-0 flex-1">
                   <p className="font-medium text-blue-900">Route Optimization</p>
-                  <p className="text-sm text-blue-700">
+                  <p className="text-sm text-blue-700 wrap-break-word">
                     {startingAddress ? `Starting from: ${startingAddress}` : 'Set starting address to optimize route'}
                   </p>
                 </div>
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <Dialog open={showRouteDialog} onOpenChange={setShowRouteDialog}>
                   <DialogTrigger asChild>
-                    <Button variant="outline" size="sm">
+                    <Button variant="outline" size="sm" className="w-full sm:w-auto">
                       <MapPin className="h-4 w-4 mr-2" />
                       {startingAddress ? 'Change Start' : 'Set Start'}
                     </Button>
@@ -730,7 +730,7 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
                 </Dialog>
                 <Button 
                   onClick={handleOptimizeRoute}
-                  className="bg-blue-600 hover:bg-blue-700"
+                  className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto"
                   size="sm"
                   disabled={!startingAddress}
                 >
