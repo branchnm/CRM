@@ -23,6 +23,7 @@ export async function fetchJobs(date?: string): Promise<Job[]> {
     notes: row.notes || undefined,
     photoUrls: row.photo_urls || undefined,
     messagesSent: row.messages_sent || undefined,
+    order: row.order || undefined,
   }));
 }
 
@@ -44,6 +45,7 @@ export async function upsertJob(job: Omit<Job, "id"> & { id?: string }): Promise
     notes: job.notes || null,
     photo_urls: job.photoUrls || null,
     messages_sent: job.messagesSent || null,
+    order: job.order || null,
   };
   const { data, error } = await supabase
     .from("jobs")

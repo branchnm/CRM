@@ -50,6 +50,7 @@ export interface Job {
   notes?: string;
   photoUrls?: string[];
   messagesSent?: string[];
+  order?: number; // for maintaining stable sort order
 }
 
 export interface MessageTemplate {

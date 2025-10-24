@@ -8,7 +8,6 @@ import { addJob, updateJob } from '../services/jobs';
 import { Clock, MapPin, Navigation, CheckCircle, Play, Phone, AlertTriangle, Cloud, CloudRain, Sun, StopCircle, MessageSquare, Send, Bell } from 'lucide-react';
 import { toast } from 'sonner';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
-import { Toggle } from './ui/toggle';
 import { Textarea } from './ui/textarea';
 import { Label } from './ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
@@ -31,6 +30,8 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
   const [pendingStartJob, setPendingStartJob] = useState<Job | null>(null);
   const [showNextJobDialog, setShowNextJobDialog] = useState(false);
   const [nextJobToNotify, setNextJobToNotify] = useState<Job | null>(null);
+  const [completionMessage, setCompletionMessage] = useState<boolean | null>(null);
+  const [selectedTime, setSelectedTime] = useState<number | null>(null);
 
   // Use local date (YYYY-MM-DD) to match stored nextCutDate values
   const today = new Date().toLocaleDateString('en-CA');
@@ -38,8 +39,14 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
   // Get customers who need service today based on their nextCutDate
   const customersDueToday = customers.filter(c => c.nextCutDate === today);
   
-  // Combine existing jobs with customers due today
+  // Combine existing jobs with customers due today - sort by order, then by scheduled time
   const todayJobs = jobs.filter(j => j.date === today).sort((a, b) => {
+    // Primary sort: by order field (lower numbers first)
+    const orderA = a.order || 999;
+    const orderB = b.order || 999;
+    if (orderA !== orderB) return orderA - orderB;
+    
+    // Secondary sort: by scheduled time if available
     if (!a.scheduledTime || !b.scheduledTime) return 0;
     return a.scheduledTime.localeCompare(b.scheduledTime);
   });
@@ -51,9 +58,17 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
       const missing = customersDueToday.filter(c => !todayJobs.some(j => j.customerId === c.id));
       if (missing.length === 0) return;
       try {
+        // Calculate next order number based on existing jobs
+        const maxOrder = Math.max(0, ...todayJobs.map(j => j.order || 0));
+        
         await Promise.all(
-          missing.map(c =>
-            addJob({ customerId: c.id, date: today, status: 'scheduled' })
+          missing.map((c, index) =>
+            addJob({ 
+              customerId: c.id, 
+              date: today, 
+              status: 'scheduled',
+              order: maxOrder + index + 1
+            })
           )
         );
         await onRefreshJobs?.();
@@ -380,26 +395,9 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
                           <Badge variant="outline">${customer.price}</Badge>
                           <Badge variant="outline">{customer.frequency}</Badge>
                         </div>
-                          {/* Toggle moved to right column */}
                       </div>
 
                       <div className="flex flex-col gap-2 md:w-48">
-                        {/* Status Toggle Button for customers due today (right column) */}
-                        <Toggle
-                          pressed={(customer.status || 'incomplete') === 'complete'}
-                          onPressedChange={async (pressed) => {
-                            const newStatus = pressed ? 'complete' : 'incomplete';
-                            await updateCustomer({ ...customer, status: newStatus });
-                            toast.success(`Status updated to ${newStatus}`);
-                            await onRefreshCustomers?.();
-                          }}
-                          variant="outline"
-                          size="lg"
-                          className={`w-full border ${(customer.status || 'incomplete') === 'complete' ? 'bg-green-100 border-green-400 text-green-800 hover:bg-green-200' : 'bg-green-50 border-green-300 text-green-800 hover:bg-green-100'}`}
-                          aria-label="Mark Complete"
-                        >
-                          {(customer.status || 'incomplete') === 'complete' ? 'Completed' : 'Mark Complete'}
-                        </Toggle>
                         <Button
                           variant="outline"
                           size="lg"
@@ -475,35 +473,7 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
                     </div>
 
                       <div className="flex flex-col gap-2 md:w-48">
-                        {/* Status Toggle Button for scheduled jobs (right column) */}
-                        <Toggle
-                          pressed={(customer.status || 'incomplete') === 'complete'}
-                          onPressedChange={async (pressed) => {
-                            const newStatus = pressed ? 'complete' : 'incomplete';
-                            await updateCustomer({ ...customer, status: newStatus });
-                            toast.success(`Status updated to ${newStatus}`);
-                            await onRefreshCustomers?.();
-                            // Also update related job status for today in Supabase
-                            try {
-                              const updated: Job = {
-                                ...job,
-                                status: pressed ? 'completed' : 'scheduled',
-                                endTime: pressed ? new Date().toISOString() : undefined,
-                              };
-                              await updateJob(updated);
-                              await onRefreshJobs?.();
-                            } catch (e) {
-                              console.error('Failed to update job status:', e);
-                              toast.error('Failed to update job status');
-                            }
-                          }}
-                          variant="outline"
-                          size="lg"
-                          className={`w-full border ${(customer.status || 'incomplete') === 'complete' ? 'bg-green-100 border-green-400 text-green-800 hover:bg-green-200' : 'bg-green-50 border-green-300 text-green-800 hover:bg-green-100'}`}
-                          aria-label="Mark Complete"
-                        >
-                          {(customer.status || 'incomplete') === 'complete' ? 'Completed' : 'Mark Complete'}
-                        </Toggle>
+
                       {job.status === 'scheduled' && (
                         <>
                           <Button
@@ -556,6 +526,8 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
                               <Button
                                 onClick={() => {
                                   setJobNotes('');
+                                  setCompletionMessage(null);
+                                  setSelectedTime(null);
                                 }}
                                 className="bg-blue-600 hover:bg-blue-700 w-full"
                                 size="lg"
@@ -592,17 +564,18 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
                                   </div>
                                   <div className="flex gap-2">
                                     <Button
-                                      onClick={() => handleCompleteJob(job, elapsedTime[job.id] || 0, jobNotes, true)}
-                                      className="flex-1 bg-green-600 hover:bg-green-700"
+                                      onClick={() => setCompletionMessage(true)}
+                                      className={`flex-1 ${completionMessage === true ? 'bg-green-600 text-white' : 'bg-green-100 hover:bg-green-200 text-green-800'}`}
+                                      variant={completionMessage === true ? 'default' : 'outline'}
                                       size="lg"
                                     >
                                       <Send className="h-4 w-4 mr-2" />
-                                      Complete & Send
+                                      Send Message
                                     </Button>
                                     <Button
-                                      onClick={() => handleCompleteJob(job, elapsedTime[job.id] || 0, jobNotes, false)}
-                                      variant="outline"
-                                      className="flex-1"
+                                      onClick={() => setCompletionMessage(false)}
+                                      className={`flex-1 ${completionMessage === false ? 'bg-gray-600 text-white' : 'hover:bg-gray-100'}`}
+                                      variant={completionMessage === false ? 'default' : 'outline'}
                                       size="lg"
                                     >
                                       Skip Message
@@ -612,20 +585,47 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
 
                                 {/* Manual time override */}
                                 <div className="pt-4 border-t">
-                                  <Label className="text-gray-700 mb-3 block">Use different time:</Label>
+                                  <Label className="text-gray-700 mb-3 block">Select time:</Label>
                                   <div className="grid grid-cols-3 gap-2">
+                                    <Button
+                                      variant={selectedTime === null ? 'default' : 'outline'}
+                                      onClick={() => setSelectedTime(null)}
+                                      className={`h-12 ${selectedTime === null ? 'bg-blue-600 text-white' : ''}`}
+                                    >
+                                      Auto: {formatElapsedTime(elapsedTime[job.id] || 0)}
+                                    </Button>
                                     {[15, 30, 45, 60, 90, 120].map(min => (
                                       <Button
                                         key={min}
-                                        variant="outline"
-                                        onClick={() => handleCompleteJob(job, min, jobNotes, true)}
-                                        className="h-12"
+                                        variant={selectedTime === min ? 'default' : 'outline'}
+                                        onClick={() => setSelectedTime(min)}
+                                        className={`h-12 ${selectedTime === min ? 'bg-blue-600 text-white' : ''}`}
                                       >
                                         {min} min
                                       </Button>
                                     ))}
                                   </div>
                                 </div>
+
+                                {/* Complete button - only show when both message and time are selected */}
+                                {completionMessage !== null && (
+                                  <div className="pt-4 border-t">
+                                    <Button
+                                      onClick={() => {
+                                        const timeToUse = selectedTime !== null ? selectedTime : (elapsedTime[job.id] || 0);
+                                        handleCompleteJob(job, timeToUse, jobNotes, completionMessage);
+                                        // Reset state
+                                        setCompletionMessage(null);
+                                        setSelectedTime(null);
+                                      }}
+                                      className="w-full bg-green-600 hover:bg-green-700"
+                                      size="lg"
+                                    >
+                                      <CheckCircle className="h-5 w-5 mr-2" />
+                                      Complete Job
+                                    </Button>
+                                  </div>
+                                )}
 
                                 <div className="space-y-2">
                                   <Label htmlFor="notes">Notes (optional)</Label>
@@ -643,10 +643,47 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
                         </>
                       )}
                       {job.status === 'completed' && (
-                        <div className="text-center text-green-600">
+                        <button
+                          onClick={async () => {
+                            // Undo completion - revert to scheduled
+                            const revertedLocal = jobs.map(j =>
+                              j.id === job.id
+                                ? { ...j, status: 'scheduled' as const, endTime: undefined, totalTime: undefined }
+                                : j
+                            );
+                            onUpdateJobs(revertedLocal);
+                            
+                            // Persist to Supabase
+                            const toRevert: Job = {
+                              ...job,
+                              status: 'scheduled',
+                              endTime: undefined,
+                              totalTime: undefined,
+                            };
+                            
+                            try {
+                              await updateJob(toRevert);
+                              await onRefreshJobs?.();
+                              
+                              // Also revert customer status
+                              const customer = customers.find(c => c.id === job.customerId);
+                              if (customer) {
+                                await updateCustomer({ ...customer, status: 'incomplete' });
+                                await onRefreshCustomers?.();
+                              }
+                              
+                              toast.success('Job reverted to scheduled');
+                            } catch (e) {
+                              console.error('Failed to revert job:', e);
+                              toast.error('Failed to revert job status');
+                            }
+                          }}
+                          className="text-center text-green-600 hover:bg-green-50 rounded-lg p-2 transition-colors"
+                          title="Click to undo completion"
+                        >
                           <CheckCircle className="h-8 w-8 mx-auto mb-1" />
                           <span>{job.totalTime} min</span>
-                        </div>
+                        </button>
                       )}
                       {customer.phone && (
                         <Button
