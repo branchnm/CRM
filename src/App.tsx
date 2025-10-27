@@ -4,12 +4,14 @@ import { CustomerComms } from "./components/CustomerComms";
 import { InsightsDashboard } from "./components/InsightsDashboard";
 import { CustomerManagement } from "./components/CustomerManagement";
 import { Settings } from "./components/Settings";
+import { WeatherForecast } from "./components/WeatherForecast";
 import {
   Calendar,
   MessageSquare,
   TrendingUp,
   Users,
   Settings as SettingsIcon,
+  CloudRain,
 } from "lucide-react";
 import { fetchCustomers } from "./services/customers";
 import { fetchJobs } from "./services/jobs";
@@ -211,6 +213,15 @@ function App() {
     setJobs(newJobs);
   };
 
+  const handleRescheduleJob = (jobId: string, newDate: string) => {
+    const updatedJobs = jobs.map(job => 
+      job.id === jobId 
+        ? { ...job, date: newDate }
+        : job
+    );
+    updateJobs(updatedJobs);
+  };
+
   const refreshJobs = async () => {
     try {
       const data = await fetchJobs();
@@ -240,6 +251,7 @@ function App() {
 
   const navItems = [
     { id: "schedule", label: "Today", icon: Calendar },
+    { id: "forecast", label: "Forecast", icon: CloudRain },
     { id: "insights", label: "Insights", icon: TrendingUp },
     { id: "customers", label: "Customers", icon: Users },
     { id: "messages", label: "Messages", icon: MessageSquare },
@@ -277,6 +289,13 @@ function App() {
               onRefreshJobs={refreshJobs}
             />
           )}
+          {activeTab === "forecast" && (
+            <WeatherForecast 
+              jobs={jobs}
+              customers={customers}
+              onRescheduleJob={handleRescheduleJob}
+            />
+          )}
           {activeTab === "insights" && (
             <InsightsDashboard
               customers={customers}
@@ -288,6 +307,7 @@ function App() {
             <CustomerManagement
               customers={customers}
               onUpdateCustomers={updateCustomers}
+              onRefreshCustomers={refreshCustomers}
             />
           )}
           {activeTab === "messages" && (
@@ -308,7 +328,7 @@ function App() {
 
       {/* Mobile Bottom Navigation */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 md:hidden">
-        <div className="grid grid-cols-5 gap-1">
+        <div className="grid grid-cols-6 gap-1">
           {navItems.map((item) => (
             <button
               key={item.id}

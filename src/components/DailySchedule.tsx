@@ -2,13 +2,15 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
+import { JobCalendar } from './JobCalendar';
 import type { Customer, Job, MessageTemplate, Equipment } from '../App';
 import { updateCustomer } from '../services/customers';
 import { addJob, updateJob } from '../services/jobs';
 import { smsService } from '../services/sms';
 import { getDriveTime } from '../services/googleMaps';
 import { optimizeRoute as optimizeRouteWithGoogleMaps } from '../services/routeOptimizer';
-import { Clock, MapPin, Navigation, CheckCircle, Play, Phone, AlertTriangle, Cloud, CloudRain, Sun, StopCircle, MessageSquare, Send, Route } from 'lucide-react';
+import { Clock, MapPin, Navigation, CheckCircle, Play, Phone, AlertTriangle, Cloud, CloudRain, Sun, StopCircle, MessageSquare, Send, Route, CalendarDays } from 'lucide-react';
 import { toast } from 'sonner';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { Textarea } from './ui/textarea';
@@ -83,7 +85,7 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
       
       if (missing.length === 0) return;
       
-      console.log('Auto-creating jobs for', missing.length, 'customers');
+      console.log('Auto-creating jobs for', missing.length, 'customers:', missing.map(c => c.name));
       
       try {
         // Calculate next order number based on ALL jobs (not just today's filtered list)
@@ -101,15 +103,17 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
           )
         );
         
-        // Only refresh if we actually created jobs
+        // Refresh both customers and jobs from database
+        console.log('Jobs created successfully, refreshing data...');
         await onRefreshJobs?.();
+        await onRefreshCustomers();
       } catch (e) {
         console.error('Failed to create jobs in Supabase:', e);
         toast.error('Failed to create today\'s jobs.');
       }
     };
     ensureJobs();
-  }, [customersDueToday.length, jobs.length, today]); // Only run when counts change, not on every job update
+  }, [customersDueToday.length, today]); // Removed jobs.length to avoid infinite loops
 
   // Auto-create jobs for customers due tomorrow who don't have a job yet (in Supabase)
   useEffect(() => {
@@ -150,13 +154,9 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
     ensureTomorrowJobs();
   }, [customersDueTomorrow.length, jobs.length, tomorrowDate]); // Only run when counts change, not on every job update
 
-  // Calculate daily stats - only count houses due TODAY
-  const totalDueToday = customersDueToday.length; // Total customers whose nextCutDate is today
-  const completedToday = todayJobs.filter(j => {
-    // Only count completed jobs for customers that are due today
-    const customer = customers.find(c => c.id === j.customerId);
-    return j.status === 'completed' && customer?.nextCutDate === today;
-  }).length;
+  // Calculate daily stats
+  const totalDueToday = todayJobs.length; // Total jobs scheduled for today
+  const completedToday = todayJobs.filter(j => j.status === 'completed').length;
   const totalWorkTime = todayJobs
     .filter(j => j.status === 'completed' && j.totalTime)
     .reduce((sum, j) => sum + (j.totalTime || 0), 0);
@@ -448,12 +448,48 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
       delete newElapsed[job.id];
       return newElapsed;
     });
+
+    // Update customer's lastCutDate and nextCutDate
+    const customer = customers.find(c => c.id === job.customerId);
+    if (customer) {
+      const completedDate = job.date; // Use the job's scheduled date as the cut date
+      
+      // Calculate next cut date based on frequency
+      const nextDate = new Date(completedDate);
+      switch (customer.frequency) {
+        case 'weekly':
+          nextDate.setDate(nextDate.getDate() + 7);
+          break;
+        case 'biweekly':
+          nextDate.setDate(nextDate.getDate() + 14);
+          break;
+        case 'monthly':
+          nextDate.setMonth(nextDate.getMonth() + 1);
+          break;
+      }
+      
+      const nextCutDateStr = `${nextDate.getFullYear()}-${String(nextDate.getMonth() + 1).padStart(2, '0')}-${String(nextDate.getDate()).padStart(2, '0')}`;
+      
+      // Update customer record
+      const updatedCustomer = {
+        ...customer,
+        lastCutDate: completedDate,
+        nextCutDate: nextCutDateStr
+      };
+      
+      updateCustomer(updatedCustomer).then(() => {
+        // Refresh customers from database to get updated data
+        onRefreshCustomers();
+      }).catch((e) => {
+        console.error('Failed to update customer dates:', e);
+        toast.error('Failed to update customer schedule');
+      });
+    }
     
     toast.success('Job completed!');
 
     // Send completion message if requested
     if (sendCompletionMessage) {
-      const customer = customers.find(c => c.id === job.customerId);
       if (customer) {
         await sendMessage(customer, 'completed');
       }
@@ -636,6 +672,25 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
 
   return (
     <div className="space-y-4">
+      <Tabs defaultValue="schedule" className="w-full">
+        <TabsList className="grid w-full grid-cols-2 mb-4 bg-gray-100/80 p-1">
+          <TabsTrigger 
+            value="schedule" 
+            className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm"
+          >
+            <Clock className="h-4 w-4" />
+            Today's Schedule
+          </TabsTrigger>
+          <TabsTrigger 
+            value="calendar" 
+            className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm"
+          >
+            <CalendarDays className="h-4 w-4" />
+            Job Calendar
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="schedule" className="space-y-4 mt-0">
       {/* Daily Summary Card */}
       <Card className="bg-white/80 backdrop-blur">
         <CardHeader className="pb-3">
@@ -1182,6 +1237,18 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+        </TabsContent>
+
+        <TabsContent value="calendar">
+          <JobCalendar 
+            jobs={jobs}
+            customers={customers}
+            onUpdateJobs={onUpdateJobs}
+            onRefreshCustomers={onRefreshCustomers}
+            onRefreshJobs={onRefreshJobs}
+          />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

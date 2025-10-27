@@ -8,7 +8,7 @@ import { Switch } from './ui/switch';
 import { Textarea } from './ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
 import type { Customer } from '../App';
-import { Plus, Pencil, Trash2, Calendar, AlertCircle } from 'lucide-react';
+import { Plus, Pencil, Trash2, Calendar, AlertCircle, Search, SlidersHorizontal } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from './ui/badge';
 import { deleteCustomer, addCustomer, updateCustomer } from '../services/customers';
@@ -17,11 +17,15 @@ import { calculateNextCutDate, formatDate, isOverdue, getDaysUntil } from '../ut
 interface CustomerManagementProps {
   customers: Customer[];
   onUpdateCustomers: (customers: Customer[]) => void;
+  onRefreshCustomers?: () => Promise<void> | void;
 }
 
-export function CustomerManagement({ customers, onUpdateCustomers }: CustomerManagementProps) {
+export function CustomerManagement({ customers, onUpdateCustomers, onRefreshCustomers }: CustomerManagementProps) {
   const [isAddingCustomer, setIsAddingCustomer] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<'name' | 'price' | 'squareFootage' | 'nextCutDate'>('name');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [formData, setFormData] = useState<{
     name: string;
     address: string;
@@ -121,7 +125,15 @@ export function CustomerManagement({ customers, onUpdateCustomers }: CustomerMan
       };
 
       const newCustomer = await addCustomer(newCustomerData);
-      onUpdateCustomers([...customers, newCustomer]);
+      
+      // Refresh from database to get the latest data
+      if (onRefreshCustomers) {
+        await onRefreshCustomers();
+      } else {
+        // Fallback to local state update
+        onUpdateCustomers([...customers, newCustomer]);
+      }
+      
       resetForm();
       setIsAddingCustomer(false);
       toast.success('Customer added successfully');
@@ -162,11 +174,18 @@ export function CustomerManagement({ customers, onUpdateCustomers }: CustomerMan
       };
 
       const updatedCustomer = await updateCustomer(updatedCustomerData);
-      const updatedCustomers = customers.map(c =>
-        c.id === editingCustomer.id ? updatedCustomer : c
-      );
+      
+      // Refresh from database to get the latest data
+      if (onRefreshCustomers) {
+        await onRefreshCustomers();
+      } else {
+        // Fallback to local state update
+        const updatedCustomers = customers.map(c =>
+          c.id === editingCustomer.id ? updatedCustomer : c
+        );
+        onUpdateCustomers(updatedCustomers);
+      }
 
-      onUpdateCustomers(updatedCustomers);
       resetForm();
       setEditingCustomer(null);
       toast.success('Customer updated');
@@ -182,7 +201,15 @@ export function CustomerManagement({ customers, onUpdateCustomers }: CustomerMan
         console.log('Deleting customer with ID:', id);
         await deleteCustomer(id);
         console.log('Successfully deleted from Supabase');
-        onUpdateCustomers(customers.filter(c => c.id !== id));
+        
+        // Refresh from database to get the latest data
+        if (onRefreshCustomers) {
+          await onRefreshCustomers();
+        } else {
+          // Fallback to local state update
+          onUpdateCustomers(customers.filter(c => c.id !== id));
+        }
+        
         toast.success('Customer deleted');
       } catch (error) {
         console.error('Failed to delete customer:', error);
@@ -216,8 +243,97 @@ export function CustomerManagement({ customers, onUpdateCustomers }: CustomerMan
     });
   };
 
+  // Filter and sort customers
+  const filteredAndSortedCustomers = customers
+    .filter(customer => {
+      if (!searchQuery.trim()) return true;
+      
+      const query = searchQuery.toLowerCase();
+      return (
+        customer.name.toLowerCase().includes(query) ||
+        customer.address.toLowerCase().includes(query) ||
+        customer.phone.includes(query) ||
+        customer.email?.toLowerCase().includes(query) ||
+        customer.squareFootage.toString().includes(query) ||
+        customer.price.toString().includes(query) ||
+        customer.frequency.toLowerCase().includes(query) ||
+        customer.notes?.toLowerCase().includes(query)
+      );
+    })
+    .sort((a, b) => {
+      let compareA: string | number = '';
+      let compareB: string | number = '';
+
+      switch (sortBy) {
+        case 'name':
+          compareA = a.name.toLowerCase();
+          compareB = b.name.toLowerCase();
+          break;
+        case 'price':
+          compareA = a.price;
+          compareB = b.price;
+          break;
+        case 'squareFootage':
+          compareA = a.squareFootage;
+          compareB = b.squareFootage;
+          break;
+        case 'nextCutDate':
+          compareA = a.nextCutDate || '9999-12-31';
+          compareB = b.nextCutDate || '9999-12-31';
+          break;
+      }
+
+      if (compareA < compareB) return sortOrder === 'asc' ? -1 : 1;
+      if (compareA > compareB) return sortOrder === 'asc' ? 1 : -1;
+      return 0;
+    });
+
   return (
     <div className="space-y-4">
+      {/* Search and Filter Bar */}
+      <Card className="bg-white/80 backdrop-blur">
+        <CardContent className="pt-6">
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="Search by name, address, phone, email, price, size..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            <div className="flex gap-2">
+              <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
+                <SelectTrigger className="w-40">
+                  <SlidersHorizontal className="h-4 w-4 mr-2" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="name">Sort by Name</SelectItem>
+                  <SelectItem value="price">Sort by Price</SelectItem>
+                  <SelectItem value="squareFootage">Sort by Size</SelectItem>
+                  <SelectItem value="nextCutDate">Sort by Next Cut</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                title={sortOrder === 'asc' ? 'Ascending' : 'Descending'}
+              >
+                {sortOrder === 'asc' ? '↑' : '↓'}
+              </Button>
+            </div>
+          </div>
+          {searchQuery && (
+            <div className="mt-3 text-sm text-gray-600">
+              Found {filteredAndSortedCustomers.length} of {customers.length} customers
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       <Card className="bg-white/80 backdrop-blur">
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -420,14 +536,16 @@ export function CustomerManagement({ customers, onUpdateCustomers }: CustomerMan
 
       {/* Customer List */}
       <div className="space-y-3">
-        {customers.length === 0 ? (
+        {filteredAndSortedCustomers.length === 0 ? (
           <Card className="bg-white/80 backdrop-blur">
             <CardContent className="pt-6">
-              <p className="text-center text-gray-600">No customers yet. Add your first customer to get started!</p>
+              <p className="text-center text-gray-600">
+                {searchQuery ? 'No customers match your search.' : 'No customers yet. Add your first customer to get started!'}
+              </p>
             </CardContent>
           </Card>
         ) : (
-          customers.map((customer) => (
+          filteredAndSortedCustomers.map((customer) => (
             <Card key={customer.id} className="bg-white/80 backdrop-blur">
               <CardContent className="pt-6">
                 <div className="flex flex-col md:flex-row justify-between gap-4">
