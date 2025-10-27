@@ -52,82 +52,6 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob }: 
   const [showRescheduleDialog, setShowRescheduleDialog] = useState(false);
   const [selectedJobsToReschedule, setSelectedJobsToReschedule] = useState<Job[]>([]);
   const [targetDate, setTargetDate] = useState<string>('');
-  const [useTestData, setUseTestData] = useState(false);
-
-  // Generate mock weather data for testing
-  const generateMockWeather = (): WeatherData => {
-    const today = new Date();
-    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    
-    return {
-      current: {
-        temp: 68,
-        feelsLike: 65,
-        humidity: 55,
-        windSpeed: 8,
-        description: 'partly cloudy',
-        icon: '02d',
-        precipitation: 0
-      },
-      hourly: Array.from({ length: 8 }, (_, i) => ({
-        time: `${(new Date().getHours() + i) % 24}:00`,
-        temp: 68 - i,
-        precipitation: i === 2 ? 75 : 10,
-        icon: i === 2 ? '10d' : '02d',
-        description: i === 2 ? 'rain' : 'partly cloudy'
-      })),
-      daily: Array.from({ length: 7 }, (_, i) => {
-        const date = new Date(today);
-        date.setDate(date.getDate() + i);
-        const dayOfWeek = date.getDay();
-        const dayName = dayNames[dayOfWeek];
-        
-        // Make specific days rainy for testing
-        let rainChance = 10;
-        let description = 'partly cloudy';
-        let icon = '02d';
-        
-        if (i === 1) { // Tomorrow - heavy rain
-          rainChance = 85;
-          description = 'heavy rain';
-          icon = '10d';
-        } else if (i === 2) { // Day after tomorrow - moderate rain
-          rainChance = 65;
-          description = 'rain showers';
-          icon = '10d';
-        } else if (i === 4) { // Thursday or similar - light rain
-          rainChance = 45;
-          description = 'light rain';
-          icon = '09d';
-        } else if (dayOfWeek === 5 || dayOfWeek === 6) { // Friday/Saturday - good weather
-          rainChance = 5;
-          description = 'clear sky';
-          icon = '01d';
-        }
-        
-        return {
-          date: `${dayName}, ${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`,
-          tempMax: 72 - i,
-          tempMin: 58 - i,
-          precipitation: rainChance,
-          precipitationChance: rainChance,
-          description,
-          icon,
-          windSpeed: 5 + Math.random() * 5,
-          humidity: 50 + rainChance / 2
-        };
-      })
-    };
-  };
-
-  const handleUseTestData = () => {
-    setUseTestData(true);
-    setWeatherData(generateMockWeather());
-    setLocationName('Test Location (Mock Data)');
-    setLocation({ lat: 40.7128, lon: -74.0060, name: 'Test Location' });
-    setError(null);
-    toast.success('Using test weather data with rainy days');
-  };
 
   // Load weather on mount if location is set
   useEffect(() => {
@@ -393,28 +317,6 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob }: 
 
   return (
     <div className="space-y-4">
-      {/* Test Data Banner */}
-      {useTestData && (
-        <Alert className="border-orange-300 bg-orange-50/80">
-          <AlertTriangle className="h-4 w-4 text-orange-600" />
-          <AlertTitle>Test Mode Active</AlertTitle>
-          <AlertDescription>
-            Showing mock weather data with rainy days to demonstrate the scheduling features.
-            <Button 
-              variant="link" 
-              className="h-auto p-0 ml-2 text-orange-700 underline"
-              onClick={() => {
-                setUseTestData(false);
-                setWeatherData(null);
-                setLocationName('');
-              }}
-            >
-              Exit Test Mode
-            </Button>
-          </AlertDescription>
-        </Alert>
-      )}
-
       {/* Location Selection */}
       <Card className="bg-white/80 backdrop-blur">
         <CardHeader>
@@ -445,17 +347,6 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob }: 
               <Button onClick={handleUseGPS} disabled={loading} className="bg-blue-600 hover:bg-blue-700">
                 <Navigation className="h-4 w-4 mr-2" />
                 Use My Location
-              </Button>
-            </div>
-            
-            {/* Test Data Button */}
-            <div className="pt-2 border-t border-gray-200">
-              <Button 
-                onClick={handleUseTestData} 
-                variant="outline" 
-                className="w-full text-sm border-dashed border-orange-300 text-orange-700 hover:bg-orange-50"
-              >
-                🧪 Use Test Data (Rainy Days Demo)
               </Button>
             </div>
           </div>

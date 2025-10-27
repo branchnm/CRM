@@ -2,15 +2,13 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { JobCalendar } from './JobCalendar';
 import type { Customer, Job, MessageTemplate, Equipment } from '../App';
 import { updateCustomer } from '../services/customers';
 import { addJob, updateJob } from '../services/jobs';
 import { smsService } from '../services/sms';
 import { getDriveTime } from '../services/googleMaps';
 import { optimizeRoute as optimizeRouteWithGoogleMaps } from '../services/routeOptimizer';
-import { Clock, MapPin, Navigation, CheckCircle, Play, Phone, AlertTriangle, Cloud, CloudRain, Sun, StopCircle, MessageSquare, Send, Route, CalendarDays } from 'lucide-react';
+import { Clock, MapPin, Navigation, CheckCircle, Play, Phone, AlertTriangle, Cloud, CloudRain, Sun, StopCircle, MessageSquare, Send, Route } from 'lucide-react';
 import { toast } from 'sonner';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { Textarea } from './ui/textarea';
@@ -114,6 +112,59 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
     };
     ensureJobs();
   }, [customersDueToday.length, today]); // Removed jobs.length to avoid infinite loops
+
+  // Auto-create jobs for ALL customers with nextCutDate (for calendar view)
+  useEffect(() => {
+    const ensureAllScheduledJobs = async () => {
+      // Get all customers with a nextCutDate
+      const customersWithNextCut = customers.filter(c => c.nextCutDate);
+      if (customersWithNextCut.length === 0) return;
+      
+      // Find customers who have a nextCutDate but no corresponding job
+      const existingJobMap = new Map(
+        jobs.map(j => [`${j.customerId}-${j.date}`, j])
+      );
+      
+      const missingJobs = customersWithNextCut.filter(c => {
+        const key = `${c.id}-${c.nextCutDate}`;
+        return !existingJobMap.has(key);
+      });
+      
+      if (missingJobs.length === 0) return;
+      
+      console.log('Auto-creating jobs for', missingJobs.length, 'customers with nextCutDate:', missingJobs.map(c => `${c.name} on ${c.nextCutDate}`));
+      
+      try {
+        // Group by date to calculate order numbers
+        const jobsByDate = new Map<string, number>();
+        jobs.forEach(j => {
+          const current = jobsByDate.get(j.date) || 0;
+          jobsByDate.set(j.date, Math.max(current, j.order || 0));
+        });
+        
+        await Promise.all(
+          missingJobs.map((c) => {
+            const maxOrder = jobsByDate.get(c.nextCutDate!) || 0;
+            jobsByDate.set(c.nextCutDate!, maxOrder + 1);
+            
+            return addJob({ 
+              customerId: c.id, 
+              date: c.nextCutDate!, 
+              status: 'scheduled',
+              order: maxOrder + 1
+            });
+          })
+        );
+        
+        // Refresh jobs from database
+        console.log('Future jobs created successfully, refreshing...');
+        await onRefreshJobs?.();
+      } catch (e) {
+        console.error('Failed to create scheduled jobs:', e);
+      }
+    };
+    ensureAllScheduledJobs();
+  }, [customers.length, jobs.length]); // Run when customers or jobs change
 
   // Auto-create jobs for customers due tomorrow who don't have a job yet (in Supabase)
   useEffect(() => {
@@ -672,25 +723,6 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
 
   return (
     <div className="space-y-4">
-      <Tabs defaultValue="schedule" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 mb-4 bg-gray-100/80 p-1">
-          <TabsTrigger 
-            value="schedule" 
-            className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm"
-          >
-            <Clock className="h-4 w-4" />
-            Today's Schedule
-          </TabsTrigger>
-          <TabsTrigger 
-            value="calendar" 
-            className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm"
-          >
-            <CalendarDays className="h-4 w-4" />
-            Job Calendar
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="schedule" className="space-y-4 mt-0">
       {/* Daily Summary Card */}
       <Card className="bg-white/80 backdrop-blur">
         <CardHeader className="pb-3">
@@ -1237,18 +1269,6 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-        </TabsContent>
-
-        <TabsContent value="calendar">
-          <JobCalendar 
-            jobs={jobs}
-            customers={customers}
-            onUpdateJobs={onUpdateJobs}
-            onRefreshCustomers={onRefreshCustomers}
-            onRefreshJobs={onRefreshJobs}
-          />
-        </TabsContent>
-      </Tabs>
     </div>
   );
 }

@@ -259,13 +259,6 @@ export function JobCalendar({ jobs, customers, onUpdateJobs, onRefreshCustomers,
                       );
                     })}
                   </div>
-                  
-                  {/* Job count badge */}
-                  {dayJobs.length > 3 && (
-                    <div className="mt-1 text-[10px] text-gray-500 font-medium">
-                      +{dayJobs.length - 3} more
-                    </div>
-                  )}
                 </div>
               );
             })}

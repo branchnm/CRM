@@ -5,6 +5,7 @@ import { InsightsDashboard } from "./components/InsightsDashboard";
 import { CustomerManagement } from "./components/CustomerManagement";
 import { Settings } from "./components/Settings";
 import { WeatherForecast } from "./components/WeatherForecast";
+import { JobCalendar } from "./components/JobCalendar";
 import {
   Calendar,
   MessageSquare,
@@ -12,6 +13,7 @@ import {
   Users,
   Settings as SettingsIcon,
   CloudRain,
+  CalendarDays,
 } from "lucide-react";
 import { fetchCustomers } from "./services/customers";
 import { fetchJobs } from "./services/jobs";
@@ -252,6 +254,7 @@ function App() {
   const navItems = [
     { id: "schedule", label: "Today", icon: Calendar },
     { id: "forecast", label: "Forecast", icon: CloudRain },
+    { id: "calendar", label: "Calendar", icon: CalendarDays },
     { id: "insights", label: "Insights", icon: TrendingUp },
     { id: "customers", label: "Customers", icon: Users },
     { id: "messages", label: "Messages", icon: MessageSquare },
@@ -294,6 +297,15 @@ function App() {
               jobs={jobs}
               customers={customers}
               onRescheduleJob={handleRescheduleJob}
+            />
+          )}
+          {activeTab === "calendar" && (
+            <JobCalendar
+              jobs={jobs}
+              customers={customers}
+              onUpdateJobs={updateJobs}
+              onRefreshCustomers={refreshCustomers}
+              onRefreshJobs={refreshJobs}
             />
           )}
           {activeTab === "insights" && (
