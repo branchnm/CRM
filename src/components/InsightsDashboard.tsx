@@ -1,6 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { Badge } from './ui/badge';
+import { JobHistory } from './JobHistory';
 import type { Customer, Job, Equipment } from '../App';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
 import { TrendingUp, Users, DollarSign, AlertTriangle, Lightbulb } from 'lucide-react';
@@ -9,9 +10,10 @@ interface InsightsDashboardProps {
   customers: Customer[];
   jobs: Job[];
   equipment: Equipment[];
+  onRefreshJobs?: () => Promise<void> | void;
 }
 
-export function InsightsDashboard({ customers, jobs, equipment }: InsightsDashboardProps) {
+export function InsightsDashboard({ customers, jobs, equipment, onRefreshJobs }: InsightsDashboardProps) {
   const completedJobs = jobs.filter(j => j.status === 'completed');
 
   // Debug info to help troubleshoot
@@ -346,6 +348,15 @@ export function InsightsDashboard({ customers, jobs, equipment }: InsightsDashbo
           </div>
         </CardContent>
       </Card>
+
+      {/* Job History Section */}
+      {onRefreshJobs && (
+        <JobHistory 
+          jobs={jobs}
+          customers={customers}
+          onRefreshJobs={onRefreshJobs}
+        />
+      )}
     </div>
   );
 }

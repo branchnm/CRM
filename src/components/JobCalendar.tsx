@@ -6,6 +6,11 @@ import type { Job, Customer } from '../App';
 import { updateCustomer } from '../services/customers';
 import { updateJob } from '../services/jobs';
 import { toast } from 'sonner';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog';
+import { Label } from './ui/label';
+import { Input } from './ui/input';
+import { Textarea } from './ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 
 interface JobCalendarProps {
   jobs: Job[];
@@ -18,6 +23,13 @@ interface JobCalendarProps {
 export function JobCalendar({ jobs, customers, onUpdateJobs, onRefreshCustomers, onRefreshJobs }: JobCalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [draggedJob, setDraggedJob] = useState<Job | null>(null);
+  const [editingJob, setEditingJob] = useState<Job | null>(null);
+  const [editForm, setEditForm] = useState({
+    price: '',
+    scheduledTime: '',
+    notes: '',
+    status: 'scheduled' as 'scheduled' | 'in-progress' | 'completed'
+  });
 
   // Format date to YYYY-MM-DD without timezone conversion
   const formatDateToString = (date: Date): string => {
@@ -54,6 +66,49 @@ export function JobCalendar({ jobs, customers, onUpdateJobs, onRefreshCustomers,
     // Only show jobs that actually exist in the database
     // The auto-create logic in DailySchedule will create jobs for customers with nextCutDate=today
     return jobs.filter(job => job.date === dateStr);
+  };
+
+  const getNextCutsForDate = (date: Date) => {
+    const dateStr = formatDateToString(date);
+    
+    // Find customers whose next cut date matches this date
+    return customers.filter(customer => customer.nextCutDate === dateStr);
+  };
+
+  const getNextNextCutsForDate = (date: Date) => {
+    const dateStr = formatDateToString(date);
+    
+    // Calculate the "next next" cut for each customer
+    // This is the cut after their current nextCutDate
+    return customers
+      .map(customer => {
+        if (!customer.nextCutDate || !customer.frequency) return null;
+        
+        const nextCutDate = new Date(customer.nextCutDate + 'T00:00:00');
+        let nextNextCutDate: Date;
+        
+        if (customer.frequency === 'weekly') {
+          nextNextCutDate = new Date(nextCutDate);
+          nextNextCutDate.setDate(nextNextCutDate.getDate() + 7);
+        } else if (customer.frequency === 'biweekly') {
+          nextNextCutDate = new Date(nextCutDate);
+          nextNextCutDate.setDate(nextNextCutDate.getDate() + 14);
+        } else if (customer.frequency === 'monthly') {
+          nextNextCutDate = new Date(nextCutDate);
+          nextNextCutDate.setMonth(nextNextCutDate.getMonth() + 1);
+        } else {
+          return null;
+        }
+        
+        const nextNextCutDateStr = formatDateToString(nextNextCutDate);
+        
+        if (nextNextCutDateStr === dateStr) {
+          return customer;
+        }
+        
+        return null;
+      })
+      .filter((customer): customer is Customer => customer !== null);
   };
 
   const handleDragStart = (e: React.DragEvent, job: Job) => {
@@ -132,6 +187,55 @@ export function JobCalendar({ jobs, customers, onUpdateJobs, onRefreshCustomers,
 
   const handleToday = () => {
     setCurrentDate(new Date());
+  };
+
+  const handleJobDoubleClick = (job: Job) => {
+    if (job.status === 'completed') return; // Don't edit completed jobs
+    
+    const customer = customers.find(c => c.id === job.customerId);
+    setEditingJob(job);
+    setEditForm({
+      price: customer?.price?.toString() || '',
+      scheduledTime: job.scheduledTime || '',
+      notes: job.notes || '',
+      status: job.status || 'scheduled'
+    });
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingJob) return;
+
+    try {
+      const updatedJob = {
+        ...editingJob,
+        scheduledTime: editForm.scheduledTime || undefined,
+        notes: editForm.notes || undefined,
+        status: editForm.status
+      };
+
+      await updateJob(updatedJob);
+      
+      // If price changed, update customer
+      const customer = customers.find(c => c.id === editingJob.customerId);
+      if (customer && editForm.price && parseFloat(editForm.price) !== customer.price) {
+        await updateCustomer({
+          ...customer,
+          price: parseFloat(editForm.price)
+        });
+        await onRefreshCustomers?.();
+      }
+
+      await onRefreshJobs?.();
+      setEditingJob(null);
+      toast.success('Job updated successfully');
+    } catch (error) {
+      console.error('Error updating job:', error);
+      toast.error('Failed to update job');
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingJob(null);
   };
 
   const calendarDays = getCalendarDays();
@@ -226,17 +330,37 @@ export function JobCalendar({ jobs, customers, onUpdateJobs, onRefreshCustomers,
                     {dayJobs.map(job => {
                       const customer = customers.find(c => c.id === job.customerId);
                       const isCompleted = job.status === 'completed';
-                      const bgColor = isCompleted ? 'bg-gray-50 hover:bg-gray-100 border-gray-300' : 'bg-blue-50 hover:bg-blue-100 border-blue-200';
-                      const textColor = isCompleted ? 'text-gray-500' : 'text-blue-900';
-                      const accentColor = isCompleted ? 'text-gray-400' : 'text-blue-500';
+                      
+                      // Determine if this job is the next cut for this customer
+                      const isNextCut = customer?.nextCutDate === job.date;
+                      
+                      // Color logic:
+                      // - Completed jobs: gray
+                      // - Jobs matching nextCutDate: green/emerald (next cut)
+                      // - Other future jobs: orange (future cuts beyond next)
+                      let bgColor, textColor, accentColor;
+                      if (isCompleted) {
+                        bgColor = 'bg-gray-50 hover:bg-gray-100 border-gray-300';
+                        textColor = 'text-gray-500';
+                        accentColor = 'text-gray-400';
+                      } else if (isNextCut) {
+                        bgColor = 'bg-emerald-50 hover:bg-emerald-100 border-emerald-200';
+                        textColor = 'text-emerald-900';
+                        accentColor = 'text-emerald-600';
+                      } else {
+                        bgColor = 'bg-orange-50 hover:bg-orange-100 border-orange-200';
+                        textColor = 'text-orange-900';
+                        accentColor = 'text-orange-600';
+                      }
                       
                       return (
                         <div
                           key={job.id}
                           draggable={!isCompleted}
                           onDragStart={(e) => !isCompleted && handleDragStart(e, job)}
+                          onDoubleClick={() => handleJobDoubleClick(job)}
                           className={`group ${bgColor} border rounded px-2 py-1 text-xs ${
-                            isCompleted ? 'cursor-default opacity-60' : 'cursor-move'
+                            isCompleted ? 'cursor-default opacity-60' : 'cursor-move hover:cursor-pointer'
                           } transition-colors`}
                         >
                           <div className="flex items-center gap-1">
@@ -258,6 +382,46 @@ export function JobCalendar({ jobs, customers, onUpdateJobs, onRefreshCustomers,
                         </div>
                       );
                     })}
+                    
+                    {/* Show next cut dates for customers without jobs yet */}
+                    {getNextCutsForDate(date)
+                      .filter(customer => !dayJobs.some(job => job.customerId === customer.id))
+                      .map(customer => (
+                        <div
+                          key={`nextcut-${customer.id}`}
+                          className="group bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded px-2 py-1 text-xs transition-colors"
+                        >
+                          <div className="flex items-center gap-1">
+                            <span className="truncate flex-1 text-emerald-900 font-medium">
+                              {customer.name}
+                            </span>
+                            <span className="text-[10px] text-emerald-600">📅</span>
+                          </div>
+                          <div className="text-emerald-600 text-[10px] ml-0">
+                            Next cut scheduled
+                          </div>
+                        </div>
+                      ))}
+                    
+                    {/* Show next-next cut dates (the cut after the next cut) */}
+                    {getNextNextCutsForDate(date)
+                      .filter(customer => !dayJobs.some(job => job.customerId === customer.id))
+                      .map(customer => (
+                        <div
+                          key={`nextnextcut-${customer.id}`}
+                          className="group bg-orange-50 hover:bg-orange-100 border border-orange-200 rounded px-2 py-1 text-xs transition-colors"
+                        >
+                          <div className="flex items-center gap-1">
+                            <span className="truncate flex-1 text-orange-900 font-medium">
+                              {customer.name}
+                            </span>
+                            <span className="text-[10px] text-orange-600">📆</span>
+                          </div>
+                          <div className="text-orange-600 text-[10px] ml-0">
+                            Future cut scheduled
+                          </div>
+                        </div>
+                      ))}
                   </div>
                 </div>
               );
@@ -272,8 +436,12 @@ export function JobCalendar({ jobs, customers, onUpdateJobs, onRefreshCustomers,
             <span>Today</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-blue-50 border border-blue-200 rounded"></div>
-            <span>Scheduled Job</span>
+            <div className="w-4 h-4 bg-emerald-50 border border-emerald-200 rounded"></div>
+            <span>Next Cut</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 bg-orange-50 border border-orange-200 rounded"></div>
+            <span>Future Cut</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 bg-gray-50 border border-gray-300 rounded"></div>
@@ -283,8 +451,89 @@ export function JobCalendar({ jobs, customers, onUpdateJobs, onRefreshCustomers,
             <GripVertical className="h-4 w-4 text-gray-400" />
             <span>Drag to reschedule</span>
           </div>
+          <div className="flex items-center gap-2">
+            <span className="text-gray-500">💡 Double-click to edit job details</span>
+          </div>
         </div>
       </CardContent>
+
+      {/* Edit Job Dialog */}
+      <Dialog open={!!editingJob} onOpenChange={(open) => !open && handleCancelEdit()}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Edit Job</DialogTitle>
+            <DialogDescription>
+              Update job details for {editingJob && customers.find(c => c.id === editingJob.customerId)?.name}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="price">Price ($)</Label>
+              <Input
+                id="price"
+                type="number"
+                step="0.01"
+                value={editForm.price}
+                onChange={(e) => setEditForm({ ...editForm, price: e.target.value })}
+                placeholder="Enter price"
+              />
+              <p className="text-xs text-gray-500">
+                Updating price will change it for this customer
+              </p>
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="scheduledTime">Scheduled Time</Label>
+              <Input
+                id="scheduledTime"
+                type="time"
+                value={editForm.scheduledTime}
+                onChange={(e) => setEditForm({ ...editForm, scheduledTime: e.target.value })}
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="status">Status</Label>
+              <Select
+                value={editForm.status}
+                onValueChange={(value: 'scheduled' | 'in-progress' | 'completed') => 
+                  setEditForm({ ...editForm, status: value })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="scheduled">Scheduled</SelectItem>
+                  <SelectItem value="in-progress">In Progress</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="notes">Notes</Label>
+              <Textarea
+                id="notes"
+                value={editForm.notes}
+                onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+                placeholder="Add notes about this job..."
+                rows={3}
+              />
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={handleCancelEdit}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveEdit}>
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }

@@ -313,6 +313,7 @@ function App() {
               customers={customers}
               jobs={jobs}
               equipment={equipment}
+              onRefreshJobs={refreshJobs}
             />
           )}
           {activeTab === "customers" && (
@@ -320,6 +321,8 @@ function App() {
               customers={customers}
               onUpdateCustomers={updateCustomers}
               onRefreshCustomers={refreshCustomers}
+              jobs={jobs}
+              onRefreshJobs={refreshJobs}
             />
           )}
           {activeTab === "messages" && (

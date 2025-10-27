@@ -7,20 +7,23 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Switch } from './ui/switch';
 import { Textarea } from './ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
-import type { Customer } from '../App';
+import type { Customer, Job } from '../App';
 import { Plus, Pencil, Trash2, Calendar, AlertCircle, Search, SlidersHorizontal } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from './ui/badge';
 import { deleteCustomer, addCustomer, updateCustomer } from '../services/customers';
+import { updateJob } from '../services/jobs';
 import { calculateNextCutDate, formatDate, isOverdue, getDaysUntil } from '../utils/dateHelpers';
 
 interface CustomerManagementProps {
   customers: Customer[];
   onUpdateCustomers: (customers: Customer[]) => void;
   onRefreshCustomers?: () => Promise<void> | void;
+  jobs?: Job[];
+  onRefreshJobs?: () => Promise<void> | void;
 }
 
-export function CustomerManagement({ customers, onUpdateCustomers, onRefreshCustomers }: CustomerManagementProps) {
+export function CustomerManagement({ customers, onUpdateCustomers, onRefreshCustomers, jobs = [], onRefreshJobs }: CustomerManagementProps) {
   const [isAddingCustomer, setIsAddingCustomer] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -174,6 +177,30 @@ export function CustomerManagement({ customers, onUpdateCustomers, onRefreshCust
       };
 
       const updatedCustomer = await updateCustomer(updatedCustomerData);
+      
+      // If nextCutDate changed, update any existing jobs for this customer
+      if (formData.nextCutDate && formData.nextCutDate !== editingCustomer.nextCutDate) {
+        const oldNextCutDate = editingCustomer.nextCutDate;
+        const newNextCutDate = formData.nextCutDate;
+        
+        // Find the job that matches the old nextCutDate for this customer
+        const jobToUpdate = jobs.find(
+          job => job.customerId === editingCustomer.id && 
+                 job.date === oldNextCutDate &&
+                 job.status !== 'completed'
+        );
+        
+        if (jobToUpdate) {
+          // Update the job's date to match the new nextCutDate
+          await updateJob({
+            ...jobToUpdate,
+            date: newNextCutDate
+          });
+          
+          // Refresh jobs from database
+          await onRefreshJobs?.();
+        }
+      }
       
       // Refresh from database to get the latest data
       if (onRefreshCustomers) {
