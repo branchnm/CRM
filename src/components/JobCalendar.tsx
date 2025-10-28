@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { ChevronLeft, ChevronRight, GripVertical } from 'lucide-react';
@@ -24,6 +24,9 @@ export function JobCalendar({ jobs, customers, onUpdateJobs, onRefreshCustomers,
   const [currentDate, setCurrentDate] = useState(new Date());
   const [draggedJob, setDraggedJob] = useState<Job | null>(null);
   const [editingJob, setEditingJob] = useState<Job | null>(null);
+  const [viewMode, setViewMode] = useState<'month' | 'week'>('week'); // Default to week view for mobile
+  const touchStartPos = useRef<{ x: number; y: number } | null>(null);
+  const [touchDraggedJob, setTouchDraggedJob] = useState<Job | null>(null);
   const [editForm, setEditForm] = useState({
     price: '',
     scheduledTime: '',
@@ -55,6 +58,24 @@ export function JobCalendar({ jobs, customers, onUpdateJobs, onRefreshCustomers,
     for (let i = 0; i < 42; i++) {
       days.push(new Date(current));
       current.setDate(current.getDate() + 1);
+    }
+    
+    return days;
+  };
+
+  // Get calendar data for the current week
+  const getWeekDays = () => {
+    const today = new Date(currentDate);
+    const dayOfWeek = today.getDay(); // 0 = Sunday
+    
+    const startDate = new Date(today);
+    startDate.setDate(today.getDate() - dayOfWeek); // Start from Sunday
+    
+    const days: Date[] = [];
+    for (let i = 0; i < 7; i++) {
+      const day = new Date(startDate);
+      day.setDate(startDate.getDate() + i);
+      days.push(day);
     }
     
     return days;
@@ -177,12 +198,114 @@ export function JobCalendar({ jobs, customers, onUpdateJobs, onRefreshCustomers,
     setDraggedJob(null);
   };
 
+  // Touch handlers for mobile drag and drop
+  const handleTouchStart = (e: React.TouchEvent, job: Job) => {
+    if (job.status === 'completed') return;
+    const touch = e.touches[0];
+    touchStartPos.current = { x: touch.clientX, y: touch.clientY };
+    setTouchDraggedJob(job);
+    setDraggedJob(job);
+    // Prevent body scroll while dragging
+    document.body.style.overflow = 'hidden';
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!touchDraggedJob) return;
+    
+    const touch = e.touches[0];
+    const element = document.elementFromPoint(touch.clientX, touch.clientY);
+    
+    // Find the calendar day cell
+    const dayCell = element?.closest('[data-calendar-day]');
+    if (dayCell) {
+      // Visual feedback could be added here if needed
+    }
+  };
+
+  const handleTouchEnd = async (e: React.TouchEvent) => {
+    if (!touchDraggedJob) return;
+    
+    const touch = e.changedTouches[0];
+    const element = document.elementFromPoint(touch.clientX, touch.clientY);
+    
+    // Find the calendar day cell
+    const dayCell = element?.closest('[data-calendar-day]');
+    if (dayCell) {
+      const dateStr = dayCell.getAttribute('data-date');
+      if (dateStr) {
+        const targetDate = new Date(dateStr + 'T00:00:00');
+        const newDateStr = formatDateToString(targetDate);
+        const oldDateStr = touchDraggedJob.date;
+        
+        if (newDateStr !== oldDateStr) {
+          const customer = customers.find(c => c.id === touchDraggedJob.customerId);
+          
+          try {
+            // Update the job's date in Supabase
+            await updateJob({ ...touchDraggedJob, date: newDateStr });
+            
+            // Update local state
+            const updatedJobs = jobs.map(job => 
+              job.id === touchDraggedJob.id 
+                ? { ...job, date: newDateStr }
+                : job
+            );
+            onUpdateJobs(updatedJobs);
+            
+            // Refresh from database
+            await onRefreshJobs?.();
+            
+            // If this job's date matches the customer's nextCutDate, update that too
+            if (customer && customer.nextCutDate === oldDateStr) {
+              await updateCustomer({
+                ...customer,
+                nextCutDate: newDateStr
+              });
+              
+              // Refresh customers from database
+              await onRefreshCustomers?.();
+            }
+            
+            toast.success(
+              `Moved ${customer?.name || 'job'} to ${targetDate.toLocaleDateString('en-US', { 
+                weekday: 'short', 
+                month: 'short', 
+                day: 'numeric' 
+              })}`
+            );
+          } catch (error) {
+            console.error('Error moving job:', error);
+            toast.error('Failed to move job. Please try again.');
+          }
+        }
+      }
+    }
+    
+    setTouchDraggedJob(null);
+    setDraggedJob(null);
+    touchStartPos.current = null;
+    // Re-enable body scroll
+    document.body.style.overflow = '';
+  };
+
   const handlePrevMonth = () => {
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1));
   };
 
   const handleNextMonth = () => {
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1));
+  };
+
+  const handlePrevWeek = () => {
+    const newDate = new Date(currentDate);
+    newDate.setDate(newDate.getDate() - 7);
+    setCurrentDate(newDate);
+  };
+
+  const handleNextWeek = () => {
+    const newDate = new Date(currentDate);
+    newDate.setDate(newDate.getDate() + 7);
+    setCurrentDate(newDate);
   };
 
   const handleToday = () => {
@@ -238,7 +361,7 @@ export function JobCalendar({ jobs, customers, onUpdateJobs, onRefreshCustomers,
     setEditingJob(null);
   };
 
-  const calendarDays = getCalendarDays();
+  const calendarDays = viewMode === 'week' ? getWeekDays() : getCalendarDays();
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -246,6 +369,13 @@ export function JobCalendar({ jobs, customers, onUpdateJobs, onRefreshCustomers,
     month: 'long', 
     year: 'numeric' 
   });
+
+  const weekRange = viewMode === 'week' ? (() => {
+    const weekDays = getWeekDays();
+    const start = weekDays[0].toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const end = weekDays[6].toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    return `${start} - ${end}`;
+  })() : '';
 
   const isToday = (date: Date) => {
     return date.toDateString() === today.toDateString();
@@ -262,24 +392,54 @@ export function JobCalendar({ jobs, customers, onUpdateJobs, onRefreshCustomers,
   return (
     <Card className="bg-white/80 backdrop-blur-sm border-gray-200">
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle>Job Calendar</CardTitle>
-            <CardDescription>Drag and drop jobs to reschedule</CardDescription>
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Job Calendar</CardTitle>
+              <CardDescription>Drag and drop jobs to reschedule</CardDescription>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button 
+                variant={viewMode === 'week' ? 'default' : 'outline'} 
+                size="sm" 
+                onClick={() => setViewMode('week')}
+                className="hidden sm:inline-flex"
+              >
+                Week
+              </Button>
+              <Button 
+                variant={viewMode === 'month' ? 'default' : 'outline'} 
+                size="sm" 
+                onClick={() => setViewMode('month')}
+                className="hidden sm:inline-flex"
+              >
+                Month
+              </Button>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-between">
             <Button variant="outline" size="sm" onClick={handleToday}>
               Today
             </Button>
-            <Button variant="outline" size="icon" onClick={handlePrevMonth}>
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <div className="min-w-[140px] text-center font-medium">
-              {monthYear}
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="icon" 
+                onClick={viewMode === 'week' ? handlePrevWeek : handlePrevMonth}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <div className="min-w-[140px] text-center font-medium text-sm">
+                {viewMode === 'week' ? weekRange : monthYear}
+              </div>
+              <Button 
+                variant="outline" 
+                size="icon" 
+                onClick={viewMode === 'week' ? handleNextWeek : handleNextMonth}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
             </div>
-            <Button variant="outline" size="icon" onClick={handleNextMonth}>
-              <ChevronRight className="h-4 w-4" />
-            </Button>
           </div>
         </div>
       </CardHeader>
@@ -296,18 +456,21 @@ export function JobCalendar({ jobs, customers, onUpdateJobs, onRefreshCustomers,
           </div>
           
           {/* Calendar Days */}
-          <div className="grid grid-cols-7">
+          <div className={`grid grid-cols-7 ${viewMode === 'week' ? 'auto-rows-auto' : ''}`}>
             {calendarDays.map((date, index) => {
               const dayJobs = getJobsForDate(date);
               const isThisMonth = isCurrentMonth(date);
               const isTodayDate = isToday(date);
               const isPast = isPastDate(date);
+              const dateStr = formatDateToString(date);
               
               return (
                 <div
                   key={index}
-                  className={`min-h-[100px] p-2 border-r border-b border-gray-200 last:border-r-0 ${
-                    !isThisMonth ? 'bg-gray-50/30' : 'bg-white'
+                  data-calendar-day="true"
+                  data-date={dateStr}
+                  className={`${viewMode === 'week' ? 'min-h-[140px]' : 'min-h-[100px]'} p-2 border-r border-b border-gray-200 last:border-r-0 ${
+                    !isThisMonth && viewMode === 'month' ? 'bg-gray-50/30' : 'bg-white'
                   } ${isTodayDate ? 'bg-blue-50/50' : ''} ${
                     isPast && !isTodayDate ? 'opacity-50' : ''
                   }`}
@@ -358,6 +521,9 @@ export function JobCalendar({ jobs, customers, onUpdateJobs, onRefreshCustomers,
                           key={job.id}
                           draggable={!isCompleted}
                           onDragStart={(e) => !isCompleted && handleDragStart(e, job)}
+                          onTouchStart={(e) => !isCompleted && handleTouchStart(e, job)}
+                          onTouchMove={!isCompleted ? handleTouchMove : undefined}
+                          onTouchEnd={!isCompleted ? handleTouchEnd : undefined}
                           onDoubleClick={() => handleJobDoubleClick(job)}
                           className={`group ${bgColor} border rounded px-2 py-1 text-xs ${
                             isCompleted ? 'cursor-default opacity-60' : 'cursor-move hover:cursor-pointer'

@@ -47,6 +47,16 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob }: 
   const [dragOverDay, setDragOverDay] = useState<string | null>(null);
   const touchStartPos = useRef<{ x: number; y: number } | null>(null);
   const [touchDraggedJobId, setTouchDraggedJobId] = useState<string | null>(null);
+  const originalJobDates = useRef<Map<string, string>>(new Map()); // Track original dates for jobs
+
+  // Initialize original job dates when jobs change
+  useEffect(() => {
+    jobs.forEach(job => {
+      if (!originalJobDates.current.has(job.id)) {
+        originalJobDates.current.set(job.id, job.date);
+      }
+    });
+  }, [jobs]);
 
   // Load weather on mount if location is set
   useEffect(() => {
@@ -306,11 +316,38 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob }: 
   const handleDrop = (e: React.DragEvent, dateStr: string) => {
     e.preventDefault();
     if (draggedJobId) {
-      setJobAssignments(prev => {
-        const newMap = new Map(prev);
-        newMap.set(draggedJobId, dateStr);
-        return newMap;
-      });
+      // Find the job to check its current date
+      const job = jobs.find(j => j.id === draggedJobId);
+      const originalDate = originalJobDates.current.get(draggedJobId);
+      
+      if (job) {
+        // Check if job has a pending assignment, otherwise use its database date
+        const currentEffectiveDate = jobAssignments.has(draggedJobId) 
+          ? jobAssignments.get(draggedJobId) 
+          : job.date;
+        
+        // If dropping on the same day it's currently on (effective), do nothing
+        if (currentEffectiveDate === dateStr) {
+          setDraggedJobId(null);
+          setDragOverDay(null);
+          return;
+        }
+        
+        // Always update or add the assignment
+        setJobAssignments(prev => {
+          const newMap = new Map(prev);
+          
+          // If dropping back to original day, remove from assignments
+          if (originalDate === dateStr) {
+            newMap.delete(draggedJobId);
+          } else {
+            // Dropping to a new day (not original), add/update assignment
+            newMap.set(draggedJobId, dateStr);
+          }
+          
+          return newMap;
+        });
+      }
       setDraggedJobId(null);
     }
     setDragOverDay(null);
@@ -361,11 +398,34 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob }: 
     if (dayCard) {
       const dateStr = dayCard.getAttribute('data-date');
       if (dateStr && touchDraggedJobId) {
-        setJobAssignments(prev => {
-          const newMap = new Map(prev);
-          newMap.set(touchDraggedJobId, dateStr);
-          return newMap;
-        });
+        // Find the job to check its current date
+        const job = jobs.find(j => j.id === touchDraggedJobId);
+        const originalDate = originalJobDates.current.get(touchDraggedJobId);
+        
+        if (job) {
+          // Check if job has a pending assignment, otherwise use its database date
+          const currentEffectiveDate = jobAssignments.has(touchDraggedJobId) 
+            ? jobAssignments.get(touchDraggedJobId) 
+            : job.date;
+          
+          // If dropping on the same day it's currently on (effective), do nothing
+          if (currentEffectiveDate !== dateStr) {
+            // Always update or add the assignment
+            setJobAssignments(prev => {
+              const newMap = new Map(prev);
+              
+              // If dropping back to original day, remove from assignments
+              if (originalDate === dateStr) {
+                newMap.delete(touchDraggedJobId);
+              } else {
+                // Dropping to a new day (not original), add/update assignment
+                newMap.set(touchDraggedJobId, dateStr);
+              }
+              
+              return newMap;
+            });
+          }
+        }
       }
     }
     
@@ -464,7 +524,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob }: 
 
       {/* Combined Weather Forecast & Job Planning Card */}
       {weatherData && (
-        <Card className="bg-blue-50/80 backdrop-blur border-blue-200">
+        <Card className="bg-white/80 backdrop-blur border-gray-200">
           <CardContent className="pt-4 space-y-4">
             {/* Week View Grid - Droppable Days */}
             <div>
@@ -510,10 +570,10 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob }: 
                         isBeingDraggedOver
                           ? 'border-blue-500 bg-blue-100 scale-105 shadow-lg'
                           : isBadWeather 
-                          ? 'bg-yellow-50 border-yellow-300 hover:border-yellow-400' 
+                          ? 'bg-blue-50 border-blue-300 hover:border-blue-400' 
                           : isGoodWeather
                           ? 'bg-green-50 border-green-400 hover:border-green-500 shadow-sm'
-                          : 'bg-yellow-50 border-yellow-300 hover:border-yellow-400'
+                          : 'bg-blue-50 border-blue-300 hover:border-blue-400'
                       }`}
                     >
                       {/* Day Header */}
@@ -538,7 +598,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob }: 
                               {weatherForDay.tempMax}° / {weatherForDay.tempMin}°
                             </div>
                             <div className={`text-xs font-medium flex items-center gap-1 ${
-                              isBadWeather ? 'text-yellow-700' : isGoodWeather ? 'text-green-700' : 'text-yellow-700'
+                              isBadWeather ? 'text-blue-700' : isGoodWeather ? 'text-green-700' : 'text-blue-700'
                             }`}>
                               <CloudRain className="h-3 w-3 shrink-0" />
                               {rainChance}% rain
@@ -569,18 +629,18 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob }: 
                                   onTouchEnd={handleTouchEnd}
                                   className={`rounded p-1.5 cursor-move hover:shadow-md transition-all text-xs group ${
                                     isOnBadWeatherDay 
-                                      ? 'bg-yellow-100 border-2 border-yellow-500 animate-pulse' 
+                                      ? 'bg-blue-100 border-2 border-blue-500 animate-pulse' 
                                       : 'bg-white border border-gray-300'
                                   }`}
                                 >
                                   <div className="flex items-center justify-between gap-1">
                                     <div className="flex-1 min-w-0">
                                       <div className="font-semibold text-gray-900 truncate flex items-center gap-1">
-                                        {isOnBadWeatherDay && <AlertTriangle className="h-3 w-3 text-yellow-700 shrink-0" />}
+                                        {isOnBadWeatherDay && <AlertTriangle className="h-3 w-3 text-blue-700 shrink-0" />}
                                         {customer?.name}
                                       </div>
                                       {isOnBadWeatherDay && (
-                                        <div className="text-xs text-yellow-800 font-medium mt-0.5">
+                                        <div className="text-xs text-blue-800 font-medium mt-0.5">
                                           ⚠️ Move to better day
                                         </div>
                                       )}
@@ -676,6 +736,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob }: 
                       size="sm"
                       onClick={() => {
                         setJobAssignments(new Map());
+                        // Don't reset original dates on reset - keep them tracked
                       }}
                     >
                       Reset
@@ -686,15 +747,19 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob }: 
                       onClick={async () => {
                         if (jobAssignments.size === 0 || !onRescheduleJob) return;
                         
+                        const count = jobAssignments.size;
+                        
                         for (const [jobId, newDateStr] of jobAssignments.entries()) {
                           const job = jobs.find(j => j.id === jobId);
                           if (job) {
                             await onRescheduleJob(jobId, newDateStr);
+                            // Update the original date to the new date after successful move
+                            originalJobDates.current.set(jobId, newDateStr);
                           }
                         }
                         
                         setJobAssignments(new Map());
-                        toast.success(`${jobAssignments.size} job(s) rescheduled successfully!`);
+                        toast.success(`${count} job(s) rescheduled successfully!`);
                       }}
                     >
                       Confirm Move ({jobAssignments.size} job{jobAssignments.size !== 1 ? 's' : ''})

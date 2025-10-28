@@ -796,42 +796,6 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
         onRescheduleJob={handleRescheduleJob}
       />
 
-      {/* Daily Summary Card */}
-      <Card className="bg-white/80 backdrop-blur">
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-green-800">Today's Schedule</CardTitle>
-              <CardDescription>{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</CardDescription>
-            </div>
-            <div className="flex items-center gap-2">
-              {getWeatherIcon()}
-              <span className="text-gray-600">{weather.temp}°F</span>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div>
-              <p className="text-gray-600 mb-1">Due Today</p>
-              <p className="text-green-800">{totalDueToday} {totalDueToday === 1 ? 'house' : 'houses'}</p>
-            </div>
-            <div>
-              <p className="text-gray-600 mb-1">Completed</p>
-              <p className="text-green-800">{completedToday} / {totalDueToday}</p>
-            </div>
-            <div>
-              <p className="text-gray-600 mb-1">Work Time</p>
-              <p className="text-green-800">{totalWorkTime} min</p>
-            </div>
-            <div>
-              <p className="text-gray-600 mb-1">Drive Time</p>
-              <p className="text-green-800">{totalDriveTime} min</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Equipment Alerts */}
       {equipmentAlerts.length > 0 && (
         <Alert className="border-orange-300 bg-orange-50/80">
@@ -850,6 +814,44 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
           <h2 className="text-2xl font-bold text-green-900 uppercase tracking-wide">Today's Jobs</h2>
           <div className="h-1 flex-1 bg-linear-to-l from-green-200 to-green-400 rounded-full"></div>
         </div>
+      )}
+
+      {/* Daily Summary Card - Below Header, Above Jobs */}
+      {todayJobs.length > 0 && (
+        <Card className="bg-white/80 backdrop-blur mb-4">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-green-800">Today's Schedule</CardTitle>
+                <CardDescription>{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</CardDescription>
+              </div>
+              <div className="flex items-center gap-2">
+                {getWeatherIcon()}
+                <span className="text-gray-600">{weather.temp}°F</span>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div>
+                <p className="text-gray-600 mb-1">Due Today</p>
+                <p className="text-green-800">{totalDueToday} {totalDueToday === 1 ? 'house' : 'houses'}</p>
+              </div>
+              <div>
+                <p className="text-gray-600 mb-1">Completed</p>
+                <p className="text-green-800">{completedToday} / {totalDueToday}</p>
+              </div>
+              <div>
+                <p className="text-gray-600 mb-1">Work Time</p>
+                <p className="text-green-800">{totalWorkTime} min</p>
+              </div>
+              <div>
+                <p className="text-gray-600 mb-1">Drive Time</p>
+                <p className="text-green-800">{totalDriveTime} min</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Route Optimization Controls - Compact */}
