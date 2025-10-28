@@ -789,6 +789,13 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
 
   return (
     <div className="space-y-4">
+      {/* Weather Forecast Section */}
+      <WeatherForecast 
+        jobs={jobs}
+        customers={customers}
+        onRescheduleJob={handleRescheduleJob}
+      />
+
       {/* Daily Summary Card */}
       <Card className="bg-white/80 backdrop-blur">
         <CardHeader className="pb-3">
@@ -836,64 +843,66 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
         </Alert>
       )}
 
-      {/* Route Optimization Controls */}
+      {/* Today's Jobs Section Header */}
+      {todayJobs.length > 0 && (
+        <div className="flex items-center gap-3 mb-4">
+          <div className="h-1 flex-1 bg-linear-to-r from-green-200 to-green-400 rounded-full"></div>
+          <h2 className="text-2xl font-bold text-green-900 uppercase tracking-wide">Today's Jobs</h2>
+          <div className="h-1 flex-1 bg-linear-to-l from-green-200 to-green-400 rounded-full"></div>
+        </div>
+      )}
+
+      {/* Route Optimization Controls - Compact */}
       {todayJobs.length > 1 && (
-        <Card className="bg-blue-50/80 backdrop-blur border-blue-200">
-          <CardContent className="pt-4 pb-4">
-            <div className="flex flex-col gap-3">
-              <div className="flex items-start gap-2">
-                <Route className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
-                <div className="min-w-0 flex-1">
-                  <p className="font-medium text-blue-900">Route Optimization</p>
-                  <p className="text-sm text-blue-700 wrap-break-word">
-                    {startingAddress ? `Starting from: ${startingAddress}` : 'Set starting address to optimize route'}
-                  </p>
-                </div>
-              </div>
-              <div className="flex flex-col sm:flex-row gap-2">
-                <Dialog open={showRouteDialog} onOpenChange={setShowRouteDialog}>
-                  <DialogTrigger asChild>
-                    <Button variant="outline" size="sm" className="w-full sm:w-auto">
-                      <MapPin className="h-4 w-4 mr-2" />
-                      {startingAddress ? 'Change Start' : 'Set Start'}
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Set Starting Address</DialogTitle>
-                      <DialogDescription>
-                        Enter your starting location (home, office, etc.) to optimize the route
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4 mt-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="start-address">Starting Address</Label>
-                        <Input
-                          id="start-address"
-                          value={tempStartingAddress}
-                          onChange={(e) => setTempStartingAddress(e.target.value)}
-                          placeholder="123 Main St, City, State 12345"
-                        />
-                      </div>
-                      <Button onClick={handleSaveStartingAddress} className="w-full">
-                        Save Address
-                      </Button>
+        <div className="bg-green-50/50 border border-green-200 rounded-lg p-3 mb-4">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-2">
+            <Route className="h-4 w-4 text-green-600 shrink-0" />
+            <span className="text-sm text-green-900 font-medium text-center">
+              {startingAddress || 'No starting address set'}
+            </span>
+            <div className="flex gap-2">
+              <Dialog open={showRouteDialog} onOpenChange={setShowRouteDialog}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <MapPin className="h-3 w-3 mr-1" />
+                    {startingAddress ? 'Change' : 'Set Start'}
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Set Starting Address</DialogTitle>
+                    <DialogDescription>
+                      Enter your starting location (home, office, etc.) to optimize the route
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 mt-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="start-address">Starting Address</Label>
+                      <Input
+                        id="start-address"
+                        value={tempStartingAddress}
+                        onChange={(e) => setTempStartingAddress(e.target.value)}
+                        placeholder="123 Main St, City, State 12345"
+                      />
                     </div>
-                  </DialogContent>
-                </Dialog>
-                <Button 
-                  onClick={handleOptimizeRoute}
-                  className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto"
-                  size="sm"
-                  disabled={!startingAddress || todayJobs.filter(j => j.status === 'scheduled').length < 2}
-                >
-                  <Route className="h-4 w-4 mr-2" />
-                  Optimize Route
-                </Button>
-              </div>
+                    <Button onClick={handleSaveStartingAddress} className="w-full">
+                      Save Address
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+              <Button 
+                onClick={handleOptimizeRoute}
+                className="bg-green-600 hover:bg-green-700"
+                size="sm"
+                disabled={!startingAddress || todayJobs.filter(j => j.status === 'scheduled').length < 2}
+              >
+                <Route className="h-3 w-3 mr-1" />
+                Optimize
+              </Button>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
 
       {/* Job List */}
@@ -906,12 +915,6 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
           </Card>
         ) : (
           <>
-            {/* Display today's jobs first */}
-            {todayJobs.length > 0 && (
-              <div className="mb-2">
-                <h3 className="text-sm font-semibold text-green-700 uppercase tracking-wide">Today's Jobs</h3>
-              </div>
-            )}
             {todayJobs.map((job, index) => {
               const customer = getCustomer(job.customerId);
               if (!customer) return null;
@@ -943,22 +946,11 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
                             <MapPin className="h-3.5 w-3.5" />
                             <span>{customer.address}</span>
                           </div>
-                          <div className="flex items-center gap-2 text-gray-500 text-xs">
+                          <div className="flex items-center gap-2 text-green-600 text-xs">
                             <Clock className="h-3.5 w-3.5" />
                             <span>{driveTime} drive</span>
                           </div>
                         </div>
-                        {(job.status === 'completed' || job.status === 'in-progress') && (
-                          <Badge className={
-                            job.status === 'completed' ? 'bg-green-600' :
-                            job.status === 'in-progress' ? 'bg-blue-600' :
-                            'bg-gray-600'
-                          }>
-                            {job.status === 'completed' ? 'Done' :
-                             job.status === 'in-progress' ? 'In Progress' :
-                             'Scheduled'}
-                          </Badge>
-                        )}
                       </div>
                       <div className="flex flex-wrap gap-1.5 mt-1.5">
                         {customer.isHilly && <Badge variant="secondary" className="text-xs py-0">Hilly</Badge>}
@@ -1214,50 +1206,48 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
 
                 return (
                   <Card key={`tomorrow-${job.id}`} className="bg-yellow-50/80 backdrop-blur border-yellow-300">
-                    <CardContent className="pt-6">
-                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                        <div className="flex-1">
-                          <div className="flex items-start justify-between mb-2">
-                            <div>
-                              <h3 className="text-green-800 mb-1">{customer.name}</h3>
-                              <div className="flex items-center gap-2 text-gray-600 mb-1">
-                                <MapPin className="h-4 w-4" />
+                    <CardContent className="pt-4 pb-4 min-h-[180px] flex flex-col">
+                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 flex-1">
+                        <div className="flex-1 flex flex-col justify-center">
+                          <div className="flex items-start justify-between mb-1.5">
+                            <div className="flex-1">
+                              <h3 className="text-orange-800 mb-1 text-base">{customer.name}</h3>
+                              <div className="flex items-center gap-2 text-gray-600 mb-0.5 text-sm">
+                                <MapPin className="h-3.5 w-3.5" />
                                 <span>{customer.address}</span>
                               </div>
-                              <div className="flex items-center gap-2 text-yellow-600 text-sm">
-                                <Clock className="h-4 w-4" />
+                              <div className="flex items-center gap-2 text-yellow-600 text-xs">
+                                <Clock className="h-3.5 w-3.5" />
                                 <span>{driveTime} drive</span>
                               </div>
                             </div>
                           </div>
-                          <div className="flex flex-wrap gap-2 mt-2">
-                            {customer.isHilly && <Badge variant="secondary">Hilly</Badge>}
-                            {customer.hasFencing && <Badge variant="secondary">Fenced</Badge>}
-                            {customer.hasObstacles && <Badge variant="secondary">Obstacles</Badge>}
-                            <Badge variant="outline">{customer.squareFootage.toLocaleString()} sq ft</Badge>
-                            <Badge variant="outline">${customer.price}</Badge>
-                            <Badge variant="outline">{customer.frequency}</Badge>
+                          <div className="flex flex-wrap gap-1.5 mt-1.5">
+                            {customer.isHilly && <Badge variant="secondary" className="text-xs py-0">Hilly</Badge>}
+                            {customer.hasFencing && <Badge variant="secondary" className="text-xs py-0">Fenced</Badge>}
+                            {customer.hasObstacles && <Badge variant="secondary" className="text-xs py-0">Obstacles</Badge>}
+                            <Badge variant="outline" className="text-xs py-0">{customer.squareFootage.toLocaleString()} sq ft</Badge>
+                            <Badge variant="outline" className="text-xs py-0">${customer.price}</Badge>
+                            <Badge variant="outline" className="text-xs py-0">{customer.frequency}</Badge>
                           </div>
                         </div>
 
-                        <div className="flex flex-col gap-2 md:w-48">
+                        <div className="flex flex-col gap-1.5 md:w-48 shrink-0">
                           <Button
                             variant="outline"
-                            size="lg"
-                            className="w-full"
+                            className="w-full h-10"
                             onClick={() => window.open(`https://maps.google.com/?q=${encodeURIComponent(customer.address)}`, '_blank')}
                           >
-                            <Navigation className="h-5 w-5 mr-2" />
+                            <Navigation className="h-4 w-4 mr-2" />
                             Navigate
                           </Button>
                           {customer.phone && (
                             <Button
                               variant="outline"
-                              size="lg"
-                              className="w-full"
+                              className="w-full h-10"
                               onClick={() => window.open(`tel:${customer.phone}`, '_self')}
                             >
-                              <Phone className="h-5 w-5 mr-2" />
+                              <Phone className="h-4 w-4 mr-2" />
                               Call
                             </Button>
                           )}
@@ -1272,13 +1262,6 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
           </>
         )}
       </div>
-
-      {/* Weather Forecast Section */}
-      <WeatherForecast 
-        jobs={jobs}
-        customers={customers}
-        onRescheduleJob={handleRescheduleJob}
-      />
 
       {/* Start Job Dialog with Message Prompt */}
       <AlertDialog open={showStartDialog} onOpenChange={setShowStartDialog}>
