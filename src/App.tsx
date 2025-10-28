@@ -5,7 +5,7 @@ import { InsightsDashboard } from "./components/InsightsDashboard";
 import { CustomerManagement } from "./components/CustomerManagement";
 import { Settings } from "./components/Settings";
 import { WeatherForecast } from "./components/WeatherForecast";
-import { JobCalendar } from "./components/JobCalendar";
+import { CalendarView } from "./components/CalendarView";
 import {
   Calendar,
   MessageSquare,
@@ -300,7 +300,7 @@ function App() {
             />
           )}
           {activeTab === "calendar" && (
-            <JobCalendar
+            <CalendarView
               jobs={jobs}
               customers={customers}
               onUpdateJobs={updateJobs}
@@ -313,7 +313,6 @@ function App() {
               customers={customers}
               jobs={jobs}
               equipment={equipment}
-              onRefreshJobs={refreshJobs}
             />
           )}
           {activeTab === "customers" && (
