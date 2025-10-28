@@ -52,6 +52,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob }: 
   const [showRescheduleDialog, setShowRescheduleDialog] = useState(false);
   const [selectedJobsToReschedule, setSelectedJobsToReschedule] = useState<Job[]>([]);
   const [targetDate, setTargetDate] = useState<string>('');
+  const [forecastView, setForecastView] = useState<'5-day' | '7-day' | 'detailed'>('5-day');
 
   // Load weather on mount if location is set
   useEffect(() => {
@@ -317,55 +318,47 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob }: 
 
   return (
     <div className="space-y-4">
-      {/* Location Selection */}
-      <Card className="bg-white/80 backdrop-blur">
-        <CardHeader>
-          <CardTitle>Weather Forecast</CardTitle>
-          <CardDescription>
-            {locationName ? `Showing weather for ${locationName}` : 'Set your location to view weather'}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            <div className="flex flex-col sm:flex-row gap-2">
-              <div className="flex-1">
-                <Label htmlFor="address" className="sr-only">Address</Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="address"
-                    placeholder="Enter city, address, or ZIP code"
-                    value={addressInput}
-                    onChange={(e) => setAddressInput(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleAddressSearch()}
-                  />
-                  <Button onClick={handleAddressSearch} disabled={loading} variant="outline">
-                    <Search className="h-4 w-4 mr-2" />
-                    Search
-                  </Button>
-                </div>
-              </div>
-              <Button onClick={handleUseGPS} disabled={loading} className="bg-blue-600 hover:bg-blue-700">
-                <Navigation className="h-4 w-4 mr-2" />
-                Use My Location
-              </Button>
-            </div>
+      {/* Weather Section Header */}
+      <div className="flex items-center gap-3 mt-8 mb-4">
+        <div className="h-1 flex-1 bg-linear-to-r from-blue-200 to-blue-400 rounded-full"></div>
+        <h2 className="text-2xl font-bold text-blue-900 uppercase tracking-wide">Weather Forecast</h2>
+        <div className="h-1 flex-1 bg-linear-to-l from-blue-200 to-blue-400 rounded-full"></div>
+      </div>
+
+      {/* Compact Location Selector */}
+      <div className="bg-blue-50/50 border border-blue-200 rounded-lg p-3">
+        <div className="flex flex-col sm:flex-row items-center gap-2">
+          <MapPin className="h-4 w-4 text-blue-600 shrink-0" />
+          <span className="text-sm text-blue-900 font-medium">
+            {locationName || 'No location set'}
+          </span>
+          <div className="flex-1 flex gap-2 w-full sm:w-auto">
+            <Input
+              placeholder="City, address, or ZIP"
+              value={addressInput}
+              onChange={(e) => setAddressInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleAddressSearch()}
+              className="flex-1 h-8 text-sm"
+            />
+            <Button onClick={handleAddressSearch} disabled={loading} size="sm" variant="outline">
+              <Search className="h-3 w-3" />
+            </Button>
+            <Button onClick={handleUseGPS} disabled={loading} size="sm" className="bg-blue-600 hover:bg-blue-700">
+              <Navigation className="h-3 w-3" />
+            </Button>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Loading State */}
       {loading && !weatherData && (
-        <Card className="bg-white/80 backdrop-blur">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-              <span className="ml-3 text-gray-600">Loading weather data...</span>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="flex items-center justify-center py-8 bg-blue-50/50 border border-blue-200 rounded-lg">
+          <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+          <span className="ml-3 text-blue-700">Loading weather data...</span>
+        </div>
       )}
 
-      {/* Error State - Location set but weather failed */}
+      {/* Error State */}
       {!loading && location && error && !weatherData && (
         <Card className="bg-orange-50/80 backdrop-blur border-orange-200">
           <CardContent className="pt-6">
@@ -388,15 +381,189 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob }: 
 
       {/* No Location Set */}
       {!loading && !location && !error && (
+        <div className="text-center py-8 bg-blue-50/50 border border-blue-200 rounded-lg">
+          <MapPin className="h-12 w-12 text-blue-600 mx-auto mb-3" />
+          <h3 className="text-lg font-medium text-blue-900 mb-2">No Location Set</h3>
+          <p className="text-blue-700 mb-4">
+            Enter an address or use your current location to view the weather forecast
+          </p>
+        </div>
+      )}
+
+      {/* Weather Forecast Card with View Options */}
+      {weatherData && (
         <Card className="bg-blue-50/80 backdrop-blur border-blue-200">
-          <CardContent className="pt-6">
-            <div className="text-center py-8">
-              <MapPin className="h-12 w-12 text-blue-600 mx-auto mb-3" />
-              <h3 className="text-lg font-medium text-blue-900 mb-2">No Location Set</h3>
-              <p className="text-blue-700 mb-4">
-                Enter an address or use your current location to view the weather forecast
-              </p>
+          <CardHeader className="bg-blue-100/50 border-b border-blue-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-blue-900">Weather Forecast</CardTitle>
+                <CardDescription className="text-blue-700">Plan your schedule around the weather</CardDescription>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant={forecastView === '5-day' ? 'default' : 'outline'}
+                  onClick={() => setForecastView('5-day')}
+                  className={forecastView === '5-day' ? 'bg-blue-600 hover:bg-blue-700' : ''}
+                >
+                  5-Day
+                </Button>
+                <Button
+                  size="sm"
+                  variant={forecastView === '7-day' ? 'default' : 'outline'}
+                  onClick={() => setForecastView('7-day')}
+                  className={forecastView === '7-day' ? 'bg-blue-600 hover:bg-blue-700' : ''}
+                >
+                  7-Day
+                </Button>
+                <Button
+                  size="sm"
+                  variant={forecastView === 'detailed' ? 'default' : 'outline'}
+                  onClick={() => setForecastView('detailed')}
+                  className={forecastView === 'detailed' ? 'bg-blue-600 hover:bg-blue-700' : ''}
+                >
+                  Detailed
+                </Button>
+              </div>
             </div>
+          </CardHeader>
+          <CardContent className="pt-6">
+            {/* 5-Day View */}
+            {forecastView === '5-day' && (
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                {weatherData.daily.slice(0, 5).map((day, index) => (
+                  <div 
+                    key={index} 
+                    className={`p-4 rounded-lg text-center ${
+                      day.precipitationChance >= 60 
+                        ? 'bg-red-50 border-2 border-red-300' 
+                        : day.precipitationChance >= 30
+                        ? 'bg-yellow-50 border border-yellow-200'
+                        : 'bg-green-50 border border-green-200'
+                    }`}
+                  >
+                    <div className="text-sm font-medium text-gray-700 mb-2">
+                      {index === 0 ? 'Today' : day.date.split(',')[0]}
+                    </div>
+                    <img 
+                      src={getWeatherIconUrl(day.icon)} 
+                      alt={day.description}
+                      className="w-16 h-16 mx-auto"
+                    />
+                    <div className="mt-2">
+                      <div className="text-2xl font-bold text-gray-900">{day.tempMax}°</div>
+                      <div className="text-sm text-gray-500">{day.tempMin}°</div>
+                    </div>
+                    {day.precipitationChance > 0 && (
+                      <div className={`flex items-center justify-center gap-1 mt-2 text-xs font-medium ${
+                        day.precipitationChance >= 60 ? 'text-red-700' : 
+                        day.precipitationChance >= 30 ? 'text-yellow-700' : 'text-blue-600'
+                      }`}>
+                        <CloudRain className="h-3 w-3" />
+                        {day.precipitationChance}%
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* 7-Day View */}
+            {forecastView === '7-day' && (
+              <div className="grid grid-cols-2 sm:grid-cols-7 gap-2">
+                {weatherData.daily.slice(0, 7).map((day, index) => (
+                  <div 
+                    key={index} 
+                    className={`p-3 rounded-lg text-center ${
+                      day.precipitationChance >= 60 
+                        ? 'bg-red-50 border-2 border-red-300' 
+                        : day.precipitationChance >= 30
+                        ? 'bg-yellow-50 border border-yellow-200'
+                        : 'bg-green-50 border border-green-200'
+                    }`}
+                  >
+                    <div className="text-xs font-medium text-gray-700 mb-1">
+                      {index === 0 ? 'Today' : day.date.split(',')[0]}
+                    </div>
+                    <img 
+                      src={getWeatherIconUrl(day.icon)} 
+                      alt={day.description}
+                      className="w-12 h-12 mx-auto"
+                    />
+                    <div className="mt-1">
+                      <div className="text-lg font-bold text-gray-900">{day.tempMax}°</div>
+                      <div className="text-xs text-gray-500">{day.tempMin}°</div>
+                    </div>
+                    {day.precipitationChance > 0 && (
+                      <div className={`flex items-center justify-center gap-1 mt-1 text-xs font-medium ${
+                        day.precipitationChance >= 60 ? 'text-red-700' : 
+                        day.precipitationChance >= 30 ? 'text-yellow-700' : 'text-blue-600'
+                      }`}>
+                        <CloudRain className="h-3 w-3" />
+                        {day.precipitationChance}%
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Detailed View */}
+            {forecastView === 'detailed' && (
+              <div className="space-y-3">
+                {weatherData.daily.slice(0, 5).map((day, index) => (
+                  <div 
+                    key={index} 
+                    className={`p-4 rounded-lg ${
+                      day.precipitationChance >= 60 
+                        ? 'bg-red-50 border-2 border-red-300' 
+                        : day.precipitationChance >= 30
+                        ? 'bg-yellow-50 border border-yellow-200'
+                        : 'bg-green-50 border border-green-200'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-4">
+                        <div className="text-left">
+                          <div className="font-bold text-gray-900">
+                            {index === 0 ? 'Today' : day.date.split(',')[0]}
+                          </div>
+                          <div className="text-sm text-gray-600 capitalize">{day.description}</div>
+                        </div>
+                        <img 
+                          src={getWeatherIconUrl(day.icon)} 
+                          alt={day.description}
+                          className="w-16 h-16"
+                        />
+                      </div>
+                      <div className="text-right">
+                        <div className="text-3xl font-bold text-gray-900">{day.tempMax}°</div>
+                        <div className="text-sm text-gray-500">Low {day.tempMin}°</div>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-4 text-sm">
+                      <div className="flex items-center gap-2">
+                        <CloudRain className="h-4 w-4 text-blue-600" />
+                        <span className={`font-medium ${
+                          day.precipitationChance >= 60 ? 'text-red-700' : 
+                          day.precipitationChance >= 30 ? 'text-yellow-700' : 'text-gray-700'
+                        }`}>
+                          {day.precipitationChance}% rain
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Wind className="h-4 w-4 text-blue-600" />
+                        <span className="text-gray-700">{day.windSpeed} mph</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Droplets className="h-4 w-4 text-blue-600" />
+                        <span className="text-gray-700">{day.humidity}%</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
@@ -419,13 +586,13 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob }: 
 
       {/* Scheduling Recommendations */}
       {weatherData && recommendations.badWeatherDays.length > 0 && (
-        <Card className="bg-linear-to-br from-blue-50 to-indigo-50 backdrop-blur border-blue-200">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+        <Card className="bg-blue-50/80 backdrop-blur border-blue-200">
+          <CardHeader className="bg-blue-100/50 border-b border-blue-200">
+            <CardTitle className="flex items-center gap-2 text-blue-900">
               <Calendar className="h-5 w-5 text-blue-600" />
               Job Rescheduling Recommendations
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-blue-700">
               {recommendations.badWeatherDays.length} day(s) with poor weather - move jobs to better days
             </CardDescription>
           </CardHeader>
@@ -551,87 +718,20 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob }: 
         </Card>
       )}
 
-      {/* Current Weather - Simplified */}
-      {weatherData && (
-        <Card className="bg-white/80 backdrop-blur">
-          <CardHeader>
-            <CardTitle>Current Conditions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <img 
-                  src={getWeatherIconUrl(weatherData.current.icon, '4x')} 
-                  alt={weatherData.current.description}
-                  className="w-20 h-20"
-                />
-                <div>
-                  <div className="text-4xl font-bold text-gray-900">{weatherData.current.temp}°F</div>
-                  <div className="text-gray-600 capitalize">{weatherData.current.description}</div>
-                  <div className="text-sm text-gray-500">Feels like {weatherData.current.feelsLike}°F</div>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div className="flex items-center gap-2">
-                  <Wind className="h-4 w-4 text-gray-500" />
-                  <span>{weatherData.current.windSpeed} mph</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Droplets className="h-4 w-4 text-gray-500" />
-                  <span>{weatherData.current.humidity}%</span>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* 5-Day Quick Forecast */}
-      {weatherData && (
-        <Card className="bg-white/80 backdrop-blur">
-          <CardHeader>
-            <CardTitle>5-Day Forecast</CardTitle>
-            <CardDescription>Quick weather overview</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-              {weatherData.daily.slice(0, 5).map((day, index) => (
-                <div 
-                  key={index} 
-                  className={`p-4 rounded-lg text-center ${
-                    day.precipitationChance >= 60 
-                      ? 'bg-red-50 border-2 border-red-300' 
-                      : day.precipitationChance >= 30
-                      ? 'bg-yellow-50 border border-yellow-200'
-                      : 'bg-green-50 border border-green-200'
-                  }`}
-                >
-                  <div className="text-sm font-medium text-gray-700 mb-2">
-                    {index === 0 ? 'Today' : day.date.split(',')[0]}
-                  </div>
-                  <img 
-                    src={getWeatherIconUrl(day.icon)} 
-                    alt={day.description}
-                    className="w-16 h-16 mx-auto"
-                  />
-                  <div className="mt-2">
-                    <div className="text-2xl font-bold text-gray-900">{day.tempMax}°</div>
-                    <div className="text-sm text-gray-500">{day.tempMin}°</div>
-                  </div>
-                  {day.precipitationChance > 0 && (
-                    <div className={`flex items-center justify-center gap-1 mt-2 text-xs font-medium ${
-                      day.precipitationChance >= 60 ? 'text-red-700' : 
-                      day.precipitationChance >= 30 ? 'text-yellow-700' : 'text-blue-600'
-                    }`}>
-                      <CloudRain className="h-3 w-3" />
-                      {day.precipitationChance}%
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+      {/* Weather Alerts */}
+      {weatherData && getRainAlerts().length > 0 && (
+        <div className="space-y-2">
+          {getRainAlerts().map((alert, index) => (
+            <Alert 
+              key={index} 
+              className={alert.severity === 'high' ? 'border-red-300 bg-red-50/80' : 'border-yellow-300 bg-yellow-50/80'}
+            >
+              <AlertTriangle className={`h-4 w-4 ${alert.severity === 'high' ? 'text-red-600' : 'text-yellow-600'}`} />
+              <AlertTitle>{alert.severity === 'high' ? 'Weather Alert' : 'Weather Notice'}</AlertTitle>
+              <AlertDescription>{alert.message}</AlertDescription>
+            </Alert>
+          ))}
+        </div>
       )}
 
       {/* API Key Notice */}

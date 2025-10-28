@@ -241,8 +241,8 @@ function App() {
   const navItems = [
     { id: "schedule", label: "Today", icon: Calendar },
     { id: "calendar", label: "Calendar", icon: CalendarDays },
-    { id: "insights", label: "Insights", icon: TrendingUp },
     { id: "customers", label: "Customers", icon: Users },
+    { id: "insights", label: "Insights", icon: TrendingUp },
     { id: "settings", label: "Settings", icon: SettingsIcon },
   ];
 

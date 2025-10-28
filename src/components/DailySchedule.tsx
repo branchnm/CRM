@@ -1152,9 +1152,13 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
           {/* Display tomorrow's jobs at the bottom */}
           {tomorrowJobs.length > 0 && (
             <>
-              <div className="mt-6 mb-2">
-                <h3 className="text-sm font-semibold text-yellow-700 uppercase tracking-wide">Tomorrow's Jobs</h3>
+              {/* Tomorrow's Jobs Section Header */}
+              <div className="flex items-center gap-3 mt-8 mb-4">
+                <div className="h-1 flex-1 bg-linear-to-r from-yellow-200 to-yellow-400 rounded-full"></div>
+                <h2 className="text-2xl font-bold text-yellow-900 uppercase tracking-wide">Tomorrow's Jobs</h2>
+                <div className="h-1 flex-1 bg-linear-to-l from-yellow-200 to-yellow-400 rounded-full"></div>
               </div>
+              
               {tomorrowJobs.map((job, index) => {
                 const customer = customers.find(c => c.id === job.customerId);
                 if (!customer) return null;
@@ -1185,7 +1189,6 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
                                 <span>{driveTime} drive</span>
                               </div>
                             </div>
-                            <Badge className="bg-yellow-600">Tomorrow</Badge>
                           </div>
                           <div className="flex flex-wrap gap-2 mt-2">
                             {customer.isHilly && <Badge variant="secondary">Hilly</Badge>}

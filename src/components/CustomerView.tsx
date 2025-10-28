@@ -29,12 +29,18 @@ export function CustomerView({
   return (
     <div className="space-y-6">
       <Tabs value={activeSubTab} onValueChange={(value) => setActiveSubTab(value as 'customers' | 'messages')}>
-        <TabsList className="grid w-full max-w-md grid-cols-2">
-          <TabsTrigger value="customers" className="flex items-center gap-2">
+        <TabsList className="grid w-full max-w-md grid-cols-2 bg-gray-100 p-1">
+          <TabsTrigger 
+            value="customers" 
+            className="flex items-center gap-2 data-[state=active]:bg-green-600 data-[state=active]:text-white data-[state=active]:hover:bg-green-700"
+          >
             <Users className="h-4 w-4" />
             Customers
           </TabsTrigger>
-          <TabsTrigger value="messages" className="flex items-center gap-2">
+          <TabsTrigger 
+            value="messages" 
+            className="flex items-center gap-2 data-[state=active]:bg-green-600 data-[state=active]:text-white data-[state=active]:hover:bg-green-700"
+          >
             <MessageSquare className="h-4 w-4" />
             Messages
           </TabsTrigger>
