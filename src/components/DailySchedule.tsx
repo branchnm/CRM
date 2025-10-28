@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
@@ -43,6 +43,9 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
   });
   const [tempStartingAddress, setTempStartingAddress] = useState(startingAddress);
   const [driveTimesCache, setDriveTimesCache] = useState<Map<string, string>>(new Map());
+  
+  // Track job creation to prevent race conditions
+  const creatingJobsRef = useRef<Set<string>>(new Set());
 
   // Use local date (YYYY-MM-DD) to match stored nextCutDate values
   const today = new Date().toLocaleDateString('en-CA');
@@ -80,11 +83,18 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
       
       // Get current job IDs to avoid re-creating
       const existingJobCustomerIds = new Set(jobs.filter(j => j.date === today).map(j => j.customerId));
-      const missing = customersDueToday.filter(c => !existingJobCustomerIds.has(c.id));
+      const missing = customersDueToday.filter(c => {
+        const key = `${c.id}-${today}`;
+        // Skip if already exists OR currently being created
+        return !existingJobCustomerIds.has(c.id) && !creatingJobsRef.current.has(key);
+      });
       
       if (missing.length === 0) return;
       
       console.log('Auto-creating jobs for', missing.length, 'customers:', missing.map(c => c.name));
+      
+      // Mark these jobs as being created
+      missing.forEach(c => creatingJobsRef.current.add(`${c.id}-${today}`));
       
       try {
         // Calculate next order number based on ALL jobs (not just today's filtered list)
@@ -108,7 +118,13 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
         await onRefreshCustomers();
       } catch (e) {
         console.error('Failed to create jobs in Supabase:', e);
-        toast.error('Failed to create today\'s jobs.');
+        // Don't show toast on conflict errors - they're expected during race conditions
+        if (!String(e).includes('409') && !String(e).includes('Conflict')) {
+          toast.error('Failed to create today\'s jobs.');
+        }
+      } finally {
+        // Clear the creation flags after attempt
+        missing.forEach(c => creatingJobsRef.current.delete(`${c.id}-${today}`));
       }
     };
     ensureJobs();
@@ -128,12 +144,16 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
       
       const missingJobs = customersWithNextCut.filter(c => {
         const key = `${c.id}-${c.nextCutDate}`;
-        return !existingJobMap.has(key);
+        // Skip if already exists OR currently being created
+        return !existingJobMap.has(key) && !creatingJobsRef.current.has(key);
       });
       
       if (missingJobs.length === 0) return;
       
       console.log('Auto-creating jobs for', missingJobs.length, 'customers with nextCutDate:', missingJobs.map(c => `${c.name} on ${c.nextCutDate}`));
+      
+      // Mark these jobs as being created
+      missingJobs.forEach(c => creatingJobsRef.current.add(`${c.id}-${c.nextCutDate}`));
       
       try {
         // Group by date to calculate order numbers
@@ -162,6 +182,13 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
         await onRefreshJobs?.();
       } catch (e) {
         console.error('Failed to create scheduled jobs:', e);
+        // Don't show toast on conflict errors
+        if (!String(e).includes('409') && !String(e).includes('Conflict')) {
+          console.error('Non-conflict error creating jobs:', e);
+        }
+      } finally {
+        // Clear the creation flags after attempt
+        missingJobs.forEach(c => creatingJobsRef.current.delete(`${c.id}-${c.nextCutDate}`));
       }
     };
     ensureAllScheduledJobs();
@@ -174,11 +201,18 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
       
       // Get current job IDs to avoid re-creating
       const existingJobCustomerIds = new Set(jobs.filter(j => j.date === tomorrowDate).map(j => j.customerId));
-      const missing = customersDueTomorrow.filter(c => !existingJobCustomerIds.has(c.id));
+      const missing = customersDueTomorrow.filter(c => {
+        const key = `${c.id}-${tomorrowDate}`;
+        // Skip if already exists OR currently being created
+        return !existingJobCustomerIds.has(c.id) && !creatingJobsRef.current.has(key);
+      });
       
       if (missing.length === 0) return;
       
       console.log('Auto-creating jobs for tomorrow:', missing.length, 'customers');
+      
+      // Mark these jobs as being created
+      missing.forEach(c => creatingJobsRef.current.add(`${c.id}-${tomorrowDate}`));
       
       try {
         // Calculate next order number based on tomorrow's jobs
@@ -200,7 +234,13 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
         await onRefreshJobs?.();
       } catch (e) {
         console.error('Failed to create tomorrow\'s jobs in Supabase:', e);
-        toast.error('Failed to create tomorrow\'s jobs.');
+        // Don't show toast on conflict errors
+        if (!String(e).includes('409') && !String(e).includes('Conflict')) {
+          toast.error('Failed to create tomorrow\'s jobs.');
+        }
+      } finally {
+        // Clear the creation flags after attempt
+        missing.forEach(c => creatingJobsRef.current.delete(`${c.id}-${tomorrowDate}`));
       }
     };
     ensureTomorrowJobs();
@@ -797,7 +837,7 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
       )}
 
       {/* Route Optimization Controls */}
-      {todayJobs.filter(j => j.status === 'scheduled').length > 1 && (
+      {todayJobs.length > 1 && (
         <Card className="bg-blue-50/80 backdrop-blur border-blue-200">
           <CardContent className="pt-4 pb-4">
             <div className="flex flex-col gap-3">
@@ -845,7 +885,7 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
                   onClick={handleOptimizeRoute}
                   className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto"
                   size="sm"
-                  disabled={!startingAddress}
+                  disabled={!startingAddress || todayJobs.filter(j => j.status === 'scheduled').length < 2}
                 >
                   <Route className="h-4 w-4 mr-2" />
                   Optimize Route

@@ -121,7 +121,7 @@ export async function getLocationName(lat: number, lon: number): Promise<string>
   }
 
   try {
-    const url = `${GEOCODING_API_URL}/reverse?lat=${lat}&lon=${lon}&limit=1&appid=${OPENWEATHER_API_KEY}`;
+    const url = `https://api.openweathermap.org/geo/1.0/reverse?lat=${lat}&lon=${lon}&limit=1&appid=${OPENWEATHER_API_KEY}`;
     const response = await fetch(url);
     
     if (!response.ok) {
