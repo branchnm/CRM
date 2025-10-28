@@ -1,18 +1,14 @@
 import { useState, useEffect } from "react";
 import { DailySchedule } from "./components/DailySchedule";
-import { CustomerComms } from "./components/CustomerComms";
 import { InsightsDashboard } from "./components/InsightsDashboard";
-import { CustomerManagement } from "./components/CustomerManagement";
+import { CustomerView } from "./components/CustomerView";
 import { Settings } from "./components/Settings";
-import { WeatherForecast } from "./components/WeatherForecast";
 import { CalendarView } from "./components/CalendarView";
 import {
   Calendar,
-  MessageSquare,
   TrendingUp,
   Users,
   Settings as SettingsIcon,
-  CloudRain,
   CalendarDays,
 } from "lucide-react";
 import { fetchCustomers } from "./services/customers";
@@ -215,15 +211,6 @@ function App() {
     setJobs(newJobs);
   };
 
-  const handleRescheduleJob = (jobId: string, newDate: string) => {
-    const updatedJobs = jobs.map(job => 
-      job.id === jobId 
-        ? { ...job, date: newDate }
-        : job
-    );
-    updateJobs(updatedJobs);
-  };
-
   const refreshJobs = async () => {
     try {
       const data = await fetchJobs();
@@ -253,11 +240,9 @@ function App() {
 
   const navItems = [
     { id: "schedule", label: "Today", icon: Calendar },
-    { id: "forecast", label: "Forecast", icon: CloudRain },
     { id: "calendar", label: "Calendar", icon: CalendarDays },
     { id: "insights", label: "Insights", icon: TrendingUp },
     { id: "customers", label: "Customers", icon: Users },
-    { id: "messages", label: "Messages", icon: MessageSquare },
     { id: "settings", label: "Settings", icon: SettingsIcon },
   ];
 
@@ -292,13 +277,6 @@ function App() {
               onRefreshJobs={refreshJobs}
             />
           )}
-          {activeTab === "forecast" && (
-            <WeatherForecast 
-              jobs={jobs}
-              customers={customers}
-              onRescheduleJob={handleRescheduleJob}
-            />
-          )}
           {activeTab === "calendar" && (
             <CalendarView
               jobs={jobs}
@@ -316,17 +294,12 @@ function App() {
             />
           )}
           {activeTab === "customers" && (
-            <CustomerManagement
+            <CustomerView
               customers={customers}
               onUpdateCustomers={updateCustomers}
               onRefreshCustomers={refreshCustomers}
               jobs={jobs}
               onRefreshJobs={refreshJobs}
-            />
-          )}
-          {activeTab === "messages" && (
-            <CustomerComms
-              customers={customers}
               messageTemplates={messageTemplates}
               onUpdateTemplates={updateMessageTemplates}
             />

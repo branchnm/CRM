@@ -16,6 +16,7 @@ import { Label } from './ui/label';
 import { Input } from './ui/input';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from './ui/alert-dialog';
+import { WeatherForecast } from './WeatherForecast';
 
 interface DailyScheduleProps {
   customers: Customer[];
@@ -564,6 +565,31 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
     }
     setShowNextJobDialog(false);
     setNextJobToNotify(null);
+  };
+
+  const handleRescheduleJob = async (jobId: string, newDate: string) => {
+    const job = jobs.find(j => j.id === jobId);
+    if (!job) return;
+
+    try {
+      await updateJob({ ...job, date: newDate });
+      
+      // Update customer's nextCutDate if this job was their next cut
+      const customer = customers.find(c => c.id === job.customerId);
+      if (customer && customer.nextCutDate === job.date) {
+        await updateCustomer({
+          ...customer,
+          nextCutDate: newDate
+        });
+        await onRefreshCustomers();
+      }
+      
+      await onRefreshJobs?.();
+      toast.success('Job rescheduled successfully');
+    } catch (error) {
+      console.error('Error rescheduling job:', error);
+      toast.error('Failed to reschedule job');
+    }
   };
 
   const handleOptimizeRoute = async () => {
@@ -1203,6 +1229,13 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
           </>
         )}
       </div>
+
+      {/* Weather Forecast Section */}
+      <WeatherForecast 
+        jobs={jobs}
+        customers={customers}
+        onRescheduleJob={handleRescheduleJob}
+      />
 
       {/* Start Job Dialog with Message Prompt */}
       <AlertDialog open={showStartDialog} onOpenChange={setShowStartDialog}>
