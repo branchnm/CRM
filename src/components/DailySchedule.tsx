@@ -507,6 +507,31 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
 
   const handleCompleteJob = async (job: Job, totalMinutes: number, notes: string, sendCompletionMessage: boolean) => {
     const endIso = new Date().toISOString();
+    
+    // Calculate drive time for this job
+    const jobIndex = todayJobs.findIndex(j => j.id === job.id);
+    let calculatedDriveTime = 0;
+    
+    if (jobIndex === 0 && startingAddress) {
+      // First job - drive from starting address
+      const customer = customers.find(c => c.id === job.customerId);
+      if (customer) {
+        const driveTimeStr = estimateDriveTime(startingAddress, customer.address);
+        const match = driveTimeStr.match(/(\d+)/);
+        calculatedDriveTime = match ? parseInt(match[1]) : 0;
+      }
+    } else if (jobIndex > 0) {
+      // Subsequent jobs - drive from previous job
+      const prevJob = todayJobs[jobIndex - 1];
+      const prevCustomer = customers.find(c => c.id === prevJob.customerId);
+      const currentCustomer = customers.find(c => c.id === job.customerId);
+      if (prevCustomer && currentCustomer) {
+        const driveTimeStr = estimateDriveTime(prevCustomer.address, currentCustomer.address);
+        const match = driveTimeStr.match(/(\d+)/);
+        calculatedDriveTime = match ? parseInt(match[1]) : 0;
+      }
+    }
+    
     const updatedLocal = jobs.map(j =>
       j.id === job.id
         ? {
@@ -514,6 +539,7 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
             status: 'completed' as const,
             endTime: endIso,
             totalTime: totalMinutes,
+            driveTime: calculatedDriveTime,
             notes: notes || j.notes,
           }
         : j
@@ -525,6 +551,7 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
       status: 'completed',
       endTime: endIso,
       totalTime: totalMinutes,
+      driveTime: calculatedDriveTime,
       notes: notes || job.notes,
     };
     updateJob(toPersist).then(() => onRefreshJobs?.()).catch((e) => {
@@ -822,7 +849,6 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-green-800">Today's Schedule</CardTitle>
                 <CardDescription>{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</CardDescription>
               </div>
               <div className="flex items-center gap-2">

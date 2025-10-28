@@ -47,6 +47,12 @@ export function InsightsDashboard({ customers, jobs, equipment }: InsightsDashbo
 
   const avgJobTime = completedJobs.reduce((sum, job) => sum + (job.totalTime || 0), 0) / completedJobs.length;
   const totalWorkHours = completedJobs.reduce((sum, job) => sum + (job.totalTime || 0), 0) / 60;
+  
+  // Calculate drive time metrics
+  const totalDriveTime = completedJobs.reduce((sum, job) => sum + (job.driveTime || 0), 0);
+  const totalDriveHours = totalDriveTime / 60;
+  const avgDriveTimePerJob = completedJobs.length > 0 ? totalDriveTime / completedJobs.length : 0;
+  const driveTimePercentage = totalWorkHours > 0 ? (totalDriveHours / (totalWorkHours + totalDriveHours)) * 100 : 0;
 
   // Calculate hourly rate
   const hourlyRate = totalRevenue / totalWorkHours;
@@ -155,6 +161,25 @@ export function InsightsDashboard({ customers, jobs, equipment }: InsightsDashbo
       icon: DollarSign,
     });
   }
+  
+  // Drive time optimization insights
+  if (driveTimePercentage > 25) {
+    insights.push({
+      type: 'efficiency',
+      title: 'High Drive Time Detected',
+      description: `${driveTimePercentage.toFixed(1)}% of your time is spent driving. Consider grouping jobs by area or optimizing routes to reduce drive time.`,
+      icon: Lightbulb,
+    });
+  }
+  
+  if (avgDriveTimePerJob > 15) {
+    insights.push({
+      type: 'routing',
+      title: 'Long Drive Times Between Jobs',
+      description: `Average drive time is ${avgDriveTimePerJob.toFixed(1)} minutes per job. Try scheduling jobs in the same neighborhood together.`,
+      icon: AlertTriangle,
+    });
+  }
 
   if (equipmentAlerts.length > 0) {
     insights.push({
@@ -210,6 +235,34 @@ export function InsightsDashboard({ customers, jobs, equipment }: InsightsDashbo
           <CardHeader className="pb-3">
             <CardDescription>Avg Job Time</CardDescription>
             <CardTitle className="text-orange-600">{avgJobTime.toFixed(0)} min</CardTitle>
+          </CardHeader>
+        </Card>
+        
+        <Card className="bg-white/80 backdrop-blur">
+          <CardHeader className="pb-3">
+            <CardDescription>Total Drive Time</CardDescription>
+            <CardTitle className="text-red-600">{totalDriveHours.toFixed(1)} hrs</CardTitle>
+          </CardHeader>
+        </Card>
+        
+        <Card className="bg-white/80 backdrop-blur">
+          <CardHeader className="pb-3">
+            <CardDescription>Avg Drive Time/Job</CardDescription>
+            <CardTitle className="text-yellow-600">{avgDriveTimePerJob.toFixed(1)} min</CardTitle>
+          </CardHeader>
+        </Card>
+        
+        <Card className="bg-white/80 backdrop-blur">
+          <CardHeader className="pb-3">
+            <CardDescription>Drive Time %</CardDescription>
+            <CardTitle className="text-indigo-600">{driveTimePercentage.toFixed(1)}%</CardTitle>
+          </CardHeader>
+        </Card>
+        
+        <Card className="bg-white/80 backdrop-blur">
+          <CardHeader className="pb-3">
+            <CardDescription>Completed Jobs</CardDescription>
+            <CardTitle className="text-teal-600">{completedJobs.length}</CardTitle>
           </CardHeader>
         </Card>
       </div>

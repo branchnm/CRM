@@ -458,10 +458,10 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob }: 
       </div>
 
       {/* Compact Location Selector */}
-      <div className="bg-blue-50/50 border border-blue-200 rounded-lg p-3">
+      <div className="bg-green-50/50 border border-green-200 rounded-lg p-3">
         <div className="flex flex-col sm:flex-row items-center gap-2">
-          <MapPin className="h-4 w-4 text-blue-600 shrink-0" />
-          <span className="text-sm text-blue-900 font-medium">
+          <MapPin className="h-4 w-4 text-green-600 shrink-0" />
+          <span className="text-sm text-green-900 font-medium">
             {locationName || 'No location set'}
           </span>
           <div className="flex-1 flex gap-2 w-full sm:w-auto">
@@ -470,13 +470,15 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob }: 
               value={addressInput}
               onChange={(e) => setAddressInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleAddressSearch()}
-              className="flex-1 h-8 text-sm"
+              className="flex-1 h-8 text-sm border-green-200 focus:border-green-400 focus:ring-green-400"
             />
-            <Button onClick={handleAddressSearch} disabled={loading} size="sm" variant="outline">
-              <Search className="h-3 w-3" />
+            <Button onClick={handleAddressSearch} disabled={loading} size="sm" variant="outline" className="border-green-300 text-green-700 hover:bg-green-50">
+              <Search className="h-3 w-3 mr-1" />
+              <span className="hidden sm:inline">Search</span>
             </Button>
-            <Button onClick={handleUseGPS} disabled={loading} size="sm" className="bg-blue-600 hover:bg-blue-700">
-              <Navigation className="h-3 w-3" />
+            <Button onClick={handleUseGPS} disabled={loading} size="sm" className="bg-green-600 hover:bg-green-700">
+              <Navigation className="h-3 w-3 mr-1" />
+              <span className="hidden sm:inline">Use GPS</span>
             </Button>
           </div>
         </div>
