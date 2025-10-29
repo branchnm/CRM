@@ -526,11 +526,9 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob }: 
 
       {/* Combined Weather Forecast & Job Planning Card */}
       {weatherData && (
-        <Card className="bg-white/80 backdrop-blur border-gray-200">
-          <CardContent className="pt-4 space-y-4">
+        <div className="space-y-4">
             {/* Week View Grid - Droppable Days */}
-            <div>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3">
                 {getNext7Days().map((day, index) => {
                   const dateStr = day.toLocaleDateString('en-CA'); // YYYY-MM-DD format
                   const isToday = index === 0;
@@ -572,18 +570,18 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob }: 
                         isBeingDraggedOver
                           ? 'border-blue-500 bg-blue-100 scale-105 shadow-lg'
                           : isBadWeather 
-                          ? 'bg-blue-50 border-blue-300 hover:border-blue-400' 
+                          ? 'bg-blue-100 border-blue-400 hover:border-blue-500 shadow-sm' 
                           : isGoodWeather
                           ? 'bg-green-50 border-green-400 hover:border-green-500 shadow-sm'
                           : 'bg-blue-50 border-blue-300 hover:border-blue-400'
                       }`}
                     >
                       {/* Day Header */}
-                      <div className="p-2 border-b border-gray-200">
+                      <div className={`p-3 border-b ${isBadWeather ? 'border-blue-300' : 'border-gray-200'}`}>
                         <div className="flex items-start justify-between mb-1">
                           <div>
-                            <div className="font-bold text-sm text-gray-900">{dayName}</div>
-                            <div className="text-xs text-gray-600">{dayDate}</div>
+                            <div className={`font-bold text-sm ${isBadWeather ? 'text-blue-900' : 'text-gray-900'}`}>{dayName}</div>
+                            <div className={`text-xs ${isBadWeather ? 'text-blue-700' : 'text-gray-600'}`}>{dayDate}</div>
                           </div>
                           {weatherForDay && (
                             <img 
@@ -596,11 +594,11 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob }: 
                         
                         {weatherForDay && (
                           <div className="space-y-0.5">
-                            <div className="text-xs font-medium text-gray-900">
+                            <div className={`text-xs font-medium ${isBadWeather ? 'text-blue-900' : 'text-gray-900'}`}>
                               {weatherForDay.tempMax}° / {weatherForDay.tempMin}°
                             </div>
                             <div className={`text-xs font-medium flex items-center gap-1 ${
-                              isBadWeather ? 'text-blue-700' : isGoodWeather ? 'text-green-700' : 'text-blue-700'
+                              isBadWeather ? 'text-blue-800' : isGoodWeather ? 'text-green-700' : 'text-blue-700'
                             }`}>
                               <CloudRain className="h-3 w-3 shrink-0" />
                               {rainChance}% rain
@@ -610,8 +608,8 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob }: 
                       </div>
 
                       {/* Job Count & Jobs List */}
-                      <div className="p-2">
-                        <div className="text-xs font-semibold text-gray-900 mb-2">
+                      <div className="p-3">
+                        <div className={`text-xs font-semibold mb-2 ${isBadWeather ? 'text-blue-900' : 'text-gray-900'}`}>
                           {totalJobs} job{totalJobs !== 1 ? 's' : ''}
                         </div>
 
@@ -631,18 +629,18 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob }: 
                                   onTouchEnd={handleTouchEnd}
                                   className={`rounded p-1.5 cursor-move hover:shadow-md transition-all text-xs group ${
                                     isOnBadWeatherDay 
-                                      ? 'bg-blue-100 border-2 border-blue-500 animate-pulse' 
+                                      ? 'bg-blue-200 border-2 border-blue-500 animate-pulse' 
                                       : 'bg-white border border-gray-300'
                                   }`}
                                 >
                                   <div className="flex items-center justify-between gap-1">
                                     <div className="flex-1 min-w-0">
                                       <div className="font-semibold text-gray-900 truncate flex items-center gap-1">
-                                        {isOnBadWeatherDay && <AlertTriangle className="h-3 w-3 text-blue-700 shrink-0" />}
+                                        {isOnBadWeatherDay && <AlertTriangle className="h-3 w-3 text-blue-800 shrink-0" />}
                                         {customer?.name}
                                       </div>
                                       {isOnBadWeatherDay && (
-                                        <div className="text-xs text-blue-800 font-medium mt-0.5">
+                                        <div className="text-xs text-blue-900 font-medium mt-0.5">
                                           ⚠️ Move to better day
                                         </div>
                                       )}
@@ -720,7 +718,6 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob }: 
                   );
                 })}
               </div>
-            </div>
 
             {/* Confirm Move Button */}
             {jobAssignments.size > 0 && (
@@ -782,23 +779,6 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob }: 
                 </div>
               </div>
             )}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Weather Alerts */}
-      {weatherData && getRainAlerts().length > 0 && (
-        <div className="space-y-2">
-          {getRainAlerts().map((alert, index) => (
-            <Alert 
-              key={index} 
-              className={alert.severity === 'high' ? 'border-red-300 bg-red-50/80' : 'border-yellow-300 bg-yellow-50/80'}
-            >
-              <AlertTriangle className={`h-4 w-4 ${alert.severity === 'high' ? 'text-red-600' : 'text-yellow-600'}`} />
-              <AlertTitle>{alert.severity === 'high' ? 'Weather Alert' : 'Weather Notice'}</AlertTitle>
-              <AlertDescription>{alert.message}</AlertDescription>
-            </Alert>
-          ))}
         </div>
       )}
 

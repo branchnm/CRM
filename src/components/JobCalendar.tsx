@@ -313,8 +313,6 @@ export function JobCalendar({ jobs, customers, onUpdateJobs, onRefreshCustomers,
   };
 
   const handleJobDoubleClick = (job: Job) => {
-    if (job.status === 'completed') return; // Don't edit completed jobs
-    
     const customer = customers.find(c => c.id === job.customerId);
     setEditingJob(job);
     setEditForm({
@@ -492,10 +490,14 @@ export function JobCalendar({ jobs, customers, onUpdateJobs, onRefreshCustomers,
                   <div className="space-y-1">
                     {dayJobs.map(job => {
                       const customer = customers.find(c => c.id === job.customerId);
-                      const isCompleted = job.status === 'completed';
+                      // A job is truly completed only if it has completion data (totalTime and endTime)
+                      const isCompleted = job.status === 'completed' && job.totalTime && job.endTime;
                       
                       // Determine if this job is the next cut for this customer
-                      const isNextCut = customer?.nextCutDate === job.date;
+                      // A job is the "next cut" if it's the earliest non-completed job for this customer
+                      const customerJobs = jobs.filter(j => j.customerId === job.customerId && !(j.status === 'completed' && j.totalTime && j.endTime));
+                      const sortedCustomerJobs = customerJobs.sort((a, b) => a.date.localeCompare(b.date));
+                      const isNextCut = sortedCustomerJobs.length > 0 && sortedCustomerJobs[0].id === job.id;
                       
                       // Color logic:
                       // - Completed jobs: gray
@@ -519,20 +521,18 @@ export function JobCalendar({ jobs, customers, onUpdateJobs, onRefreshCustomers,
                       return (
                         <div
                           key={job.id}
-                          draggable={!isCompleted}
-                          onDragStart={(e) => !isCompleted && handleDragStart(e, job)}
-                          onTouchStart={(e) => !isCompleted && handleTouchStart(e, job)}
-                          onTouchMove={!isCompleted ? handleTouchMove : undefined}
-                          onTouchEnd={!isCompleted ? handleTouchEnd : undefined}
+                          draggable
+                          onDragStart={(e) => handleDragStart(e, job)}
+                          onTouchStart={(e) => handleTouchStart(e, job)}
+                          onTouchMove={handleTouchMove}
+                          onTouchEnd={handleTouchEnd}
                           onDoubleClick={() => handleJobDoubleClick(job)}
-                          className={`group ${bgColor} border rounded px-2 py-1 text-xs ${
-                            isCompleted ? 'cursor-default opacity-60' : 'cursor-move hover:cursor-pointer'
+                          className={`group ${bgColor} border rounded px-2 py-1 text-xs cursor-move hover:cursor-pointer ${
+                            isCompleted ? 'opacity-60' : ''
                           } transition-colors`}
                         >
                           <div className="flex items-center gap-1">
-                            {!isCompleted && (
-                              <GripVertical className={`h-3 w-3 ${accentColor} opacity-0 group-hover:opacity-100 transition-opacity`} />
-                            )}
+                            <GripVertical className={`h-3 w-3 ${accentColor} opacity-0 group-hover:opacity-100 transition-opacity`} />
                             <span className={`truncate flex-1 ${textColor} font-medium`}>
                               {customer?.name || 'Unknown'}
                             </span>
@@ -551,7 +551,11 @@ export function JobCalendar({ jobs, customers, onUpdateJobs, onRefreshCustomers,
                     
                     {/* Show next cut dates for customers without jobs yet */}
                     {getNextCutsForDate(date)
-                      .filter(customer => !dayJobs.some(job => job.customerId === customer.id))
+                      .filter(customer => {
+                        // Only show preview if this customer has NO jobs scheduled for this date
+                        const hasJobOnThisDate = dayJobs.some(job => job.customerId === customer.id);
+                        return !hasJobOnThisDate;
+                      })
                       .map(customer => (
                         <div
                           key={`nextcut-${customer.id}`}
@@ -571,7 +575,11 @@ export function JobCalendar({ jobs, customers, onUpdateJobs, onRefreshCustomers,
                     
                     {/* Show next-next cut dates (the cut after the next cut) */}
                     {getNextNextCutsForDate(date)
-                      .filter(customer => !dayJobs.some(job => job.customerId === customer.id))
+                      .filter(customer => {
+                        // Only show preview if this customer has NO jobs scheduled for this date
+                        const hasJobOnThisDate = dayJobs.some(job => job.customerId === customer.id);
+                        return !hasJobOnThisDate;
+                      })
                       .map(customer => (
                         <div
                           key={`nextnextcut-${customer.id}`}

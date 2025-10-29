@@ -8,9 +8,8 @@ import { addJob, updateJob } from '../services/jobs';
 import { smsService } from '../services/sms';
 import { getDriveTime } from '../services/googleMaps';
 import { optimizeRoute as optimizeRouteWithGoogleMaps } from '../services/routeOptimizer';
-import { Clock, MapPin, Navigation, CheckCircle, Play, Phone, AlertTriangle, Cloud, CloudRain, Sun, StopCircle, MessageSquare, Send, Route } from 'lucide-react';
+import { Clock, MapPin, Navigation, CheckCircle, Play, Phone, StopCircle, MessageSquare, Send, Route } from 'lucide-react';
 import { toast } from 'sonner';
-import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { Textarea } from './ui/textarea';
 import { Label } from './ui/label';
 import { Input } from './ui/input';
@@ -255,16 +254,6 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
   const totalDriveTime = todayJobs
     .filter(j => j.status === 'completed' && j.driveTime)
     .reduce((sum, j) => sum + (j.driveTime || 0), 0);
-
-  // Mock weather (in production, use real API)
-  const weather = {
-    condition: 'sunny',
-    temp: 75,
-    precipitation: 0,
-  };
-
-  // Equipment alerts
-  const equipmentAlerts = equipment.filter(e => e.hoursUsed >= e.alertThreshold);
 
   // Timer effect for in-progress jobs
   useEffect(() => {
@@ -596,9 +585,33 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
         nextCutDate: nextCutDateStr
       };
       
-      updateCustomer(updatedCustomer).then(() => {
+      updateCustomer(updatedCustomer).then(async () => {
         // Refresh customers from database to get updated data
-        onRefreshCustomers();
+        await onRefreshCustomers();
+        
+        // Create the next job immediately
+        try {
+          // Check if job already exists for this date
+          const existingJob = jobs.find(j => j.customerId === customer.id && j.date === nextCutDateStr);
+          if (!existingJob) {
+            // Calculate order for the new job
+            const jobsOnDate = jobs.filter(j => j.date === nextCutDateStr);
+            const maxOrder = Math.max(0, ...jobsOnDate.map(j => j.order || 0));
+            
+            await addJob({
+              customerId: customer.id,
+              date: nextCutDateStr,
+              status: 'scheduled',
+              order: maxOrder + 1
+            });
+            
+            // Refresh jobs to show the new job
+            await onRefreshJobs?.();
+            console.log(`Created next job for ${customer.name} on ${nextCutDateStr}`);
+          }
+        } catch (e) {
+          console.error('Failed to create next job:', e);
+        }
       }).catch((e) => {
         console.error('Failed to update customer dates:', e);
         toast.error('Failed to update customer schedule');
@@ -792,12 +805,6 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
     return customers.find(c => c.id === customerId);
   };
 
-  const getWeatherIcon = () => {
-    if (weather.condition === 'rainy') return <CloudRain className="h-5 w-5 text-blue-500" />;
-    if (weather.condition === 'cloudy') return <Cloud className="h-5 w-5 text-gray-500" />;
-    return <Sun className="h-5 w-5 text-yellow-500" />;
-  };
-
   if (customers.length === 0) {
     return (
       <Card className="bg-white/80 backdrop-blur">
@@ -823,17 +830,6 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
         onRescheduleJob={handleRescheduleJob}
       />
 
-      {/* Equipment Alerts */}
-      {equipmentAlerts.length > 0 && (
-        <Alert className="border-orange-300 bg-orange-50/80">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Maintenance Required</AlertTitle>
-          <AlertDescription>
-            {equipmentAlerts.map(e => e.name).join(', ')} need maintenance
-          </AlertDescription>
-        </Alert>
-      )}
-
       {/* Today's Jobs Section Header */}
       {todayJobs.length > 0 && (
         <div className="flex items-center gap-3 mb-4">
@@ -845,35 +841,25 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
 
       {/* Daily Summary Card - Below Header, Above Jobs */}
       {todayJobs.length > 0 && (
-        <Card className="bg-white/80 backdrop-blur mb-4">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <CardDescription>{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</CardDescription>
+        <Card className="bg-white/80 backdrop-blur border-gray-200 mb-4">
+          <CardContent className="py-4">
+            <div className="grid grid-cols-3 divide-x divide-gray-200">
+              {/* Completed Houses */}
+              <div className="flex items-center justify-center gap-2 px-4">
+                <CheckCircle className="h-5 w-5 text-green-600" />
+                <span className="text-2xl font-semibold text-gray-800">{completedToday}/{totalDueToday}</span>
               </div>
-              <div className="flex items-center gap-2">
-                {getWeatherIcon()}
-                <span className="text-gray-600">{weather.temp}°F</span>
+              
+              {/* Work Time */}
+              <div className="flex items-center justify-center gap-2 px-4">
+                <Clock className="h-5 w-5 text-green-600" />
+                <span className="text-2xl font-semibold text-gray-800">{totalWorkTime} min</span>
               </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div>
-                <p className="text-gray-600 mb-1">Due Today</p>
-                <p className="text-green-800">{totalDueToday} {totalDueToday === 1 ? 'house' : 'houses'}</p>
-              </div>
-              <div>
-                <p className="text-gray-600 mb-1">Completed</p>
-                <p className="text-green-800">{completedToday} / {totalDueToday}</p>
-              </div>
-              <div>
-                <p className="text-gray-600 mb-1">Work Time</p>
-                <p className="text-green-800">{totalWorkTime} min</p>
-              </div>
-              <div>
-                <p className="text-gray-600 mb-1">Drive Time</p>
-                <p className="text-green-800">{totalDriveTime} min</p>
+              
+              {/* Drive Time */}
+              <div className="flex items-center justify-center gap-2 px-4">
+                <Navigation className="h-5 w-5 text-green-600" />
+                <span className="text-2xl font-semibold text-gray-800">{totalDriveTime} min</span>
               </div>
             </div>
           </CardContent>
@@ -934,9 +920,9 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
       )}
 
       {/* Job List */}
-      <div className="space-y-3">
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
         {customersDueToday.length === 0 && todayJobs.length === 0 && tomorrowJobs.length === 0 ? (
-          <Card className="bg-white/80 backdrop-blur">
+          <Card className="bg-white/80 backdrop-blur col-span-full">
             <CardContent className="pt-6">
               <p className="text-center text-gray-600">No customers scheduled for today or tomorrow.</p>
             </CardContent>
@@ -964,49 +950,49 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
 //this job.id is where i can control the colors of the background for the cards. 
             return (
               <Card key={job.id} className={`backdrop-blur ${job.status === 'completed' ? 'bg-green-50 border border-green-300' : 'bg-white/80'} ${job.status === 'completed' ? '' : ''}`}>
-                <CardContent className="pt-4 pb-4 min-h-[180px] flex flex-col">
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 flex-1">
-                    <div className="flex-1 flex flex-col justify-center">
-                      <div className="flex items-start justify-between mb-1.5">
-                        <div className="flex-1">
-                          <h3 className="text-green-800 mb-1 text-base">{customer.name}</h3>
-                          <div className="flex items-center gap-2 text-gray-600 mb-0.5 text-sm">
-                            <MapPin className="h-3.5 w-3.5" />
-                            <span>{customer.address}</span>
-                          </div>
-                          <div className="flex items-center gap-2 text-green-600 text-xs">
-                            <Clock className="h-3.5 w-3.5" />
-                            <span>{driveTime} drive</span>
-                          </div>
-                        </div>
+                <CardContent className="p-4">
+                  {/* Centered layout */}
+                  <div className="flex flex-col items-center text-center gap-4">
+                    <div className="w-full">
+                      <h3 className="text-green-800 text-sm font-semibold">{customer.name}</h3>
+                      <div className="flex items-center justify-center gap-1.5 text-gray-600 text-xs mt-1">
+                        <MapPin className="h-3 w-3 shrink-0" />
+                        <span>{customer.address}</span>
                       </div>
-                      <div className="flex flex-wrap gap-1.5 mt-1.5">
-                        {customer.isHilly && <Badge variant="secondary" className="text-xs py-0">Hilly</Badge>}
-                        {customer.hasFencing && <Badge variant="secondary" className="text-xs py-0">Fenced</Badge>}
-                        {customer.hasObstacles && <Badge variant="secondary" className="text-xs py-0">Obstacles</Badge>}
-                        <Badge variant="outline" className="text-xs py-0">{customer.squareFootage.toLocaleString()} sq ft</Badge>
-                        <Badge variant="outline" className="text-xs py-0">${customer.price}</Badge>
+                      <div className="flex items-center justify-center gap-1.5 text-green-600 text-xs mt-1">
+                        <Clock className="h-3 w-3" />
+                        <span>{driveTime}</span>
                       </div>
-                        {/* Toggle moved to right column */}
                     </div>
 
-                      <div className="flex flex-col gap-1.5 md:w-48 shrink-0">
+                  {/* Badges row */}
+                  <div className="flex flex-wrap gap-1 justify-center mb-3">
+                    {customer.isHilly && <Badge variant="secondary" className="text-[10px] py-0 px-1.5">Hilly</Badge>}
+                    {customer.hasFencing && <Badge variant="secondary" className="text-[10px] py-0 px-1.5">Fenced</Badge>}
+                    {customer.hasObstacles && <Badge variant="secondary" className="text-[10px] py-0 px-1.5">Obstacles</Badge>}
+                    <Badge variant="outline" className="text-[10px] py-0 px-1.5">{customer.squareFootage.toLocaleString()} sq ft</Badge>
+                    <Badge variant="outline" className="text-[10px] py-0 px-1.5">${customer.price}</Badge>
+                  </div>
+                  </div>
+
+                  {/* Action buttons row */}
+                  <div className="flex gap-1.5 w-full">
 
                       {job.status === 'scheduled' && (
                         <>
                           <Button
                             onClick={() => handleStartJobClick(job)}
-                            className="bg-green-600 hover:bg-green-700 w-full h-10"
+                            className="bg-green-600 hover:bg-green-700 flex-1 h-8 text-xs"
                           >
-                            <Play className="h-4 w-4 mr-2" />
-                            Start Job
+                            <Play className="h-3 w-3 mr-1" />
+                            Start
                           </Button>
                           <Button
                             variant="outline"
-                            className="w-full h-10"
+                            className="flex-1 h-8 text-xs"
                             onClick={() => window.open(`https://maps.google.com/?q=${encodeURIComponent(customer.address)}`, '_blank')}
                           >
-                            <Navigation className="h-4 w-4 mr-2" />
+                            <Navigation className="h-3 w-3 mr-1" />
                             Navigate
                           </Button>
                         </>
@@ -1014,19 +1000,15 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
                       {job.status === 'in-progress' && (
                         <>
                           {/* Live Timer Display */}
-                          <Card className="bg-blue-50 border-blue-200">
-                            <CardContent className="py-1.5 px-3">
-                              <div className="text-center">
-                                <div className="flex items-center justify-center gap-1.5">
-                                  <StopCircle className="h-3.5 w-3.5 text-blue-600 animate-pulse" />
-                                  <span className="text-xs text-blue-800">Running</span>
-                                  <span className="text-sm text-blue-600 font-semibold ml-1">
-                                    {formatElapsedTime(elapsedTime[job.id] || 0)}
-                                  </span>
-                                </div>
-                              </div>
-                            </CardContent>
-                          </Card>
+                          <div className="flex-1 bg-blue-50 border border-blue-200 rounded px-2 py-1.5 text-center">
+                            <div className="flex items-center justify-center gap-1.5">
+                              <StopCircle className="h-3 w-3 text-blue-600 animate-pulse" />
+                              <span className="text-xs text-blue-800">Running</span>
+                              <span className="text-xs text-blue-600 font-semibold ml-1">
+                                {formatElapsedTime(elapsedTime[job.id] || 0)}
+                              </span>
+                            </div>
+                          </div>
                           
                           <Dialog>
                             <DialogTrigger asChild>
@@ -1036,10 +1018,10 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
                                   setCompletionMessage(null);
                                   setSelectedTime(null);
                                 }}
-                                className="bg-blue-600 hover:bg-blue-700 w-full h-10"
+                                className="bg-blue-600 hover:bg-blue-700 flex-1 h-8 text-xs"
                               >
-                                <CheckCircle className="h-4 w-4 mr-2" />
-                                Complete Job
+                                <CheckCircle className="h-3 w-3 mr-1" />
+                                Complete
                               </Button>
                             </DialogTrigger>
                             <DialogContent>
@@ -1185,25 +1167,24 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
                               toast.error('Failed to revert job status');
                             }
                           }}
-                          className="text-center text-green-600 hover:bg-green-50 rounded-lg p-1.5 transition-colors"
+                          className="flex-1 text-center text-green-600 hover:bg-green-50 rounded-lg p-1.5 transition-colors border border-green-300"
                           title="Click to undo completion"
                         >
-                          <CheckCircle className="h-6 w-6 mx-auto" />
-                          <span className="text-sm">{job.totalTime} min</span>
+                          <CheckCircle className="h-4 w-4 mx-auto" />
+                          <span className="text-xs">{job.totalTime} min</span>
                         </button>
                       )}
                       {customer.phone && (
                         <Button
                           variant="outline"
-                          className="w-full h-10"
+                          className="flex-1 h-8 text-xs"
                           onClick={() => window.open(`tel:${customer.phone}`, '_self')}
                         >
-                          <Phone className="h-4 w-4 mr-2" />
+                          <Phone className="h-3 w-3 mr-1" />
                           Call
                         </Button>
                       )}
                     </div>
-                  </div>
                 </CardContent>
               </Card>
             );
@@ -1211,7 +1192,7 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
 
           {/* Display tomorrow's jobs at the bottom */}
           {tomorrowJobs.length > 0 && (
-            <>
+            <div className="col-span-full">
               {/* Tomorrow's Jobs Section Header */}
               <div className="flex items-center gap-3 mt-8 mb-4">
                 <div className="h-1 flex-1 bg-linear-to-r from-yellow-200 to-yellow-400 rounded-full"></div>
@@ -1219,6 +1200,7 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
                 <div className="h-1 flex-1 bg-linear-to-l from-yellow-200 to-yellow-400 rounded-full"></div>
               </div>
               
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
               {tomorrowJobs.map((job, index) => {
                 const customer = customers.find(c => c.id === job.customerId);
                 if (!customer) return null;
@@ -1234,58 +1216,46 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
 
                 return (
                   <Card key={`tomorrow-${job.id}`} className="bg-yellow-50/80 backdrop-blur border-yellow-300">
-                    <CardContent className="pt-4 pb-4 min-h-[180px] flex flex-col">
-                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 flex-1">
-                        <div className="flex-1 flex flex-col justify-center">
-                          <div className="flex items-start justify-between mb-1.5">
-                            <div className="flex-1">
-                              <h3 className="text-orange-800 mb-1 text-base">{customer.name}</h3>
-                              <div className="flex items-center gap-2 text-gray-600 mb-0.5 text-sm">
-                                <MapPin className="h-3.5 w-3.5" />
-                                <span>{customer.address}</span>
-                              </div>
-                              <div className="flex items-center gap-2 text-yellow-600 text-xs">
-                                <Clock className="h-3.5 w-3.5" />
-                                <span>{driveTime} drive</span>
-                              </div>
-                            </div>
+                    <CardContent className="pt-3 pb-3 flex flex-col">
+                      <div className="flex flex-col items-center text-center gap-2">
+                        <div className="w-full">
+                          <h3 className="text-orange-800 mb-1.5 text-base font-medium">{customer.name}</h3>
+                          <div className="flex items-center justify-center gap-2 text-gray-600 mb-0.5 text-sm">
+                            <MapPin className="h-3.5 w-3.5" />
+                            <span>{customer.address}</span>
                           </div>
-                          <div className="flex flex-wrap gap-1.5 mt-1.5">
-                            {customer.isHilly && <Badge variant="secondary" className="text-xs py-0">Hilly</Badge>}
-                            {customer.hasFencing && <Badge variant="secondary" className="text-xs py-0">Fenced</Badge>}
-                            {customer.hasObstacles && <Badge variant="secondary" className="text-xs py-0">Obstacles</Badge>}
-                            <Badge variant="outline" className="text-xs py-0">{customer.squareFootage.toLocaleString()} sq ft</Badge>
-                            <Badge variant="outline" className="text-xs py-0">${customer.price}</Badge>
-                            <Badge variant="outline" className="text-xs py-0">{customer.frequency}</Badge>
+                          <div className="flex items-center justify-center gap-2 text-yellow-600 text-xs mb-2">
+                            <Clock className="h-3.5 w-3.5" />
+                            <span>{driveTime} drive</span>
                           </div>
+                        </div>
+                        
+                        <div className="flex flex-wrap gap-1 justify-center">
+                          {customer.isHilly && <Badge variant="secondary" className="text-xs py-0">Hilly</Badge>}
+                          {customer.hasFencing && <Badge variant="secondary" className="text-xs py-0">Fenced</Badge>}
+                          {customer.hasObstacles && <Badge variant="secondary" className="text-xs py-0">Obstacles</Badge>}
+                          <Badge variant="outline" className="text-xs py-0">{customer.squareFootage.toLocaleString()} sq ft</Badge>
+                          <Badge variant="outline" className="text-xs py-0">${customer.price}</Badge>
+                          <Badge variant="outline" className="text-xs py-0">{customer.frequency}</Badge>
                         </div>
 
-                        <div className="flex flex-col gap-1.5 md:w-48 shrink-0">
+                        {customer.phone && (
                           <Button
                             variant="outline"
-                            className="w-full h-10"
-                            onClick={() => window.open(`https://maps.google.com/?q=${encodeURIComponent(customer.address)}`, '_blank')}
+                            className="w-full h-8 mt-1"
+                            onClick={() => window.open(`tel:${customer.phone}`, '_self')}
                           >
-                            <Navigation className="h-4 w-4 mr-2" />
-                            Navigate
+                            <Phone className="h-4 w-4 mr-2" />
+                            Call
                           </Button>
-                          {customer.phone && (
-                            <Button
-                              variant="outline"
-                              className="w-full h-10"
-                              onClick={() => window.open(`tel:${customer.phone}`, '_self')}
-                            >
-                              <Phone className="h-4 w-4 mr-2" />
-                              Call
-                            </Button>
-                          )}
-                        </div>
+                        )}
                       </div>
                     </CardContent>
                   </Card>
                 );
               })}
-            </>
+              </div>
+            </div>
           )}
           </>
         )}
