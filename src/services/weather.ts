@@ -5,6 +5,9 @@ const OPENWEATHER_API_KEY = import.meta.env.VITE_OPENWEATHER_API_KEY || '';
 const GEOCODING_API_URL = 'https://api.openweathermap.org/geo/1.0/direct';
 const WEATHER_API_URL = 'https://api.openweathermap.org/data/2.5';
 
+// Enable test mode to demonstrate rainfall tracking features
+const USE_TEST_WEATHER = true;
+
 export interface WeatherData {
   current: {
     temp: number;
@@ -21,6 +24,7 @@ export interface WeatherData {
     precipitation: number;
     icon: string;
     description: string;
+    rainAmount?: number; // mm of rainfall
   }>;
   daily: Array<{
     date: string;
@@ -38,6 +42,8 @@ export interface WeatherData {
       precipitation: number;
       icon: string;
       description: string;
+      rainAmount?: number; // mm of rainfall
+      hour24?: number; // 24-hour format (0-23)
     }>;
   }>;
 }
@@ -149,9 +155,125 @@ export async function getLocationName(lat: number, lon: number): Promise<string>
 }
 
 /**
+ * Generate test weather data to demonstrate rainfall tracking features
+ */
+function getTestWeatherData(): WeatherData {
+  return {
+    current: {
+      temp: 68,
+      feelsLike: 65,
+      humidity: 70,
+      windSpeed: 8,
+      description: 'partly cloudy',
+      icon: '02d',
+      precipitation: 0
+    },
+    hourly: [
+      { time: '1 PM', temp: 68, precipitation: 10, icon: '02d', description: 'partly cloudy', rainAmount: 0 },
+      { time: '4 PM', temp: 65, precipitation: 20, icon: '03d', description: 'scattered clouds', rainAmount: 0 },
+      { time: '7 PM', temp: 62, precipitation: 30, icon: '04d', description: 'overcast clouds', rainAmount: 0 },
+      { time: '10 PM', temp: 58, precipitation: 40, icon: '10d', description: 'light rain', rainAmount: 0.8 },
+    ],
+    daily: [
+      {
+        date: 'Today',
+        tempMax: 72,
+        tempMin: 58,
+        precipitation: 2.5,
+        precipitationChance: 40,
+        description: 'light rain',
+        icon: '10d',
+        windSpeed: 8,
+        humidity: 70,
+        hourlyForecasts: [
+          { time: '5 AM', temp: 55, precipitation: 20, icon: '02d', description: 'partly cloudy', rainAmount: 0, hour24: 5 },
+          { time: '11 AM', temp: 68, precipitation: 30, icon: '03d', description: 'scattered clouds', rainAmount: 0, hour24: 11 },
+          { time: '5 PM', temp: 70, precipitation: 60, icon: '09d', description: 'light rain', rainAmount: 0.8, hour24: 17 },
+          { time: '11 PM', temp: 60, precipitation: 70, icon: '10d', description: 'moderate rain', rainAmount: 3.2, hour24: 23 },
+        ]
+      },
+      {
+        date: 'Tomorrow',
+        tempMax: 65,
+        tempMin: 52,
+        precipitation: 15.5,
+        precipitationChance: 90,
+        description: 'thunderstorm',
+        icon: '11d',
+        windSpeed: 15,
+        humidity: 85,
+        hourlyForecasts: [
+          { time: '5 AM', temp: 52, precipitation: 95, icon: '11d', description: 'thunderstorm with heavy rain', rainAmount: 8.5, hour24: 5 },
+          { time: '11 AM', temp: 58, precipitation: 75, icon: '10d', description: 'moderate rain', rainAmount: 4.2, hour24: 11 },
+          { time: '5 PM', temp: 62, precipitation: 50, icon: '09d', description: 'light rain', rainAmount: 1.5, hour24: 17 },
+          { time: '11 PM', temp: 55, precipitation: 85, icon: '11d', description: 'thunderstorm', rainAmount: 6.8, hour24: 23 },
+        ]
+      },
+      {
+        date: 'Wed',
+        tempMax: 68,
+        tempMin: 54,
+        precipitation: 8.2,
+        precipitationChance: 85,
+        description: 'heavy rain',
+        icon: '09d',
+        windSpeed: 12,
+        humidity: 80,
+        hourlyForecasts: [
+          { time: '5 AM', temp: 54, precipitation: 90, icon: '09d', description: 'heavy intensity rain', rainAmount: 7.2, hour24: 5 },
+          { time: '11 AM', temp: 62, precipitation: 40, icon: '03d', description: 'scattered clouds', rainAmount: 0.5, hour24: 11 },
+          { time: '5 PM', temp: 66, precipitation: 20, icon: '02d', description: 'partly cloudy', rainAmount: 0, hour24: 17 },
+          { time: '11 PM', temp: 58, precipitation: 10, icon: '01d', description: 'clear sky', rainAmount: 0, hour24: 23 },
+        ]
+      },
+      {
+        date: 'Thu',
+        tempMax: 75,
+        tempMin: 60,
+        precipitation: 0.3,
+        precipitationChance: 15,
+        description: 'light drizzle',
+        icon: '09d',
+        windSpeed: 6,
+        humidity: 60,
+        hourlyForecasts: [
+          { time: '5 AM', temp: 60, precipitation: 20, icon: '09d', description: 'light drizzle', rainAmount: 0.3, hour24: 5 },
+          { time: '11 AM', temp: 70, precipitation: 10, icon: '02d', description: 'partly cloudy', rainAmount: 0, hour24: 11 },
+          { time: '5 PM', temp: 75, precipitation: 5, icon: '01d', description: 'clear sky', rainAmount: 0, hour24: 17 },
+          { time: '11 PM', temp: 65, precipitation: 0, icon: '01d', description: 'clear sky', rainAmount: 0, hour24: 23 },
+        ]
+      },
+      {
+        date: 'Fri',
+        tempMax: 78,
+        tempMin: 62,
+        precipitation: 0,
+        precipitationChance: 5,
+        description: 'clear sky',
+        icon: '01d',
+        windSpeed: 5,
+        humidity: 50,
+        hourlyForecasts: [
+          { time: '5 AM', temp: 62, precipitation: 0, icon: '01d', description: 'clear sky', rainAmount: 0, hour24: 5 },
+          { time: '11 AM', temp: 72, precipitation: 5, icon: '01d', description: 'clear sky', rainAmount: 0, hour24: 11 },
+          { time: '5 PM', temp: 78, precipitation: 5, icon: '02d', description: 'partly cloudy', rainAmount: 0, hour24: 17 },
+          { time: '11 PM', temp: 68, precipitation: 0, icon: '01d', description: 'clear sky', rainAmount: 0, hour24: 23 },
+        ]
+      }
+    ]
+  };
+}
+
+/**
  * Fetch weather data for coordinates
  */
 export async function getWeatherData(coordinates: Coordinates): Promise<WeatherData | null> {
+  // Use test data if enabled
+  if (USE_TEST_WEATHER) {
+    console.log('🧪 Using test weather data to demonstrate rainfall tracking features');
+    return getTestWeatherData();
+  }
+
   if (!OPENWEATHER_API_KEY) {
     console.error('OpenWeather API key not configured. Get one at https://openweathermap.org/api');
     return null;
@@ -197,13 +319,18 @@ export async function getWeatherData(coordinates: Coordinates): Promise<WeatherD
       const mainWeather = forecasts[Math.floor(forecasts.length / 2)].weather[0];
       
       // Get hourly forecasts for this day (up to 4 time periods)
-      const hourlyForecasts = forecasts.slice(0, 4).map((forecast: any) => ({
-        time: new Date(forecast.dt * 1000).toLocaleTimeString('en-US', { hour: 'numeric' }),
-        temp: Math.round(forecast.main.temp),
-        precipitation: Math.round((forecast.pop || 0) * 100),
-        icon: forecast.weather[0].icon,
-        description: forecast.weather[0].description
-      }));
+      const hourlyForecasts = forecasts.slice(0, 4).map((forecast: any) => {
+        const forecastDate = new Date(forecast.dt * 1000);
+        return {
+          time: forecastDate.toLocaleTimeString('en-US', { hour: 'numeric' }),
+          temp: Math.round(forecast.main.temp),
+          precipitation: Math.round((forecast.pop || 0) * 100),
+          icon: forecast.weather[0].icon,
+          description: forecast.weather[0].description,
+          rainAmount: forecast.rain?.['3h'] || 0,
+          hour24: forecastDate.getHours()
+        };
+      });
       
       return {
         date: new Date(date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
