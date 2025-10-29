@@ -870,26 +870,26 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob }: 
                     
                     // Heavy rain, thunderstorm - DARK BLUE (Cannot mow)
                     if (desc.includes('thunder') || desc.includes('storm') || desc.includes('heavy') || amount > 3 || precipitation >= 70) {
-                      return 'rgb(30, 58, 138)'; // blue-900 - Cannot mow
+                      return 'rgb(29, 78, 216)'; // blue-700 - Cannot mow - More vibrant
                     }
                     
                     // Moderate rain - MEDIUM BLUE (Risky to mow)
                     if (amount > 1 || precipitation >= 60 || desc.includes('rain')) {
-                      return 'rgb(59, 130, 246)'; // blue-500 - Risky
+                      return 'rgb(37, 99, 235)'; // blue-600 - Risky - More vibrant
                     }
                     
-                    // Light drizzle - VERY LIGHT BLUE (Can mow)
+                    // Light drizzle - LIGHT BLUE (Can mow)
                     if (amount > 0 || precipitation >= 30 || desc.includes('drizzle')) {
-                      return 'rgb(191, 219, 254)'; // blue-200 - Can mow after
+                      return 'rgb(96, 165, 250)'; // blue-400 - Can mow after - More vibrant
                     }
                     
-                    // Cloudy - LIGHT GRAY (Can mow)
+                    // Cloudy - GRAY (Can mow)
                     if (desc.includes('cloud')) {
-                      return 'rgb(209, 213, 219)'; // gray-300 - Can mow
+                      return 'rgb(156, 163, 175)'; // gray-400 - Can mow - Stronger gray
                     }
                     
-                    // Clear/sunny - YELLOW (Perfect for mowing)
-                    return 'rgb(250, 204, 21)'; // yellow-400 - Perfect
+                    // Clear/sunny - BRIGHT YELLOW (Perfect for mowing)
+                    return 'rgb(234, 179, 8)'; // yellow-500 - Perfect - More vibrant
                   };
                   
                   // Generate border gradient based on weather progression
@@ -912,7 +912,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob }: 
                       onDragOver={(e) => handleDragOver(e, dateStr)}
                       onDragLeave={handleDragLeave}
                       onDrop={(e) => handleDrop(e, dateStr)}
-                      className={`rounded-xl transition-all duration-200 overflow-hidden relative ${
+                      className={`transition-all duration-200 overflow-hidden relative ${
                         isBeingDraggedOver
                           ? 'scale-105 shadow-2xl ring-4 ring-blue-400 ring-opacity-50'
                           : 'shadow-sm'
@@ -924,31 +924,31 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob }: 
                               const effectiveRain = Math.max(h.precipitation, rainChance);
                               const amount = h.rainAmount || 0;
                               
-                              // Match border color logic for consistency
-                              let color = 'rgb(254, 252, 232)'; // yellow-50 for clear
+                              // More vibrant background colors for better gradient visibility
+                              let color = 'rgb(254, 249, 195)'; // yellow-100 for clear - More vibrant
                               
-                              // Heavy rain/thunderstorm - DARK BLUE background (Cannot mow)
-                              if (desc.includes('thunder') || desc.includes('storm') || amount > 5 || effectiveRain >= 80) {
-                                color = 'rgb(191, 219, 254)'; // blue-200 - Clearly bad weather
+                              // Heavy rain/thunderstorm - BLUE background (Cannot mow)
+                              if (desc.includes('thunder') || desc.includes('storm') || amount > 3 || effectiveRain >= 70) {
+                                color = 'rgb(147, 197, 253)'; // blue-300 - Clearly bad weather - More vibrant
                               }
-                              // Moderate to heavy rain - MEDIUM BLUE background (Risky)
+                              // Moderate to heavy rain - LIGHT BLUE background (Risky)
                               else if (amount > 1 || effectiveRain >= 60 || desc.includes('rain')) {
-                                color = 'rgb(219, 234, 254)'; // blue-50 - Rainy
+                                color = 'rgb(191, 219, 254)'; // blue-200 - Rainy - More vibrant
                               }
-                              // Light drizzle or cloudy - VERY LIGHT background (Can mow)
+                              // Light drizzle or cloudy - PALE BLUE/GRAY background (Can mow)
                               else if (amount > 0 || effectiveRain >= 30 || desc.includes('drizzle') || desc.includes('cloud')) {
-                                color = 'rgb(249, 250, 251)'; // gray-50 - Light rain/cloudy
+                                color = 'rgb(229, 231, 235)'; // gray-200 - Light rain/cloudy - More visible
                               }
                               
                               return `${color} ${(idx / (weatherForDay.hourlyForecasts!.length - 1)) * 100}%`;
                             }).join(', ')})`
                           : (() => {
                               // Fallback: solid color based on daily rain chance
-                              let bgColor = 'rgb(254, 252, 232)'; // yellow-50 for clear
+                              let bgColor = 'rgb(254, 249, 195)'; // yellow-100 for clear
                               if (rainChance >= 60) {
-                                bgColor = 'rgb(219, 234, 254)'; // blue-50 for rain
+                                bgColor = 'rgb(191, 219, 254)'; // blue-200 for rain
                               } else if (rainChance >= 30) {
-                                bgColor = 'rgb(249, 250, 251)'; // gray-50 for cloudy
+                                bgColor = 'rgb(229, 231, 235)'; // gray-200 for cloudy
                               }
                               return bgColor;
                             })(),
@@ -957,7 +957,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob }: 
                       }}
                     >
                       {/* Day Header - Compact single line */}
-                      <div className="px-3 py-2 flex items-center justify-between">
+                      <div className="px-3 py-2 flex items-center justify-between bg-white">
                         <div className="flex flex-col items-start">
                           <div className="font-semibold text-sm text-gray-900">{dayName}</div>
                           <div className="text-xs text-gray-600">{dayDate}</div>
@@ -965,31 +965,27 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob }: 
                         
                         {/* Rain Chance Badge - Top right corner */}
                         {weatherForDay && rainChance > 0 && (
-                          <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
-                            isBadWeather 
-                              ? 'bg-blue-100 text-blue-800' 
-                              : 'bg-gray-100 text-gray-700'
-                          }`}>
+                          <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                             {rainChance}%
                           </div>
                         )}
                       </div>
 
-                      {/* Job Count & Jobs List - With transparent weather icons overlay on right */}
-                      <div className="p-3 pr-16 bg-gray-50/50 relative min-h-[280px]">
-                        {/* Transparent Weather Icons Overlay - Right side */}
+                      {/* Job Count & Jobs List - With weather icons on right */}
+                      <div className="p-3 pr-20 bg-gray-50/50 relative min-h-[280px]">
+                        {/* Weather Icons Overlay - Right side, every 3 hours from 5am */}
                         {weatherForDay && (
                           <div className="absolute right-2 top-0 bottom-0 flex flex-col justify-around items-center pointer-events-none z-0 py-3">
-                            {/* Always show 4 time periods representing the full day */}
+                            {/* Show weather symbols every 3 hours: 5 AM, 8 AM, 11 AM, 2 PM, 5 PM, 8 PM */}
                             {(() => {
-                              const times = ['5 AM', '11 AM', '5 PM', '11 PM'];
-                              const timeHours = [5, 11, 17, 23]; // 24-hour format
+                              const times = ['5 AM', '8 AM', '11 AM', '2 PM', '5 PM', '8 PM'];
+                              const hours = [5, 8, 11, 14, 17, 20]; // 24-hour format
                               
-                              // Always create 4 time slots
                               return times.map((time, idx) => {
-                                // Try to get forecast data for this time slot, fallback to daily weather
-                                const forecast = weatherForDay.hourlyForecasts && weatherForDay.hourlyForecasts[idx]
-                                  ? weatherForDay.hourlyForecasts[idx]
+                                // Map to hourly forecast slots (approximate to closest available)
+                                const forecastIdx = idx < 2 ? 0 : idx < 4 ? 1 : idx < 5 ? 2 : 3;
+                                const forecast = weatherForDay.hourlyForecasts && weatherForDay.hourlyForecasts[forecastIdx]
+                                  ? weatherForDay.hourlyForecasts[forecastIdx]
                                   : { description: weatherForDay.description, precipitation: rainChance, rainAmount: 0 };
                                 
                                 const effectivePrecipitation = Math.max(forecast.precipitation, rainChance);
@@ -1001,8 +997,8 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob }: 
                                 
                                 return (
                                   <div key={idx} className="flex flex-col items-center gap-1 opacity-20">
-                                    <HourIcon className={`w-10 h-10 ${hourColor} stroke-[1.5]`} />
-                                    <span className="text-[10px] text-gray-600 font-medium">{times[idx]}</span>
+                                    <HourIcon className={`w-8 h-8 ${hourColor} stroke-[1.5]`} />
+                                    <span className="text-[9px] text-gray-600 font-medium">{time}</span>
                                   </div>
                                 );
                               });
@@ -1011,129 +1007,124 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob }: 
                         )}
                         
                         <div className="relative z-10">
-                        <div className="text-xs font-semibold mb-2 text-gray-700 text-center">
-                          {totalJobs} job{totalJobs !== 1 ? 's' : ''}
-                        </div>
+                          <div className="text-xs font-semibold mb-2 text-gray-700 text-center">
+                            {totalJobs} job{totalJobs !== 1 ? 's' : ''}
+                          </div>
 
-                        {/* Only show job list if there are jobs */}
-                        {totalJobs > 0 && (
-                          <>
-                            {/* Scheduled Jobs (Original) */}
-                            {scheduledJobsForDay.length > 0 && (
-                          <div className="space-y-1.5">
-                            {scheduledJobsForDay.map(job => {
-                              const customer = customers.find(c => c.id === job.customerId);
-                              const isOnBadWeatherDay = isBadWeather && !jobAssignments.has(job.id);
-                              
-                              // Check if job is in early morning (before 11am) and affected by overnight rain
-                              const jobHour = job.scheduledTime ? parseInt(job.scheduledTime.split(':')[0]) : 12;
-                              const isMorningJob = jobHour < 11;
-                              const isRainedOut = hasOvernightRain && isMorningJob;
-                              
-                              return (
-                                <div
-                                  key={job.id}
-                                  draggable
-                                  onDragStart={() => handleDragStart(job.id)}
-                                  onTouchStart={(e) => handleTouchStart(e, job.id)}
-                                  onTouchMove={handleTouchMove}
-                                  onTouchEnd={handleTouchEnd}
-                                  className={`rounded p-1.5 cursor-move hover:shadow-md transition-all text-xs group ${
-                                    isRainedOut
-                                      ? 'bg-red-100 border-2 border-red-500'
-                                      : isOnBadWeatherDay 
-                                      ? 'bg-blue-200 border-2 border-blue-500 animate-pulse' 
-                                      : 'bg-white border border-gray-300'
-                                  }`}
-                                >
-                                  <div className="flex items-center justify-between gap-1">
-                                    <div className="flex-1 min-w-0">
-                                      <div className="font-semibold text-gray-900 truncate flex items-center gap-1">
-                                        {isRainedOut && <AlertTriangle className="h-3 w-3 text-red-800 shrink-0" />}
-                                        {isOnBadWeatherDay && !isRainedOut && <AlertTriangle className="h-3 w-3 text-blue-800 shrink-0" />}
-                                        {customer?.name}
-                                      </div>
-                                      {isRainedOut && (
-                                        <div className="text-xs text-red-900 font-bold mt-0.5">
-                                          🔄 Reschedule to afternoon ({job.scheduledTime} → after 12 PM)
-                                        </div>
-                                      )}
-                                      {isOnBadWeatherDay && !isRainedOut && (
-                                        <div className="text-xs text-blue-900 font-medium mt-0.5">
-                                          ⚠️ Move to better day
-                                        </div>
-                                      )}
-                                      {!isOnBadWeatherDay && !isRainedOut && (
-                                        <div className="text-xs text-gray-600 truncate">
-                                          ${customer?.price}
+                          {/* Time Slot Schedule: 6am-6pm with drag-and-drop */}
+                          {(() => {
+                            // Generate hourly time slots from 6am to 6pm (12 hours)
+                            const timeSlots = Array.from({ length: 12 }, (_, i) => {
+                              const hour = 6 + i;
+                              const timeLabel = hour > 12 ? `${hour - 12} PM` : hour === 12 ? '12 PM' : `${hour} AM`;
+                              return { hour, timeLabel, slotIndex: i };
+                            });
+                            
+                            // Combine all jobs and sort by slot
+                            const allJobs = [...scheduledJobsForDay, ...assignedJobs];
+                            
+                            return (
+                              <div className="space-y-1">
+                                {timeSlots.map((slot) => {
+                                  const jobInSlot = allJobs[slot.slotIndex];
+                                  
+                                  return (
+                                    <div key={slot.slotIndex}>
+                                      {/* Job card */}
+                                      {jobInSlot && (() => {
+                                        const customer = customers.find(c => c.id === jobInSlot.customerId);
+                                        const isScheduled = scheduledJobsForDay.some(j => j.id === jobInSlot.id);
+                                        const isAssigned = assignedJobs.some(j => j.id === jobInSlot.id);
+                                        const isOnBadWeatherDay = isBadWeather && isScheduled && !jobAssignments.has(jobInSlot.id);
+                                        
+                                        // Check if job is in early morning and affected by overnight rain
+                                        const isMorningJob = slot.hour < 11;
+                                        const isRainedOut = hasOvernightRain && isMorningJob && isScheduled;
+                                        
+                                        return (
+                                          <div className="flex items-center gap-2">
+                                            {/* Time label */}
+                                            <div className="text-[10px] text-gray-500 font-medium w-12 shrink-0">
+                                              {slot.timeLabel}
+                                            </div>
+                                            
+                                            {/* Job card */}
+                                            <div
+                                              draggable
+                                              onDragStart={() => handleDragStart(jobInSlot.id)}
+                                              onTouchStart={(e) => handleTouchStart(e, jobInSlot.id)}
+                                              onTouchMove={handleTouchMove}
+                                              onTouchEnd={handleTouchEnd}
+                                              className={`flex-1 rounded p-1.5 cursor-move hover:shadow-md transition-all text-xs group ${
+                                                isRainedOut
+                                                  ? 'bg-red-100 border-2 border-red-500'
+                                                  : isOnBadWeatherDay 
+                                                  ? 'bg-blue-200 border-2 border-blue-500 animate-pulse' 
+                                                  : isAssigned
+                                                  ? 'bg-green-100 border-2 border-green-500'
+                                                  : 'bg-white border border-gray-300'
+                                              }`}
+                                            >
+                                              <div className="flex items-center justify-between gap-1">
+                                                <div className="flex-1 min-w-0">
+                                                  <div className="font-semibold text-gray-900 truncate flex items-center gap-1">
+                                                    {isRainedOut && <AlertTriangle className="h-3 w-3 text-red-800 shrink-0" />}
+                                                    {isOnBadWeatherDay && !isRainedOut && <AlertTriangle className="h-3 w-3 text-blue-800 shrink-0" />}
+                                                    {customer?.name}
+                                                  </div>
+                                                  {isRainedOut && (
+                                                    <div className="text-xs text-red-900 font-bold mt-0.5">
+                                                      🔄 Reschedule to afternoon
+                                                    </div>
+                                                  )}
+                                                  {isOnBadWeatherDay && !isRainedOut && (
+                                                    <div className="text-xs text-blue-900 font-medium mt-0.5">
+                                                      ⚠️ Move to better day
+                                                    </div>
+                                                  )}
+                                                  {isAssigned && (
+                                                    <div className="text-xs text-green-900 font-medium mt-0.5">
+                                                      Moving here
+                                                    </div>
+                                                  )}
+                                                  {!isOnBadWeatherDay && !isRainedOut && !isAssigned && (
+                                                    <div className="text-xs text-gray-600 truncate">
+                                                      ${customer?.price} • 60 min
+                                                    </div>
+                                                  )}
+                                                </div>
+                                                {!isOnBadWeatherDay && !isRainedOut && isScheduled && (
+                                                  <button
+                                                    onClick={() => unassignJob(jobInSlot.id)}
+                                                    className="opacity-0 group-hover:opacity-100 text-red-600 hover:text-red-800 transition-opacity shrink-0 w-4 h-4 flex items-center justify-center"
+                                                    title="Remove"
+                                                  >
+                                                    ✕
+                                                  </button>
+                                                )}
+                                              </div>
+                                            </div>
+                                          </div>
+                                        );
+                                      })()}
+                                      
+                                      {/* Empty slot - drop zone */}
+                                      {!jobInSlot && (
+                                        <div className="flex items-center gap-2 opacity-0 hover:opacity-100 transition-opacity">
+                                          <div className="text-[10px] text-gray-400 font-medium w-12 shrink-0">
+                                            {slot.timeLabel}
+                                          </div>
+                                          <div className="flex-1 border border-dashed border-gray-300 rounded p-2 text-center text-[10px] text-gray-400">
+                                            Drop job here
+                                          </div>
                                         </div>
                                       )}
                                     </div>
-                                    {!isOnBadWeatherDay && !isRainedOut && (
-                                      <button
-                                        onClick={() => unassignJob(job.id)}
-                                        className="opacity-0 group-hover:opacity-100 text-red-600 hover:text-red-800 transition-opacity shrink-0 w-4 h-4 flex items-center justify-center"
-                                        title="Remove"
-                                      >
-                                        ✕
-                                      </button>
-                                    )}
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
-
-                        {/* Assigned Jobs (Being moved here) */}
-                        {/* Assigned Jobs (Being moved here) */}
-                        {assignedJobs.length > 0 && (
-                          <div className="space-y-1.5 mt-2 border-t-2 border-blue-300 pt-2">
-                            <div className="text-xs text-blue-700 font-medium mb-1">
-                              Moving here:
-                            </div>
-                            {assignedJobs.map(job => {
-                              const customer = customers.find(c => c.id === job.customerId);
-                              return (
-                                <div
-                                  key={job.id}
-                                  draggable
-                                  onDragStart={() => handleDragStart(job.id)}
-                                  onTouchStart={(e) => handleTouchStart(e, job.id)}
-                                  onTouchMove={handleTouchMove}
-                                  onTouchEnd={handleTouchEnd}
-                                  className="bg-blue-50 border border-blue-300 rounded p-1.5 cursor-move hover:shadow-md transition-all text-xs group"
-                                >
-                                  <div className="flex items-center justify-between gap-1">
-                                    <div className="flex-1 min-w-0">
-                                      <div className="font-semibold text-gray-900 truncate text-xs">
-                                        {customer?.name}
-                                      </div>
-                                      <div className="text-xs text-gray-600 truncate">
-                                        ${customer?.price}
-                                      </div>
-                                    </div>
-                                    <button
-                                      onClick={() => unassignJob(job.id)}
-                                      className="opacity-0 group-hover:opacity-100 text-red-600 hover:text-red-800 transition-opacity shrink-0 w-4 h-4 flex items-center justify-center"
-                                      title="Remove"
-                                    >
-                                      ✕
-                                    </button>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
-
-                        {scheduledJobsForDay.length === 0 && assignedJobs.length === 0 && isBeingDraggedOver && (
-                          <div className="text-xs text-blue-700 font-medium text-center py-3 border-2 border-dashed border-blue-400 rounded">
-                            Drop here
-                          </div>
-                        )}
-                          </>
-                        )}
+                                  );
+                                })}
+                              </div>
+                            );
+                          })()}
                         </div>
                       </div>
                     </div>
