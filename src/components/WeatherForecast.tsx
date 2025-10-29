@@ -11,7 +11,10 @@ import {
   Navigation,
   AlertTriangle,
   Loader2,
-  CheckCircle
+  CheckCircle,
+  Cloud,
+  Sun,
+  CloudSnow
 } from 'lucide-react';
 import { 
   getWeatherData, 
@@ -45,9 +48,123 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob }: 
   const [jobAssignments, setJobAssignments] = useState<Map<string, string>>(new Map()); // jobId -> date mapping
   const [draggedJobId, setDraggedJobId] = useState<string | null>(null);
   const [dragOverDay, setDragOverDay] = useState<string | null>(null);
+  const [showLocationSearch, setShowLocationSearch] = useState(false);
+  const [dragPosition, setDragPosition] = useState<{ x: number; y: number } | null>(null);
   const touchStartPos = useRef<{ x: number; y: number } | null>(null);
+  const touchStartTime = useRef<number | null>(null);
+  const dragDelayTimeout = useRef<number | null>(null);
   const [touchDraggedJobId, setTouchDraggedJobId] = useState<string | null>(null);
   const originalJobDates = useRef<Map<string, string>>(new Map()); // Track original dates for jobs
+  const autoScrollInterval = useRef<number | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+
+  // Auto-scroll when dragging near viewport edges
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDragging) return;
+
+      // Update drag position for visual feedback
+      setDragPosition({ x: e.clientX, y: e.clientY });
+
+      const scrollThreshold = 100; // pixels from edge to trigger scroll
+      const scrollSpeed = 10; // pixels to scroll per interval
+      const viewportHeight = window.innerHeight;
+      const mouseY = e.clientY;
+
+      // Clear existing interval
+      if (autoScrollInterval.current) {
+        clearInterval(autoScrollInterval.current);
+        autoScrollInterval.current = null;
+      }
+
+      // Scroll up if near top
+      if (mouseY < scrollThreshold) {
+        autoScrollInterval.current = setInterval(() => {
+          window.scrollBy(0, -scrollSpeed);
+        }, 16) as unknown as number; // ~60fps
+      }
+      // Scroll down if near bottom
+      else if (mouseY > viewportHeight - scrollThreshold) {
+        autoScrollInterval.current = setInterval(() => {
+          window.scrollBy(0, scrollSpeed);
+        }, 16) as unknown as number;
+      }
+    };
+
+    const handleMouseUp = () => {
+      if (autoScrollInterval.current) {
+        clearInterval(autoScrollInterval.current);
+        autoScrollInterval.current = null;
+      }
+      setIsDragging(false);
+      setDragPosition(null);
+    };
+
+    if (isDragging) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+    }
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+      if (autoScrollInterval.current) {
+        clearInterval(autoScrollInterval.current);
+        autoScrollInterval.current = null;
+      }
+    };
+  }, [isDragging]);
+
+  // Helper function to get weather icon based on description and precipitation
+  const getWeatherIcon = (description: string, rainChance: number) => {
+    const desc = description.toLowerCase();
+    
+    // CRITICAL: Prioritize precipitation percentage over description text
+    // Check rain/snow conditions first based on precipitation amount
+    if (rainChance >= 60) {
+      return { Icon: CloudRain, color: 'text-blue-500' };
+    } else if (desc.includes('snow') || desc.includes('sleet')) {
+      return { Icon: CloudSnow, color: 'text-blue-400' };
+    } else if (rainChance >= 30 || desc.includes('cloud')) {
+      return { Icon: Cloud, color: 'text-gray-500' };
+    } else if (desc.includes('rain') || desc.includes('drizzle')) {
+      // Light rain with low precipitation chance
+      return { Icon: CloudRain, color: 'text-blue-500' };
+    } else {
+      return { Icon: Sun, color: 'text-yellow-500' };
+    }
+  };
+
+  // Helper to create gradient based on weather progression throughout the day
+  const getWeatherGradient = (hourlyForecasts: any[] | undefined) => {
+    if (!hourlyForecasts || hourlyForecasts.length === 0) {
+      return 'bg-gray-50';
+    }
+
+    const colors = hourlyForecasts.map(forecast => {
+      const desc = forecast.description.toLowerCase();
+      const rain = forecast.precipitation;
+      
+      if (desc.includes('rain') || desc.includes('drizzle') || rain >= 60) {
+        return 'rgb(219, 234, 254)'; // blue-50
+      } else if (desc.includes('cloud')) {
+        return 'rgb(249, 250, 251)'; // gray-50
+      } else {
+        return 'rgb(254, 252, 232)'; // yellow-50
+      }
+    });
+
+    // Create gradient string
+    if (colors.length === 1) {
+      return `bg-[${colors[0]}]`;
+    } else if (colors.length === 2) {
+      return `bg-gradient-to-r from-[${colors[0]}] to-[${colors[1]}]`;
+    } else if (colors.length >= 3) {
+      return `bg-gradient-to-r from-[${colors[0]}] via-[${colors[Math.floor(colors.length / 2)]}] to-[${colors[colors.length - 1]}]`;
+    }
+    
+    return 'bg-gray-50';
+  };
 
   // Initialize original job dates when jobs change
   useEffect(() => {
@@ -114,6 +231,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob }: 
         toast.success(`Found: ${coords.name || addressInput}`, { id: 'address-search' });
         setLocation(coords);
         localStorage.setItem('weatherLocation', JSON.stringify(coords));
+        setShowLocationSearch(false); // Close search controls after setting location
         // Try to load weather, but don't fail if it errors
         try {
           await loadWeather(coords);
@@ -143,6 +261,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob }: 
         toast.success(`Location found: ${coords.lat.toFixed(4)}, ${coords.lon.toFixed(4)}`, { id: 'gps' });
         setLocation(coords);
         localStorage.setItem('weatherLocation', JSON.stringify(coords));
+        setShowLocationSearch(false); // Close search controls after getting GPS location
         // Try to load weather, but don't fail if it errors
         try {
           await loadWeather(coords);
@@ -302,6 +421,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob }: 
   // Drag and drop handlers
   const handleDragStart = (jobId: string) => {
     setDraggedJobId(jobId);
+    setIsDragging(true);
   };
 
   const handleDragOver = (e: React.DragEvent, dateStr: string) => {
@@ -315,6 +435,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob }: 
 
   const handleDrop = (e: React.DragEvent, dateStr: string) => {
     e.preventDefault();
+    setIsDragging(false);
     if (draggedJobId) {
       // Find the job to check its current date
       const job = jobs.find(j => j.id === draggedJobId);
@@ -365,16 +486,62 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob }: 
   const handleTouchStart = (e: React.TouchEvent, jobId: string) => {
     const touch = e.touches[0];
     touchStartPos.current = { x: touch.clientX, y: touch.clientY };
-    setTouchDraggedJobId(jobId);
-    setDraggedJobId(jobId);
-    // Prevent body scroll while dragging
-    document.body.style.overflow = 'hidden';
+    touchStartTime.current = Date.now();
+    
+    // Clear any existing timeout
+    if (dragDelayTimeout.current) {
+      clearTimeout(dragDelayTimeout.current);
+    }
+    
+    // Set a delay before allowing drag (200ms)
+    dragDelayTimeout.current = setTimeout(() => {
+      // Check if still touching (not a quick tap/swipe)
+      if (touchStartTime.current) {
+        setTouchDraggedJobId(jobId);
+        setDraggedJobId(jobId);
+        setIsDragging(true);
+        setDragPosition({ x: touch.clientX, y: touch.clientY });
+        // Prevent body scroll while dragging
+        document.body.style.overflow = 'hidden';
+      }
+    }, 200) as unknown as number;
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    
+    // If drag hasn't started yet, check if moved too much (likely scrolling)
+    if (!touchDraggedJobId && touchStartPos.current) {
+      const deltaX = Math.abs(touch.clientX - touchStartPos.current.x);
+      const deltaY = Math.abs(touch.clientY - touchStartPos.current.y);
+      
+      // If moved more than 10px, cancel the drag delay
+      if (deltaX > 10 || deltaY > 10) {
+        if (dragDelayTimeout.current) {
+          clearTimeout(dragDelayTimeout.current);
+          dragDelayTimeout.current = null;
+        }
+        touchStartTime.current = null;
+      }
+      return;
+    }
+    
     if (!touchDraggedJobId) return;
     
-    const touch = e.touches[0];
+    setDragPosition({ x: touch.clientX, y: touch.clientY });
+    
+    const scrollThreshold = 100;
+    const scrollSpeed = 10;
+    const viewportHeight = window.innerHeight;
+    const touchY = touch.clientY;
+
+    // Auto-scroll on touch drag
+    if (touchY < scrollThreshold) {
+      window.scrollBy(0, -scrollSpeed);
+    } else if (touchY > viewportHeight - scrollThreshold) {
+      window.scrollBy(0, scrollSpeed);
+    }
+    
     const element = document.elementFromPoint(touch.clientX, touch.clientY);
     
     // Find the day card container
@@ -388,8 +555,17 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob }: 
   };
 
   const handleTouchEnd = (e: React.TouchEvent) => {
+    // Clear the delay timeout
+    if (dragDelayTimeout.current) {
+      clearTimeout(dragDelayTimeout.current);
+      dragDelayTimeout.current = null;
+    }
+    touchStartTime.current = null;
+    
     if (!touchDraggedJobId) return;
     
+    setIsDragging(false);
+    setDragPosition(null);
     const touch = e.changedTouches[0];
     const element = document.elementFromPoint(touch.clientX, touch.clientY);
     
@@ -437,10 +613,10 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob }: 
     document.body.style.overflow = '';
   };
 
-  // Get the next 7 days for the week view
-  const getNext7Days = () => {
+  // Get the next 5 days for the forecast view
+  const getNext5Days = () => {
     const days = [];
-    for (let i = 0; i < 7; i++) {
+    for (let i = 0; i < 5; i++) {
       const date = new Date();
       date.setDate(date.getDate() + i);
       days.push(date);
@@ -457,32 +633,105 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob }: 
         <div className="h-1 flex-1 bg-linear-to-l from-blue-200 to-blue-400 rounded-full"></div>
       </div>
 
-      {/* Compact Location Selector */}
-      <div className="bg-green-50/50 border border-green-200 rounded-lg p-3">
-        <div className="flex flex-col sm:flex-row items-center gap-2">
-          <MapPin className="h-4 w-4 text-green-600 shrink-0" />
-          <span className="text-sm text-green-900 font-medium">
-            {locationName || 'No location set'}
-          </span>
-          <div className="flex-1 flex gap-2 w-full sm:w-auto">
-            <Input
-              placeholder="City, address, or ZIP"
-              value={addressInput}
-              onChange={(e) => setAddressInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleAddressSearch()}
-              className="flex-1 h-8 text-sm border-green-200 focus:border-green-400 focus:ring-green-400"
-            />
-            <Button onClick={handleAddressSearch} disabled={loading} size="sm" variant="outline" className="border-green-300 text-green-700 hover:bg-green-50">
-              <Search className="h-3 w-3 mr-1" />
-              <span className="hidden sm:inline">Search</span>
-            </Button>
-            <Button onClick={handleUseGPS} disabled={loading} size="sm" className="bg-green-600 hover:bg-green-700">
-              <Navigation className="h-3 w-3 mr-1" />
-              <span className="hidden sm:inline">Use GPS</span>
-            </Button>
+      {/* Location Selector - Centered on mobile - Blue theme, no box */}
+      <div className="flex justify-center mb-4">
+        <div className="w-full md:w-fit">
+          <div className="flex flex-col md:flex-row items-center gap-2 justify-center">
+            {/* Location Display - Clickable when location is set */}
+            <div 
+              className={`flex items-center gap-2 ${locationName && !showLocationSearch ? 'cursor-pointer hover:bg-blue-50 rounded px-2 py-1 -mx-2 -my-1 transition-colors' : ''}`}
+              onClick={() => {
+                if (locationName && !showLocationSearch) {
+                  setShowLocationSearch(true);
+                }
+              }}
+            >
+              <MapPin className="h-4 w-4 text-blue-600 shrink-0" />
+              <span className="text-sm text-blue-900 font-medium whitespace-nowrap">
+                {locationName || 'No location set'}
+              </span>
+            </div>
+
+            {/* Search Controls - Show if no location or if toggled open */}
+            {(!locationName || showLocationSearch) && (
+              <div className="flex items-center gap-2 flex-wrap justify-center">
+                <Input
+                  placeholder="City, address, or ZIP"
+                  value={addressInput}
+                  onChange={(e) => setAddressInput(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAddressSearch()}
+                  className="w-48 h-8 text-sm border-blue-200 focus:border-blue-400 focus:ring-blue-400"
+                />
+                <Button onClick={handleAddressSearch} disabled={loading} size="sm" variant="outline" className="border-blue-300 text-blue-700 hover:bg-blue-50 h-8">
+                  <Search className="h-3 w-3 mr-1" />
+                  <span className="hidden sm:inline">Search</span>
+                </Button>
+                <Button onClick={handleUseGPS} disabled={loading} size="sm" className="bg-blue-600 hover:bg-blue-700 h-8">
+                  <Navigation className="h-3 w-3 mr-1" />
+                  <span className="hidden sm:inline">GPS</span>
+                </Button>
+                {/* Close button when location exists */}
+                {locationName && showLocationSearch && (
+                  <Button 
+                    onClick={() => setShowLocationSearch(false)} 
+                    size="sm" 
+                    variant="outline" 
+                    className="h-8"
+                  >
+                    Done
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
+
+      {/* Floating Action Buttons - Bottom Right - Only visible when there are changes - Blue theme */}
+      {jobAssignments.size > 0 && (
+        <div className="fixed bottom-4 right-4 md:bottom-6 md:right-6 z-50 flex flex-col gap-2 animate-in slide-in-from-bottom-4">
+          <div className="bg-white border-2 border-blue-300 rounded-lg shadow-lg p-3">
+            <div className="flex items-center gap-2 mb-3">
+              <CheckCircle className="h-4 w-4 text-blue-600 shrink-0" />
+              <span className="font-medium text-sm text-blue-900">
+                {jobAssignments.size} ready to move
+              </span>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setJobAssignments(new Map())}
+                className="flex-1"
+              >
+                Reset
+              </Button>
+              <Button
+                size="sm"
+                className="bg-blue-600 hover:bg-blue-700 flex-1"
+                onClick={async () => {
+                  if (jobAssignments.size === 0 || !onRescheduleJob) return;
+                  
+                  const count = jobAssignments.size;
+                  
+                  for (const [jobId, newDateStr] of jobAssignments.entries()) {
+                    const job = jobs.find(j => j.id === jobId);
+                    if (job) {
+                      await onRescheduleJob(jobId, newDateStr);
+                      originalJobDates.current.set(jobId, newDateStr);
+                    }
+                  }
+                  
+                  setJobAssignments(new Map());
+                  toast.success(`${count} job(s) rescheduled successfully!`);
+                }}
+              >
+                Confirm ({jobAssignments.size})
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Loading State */}
       {loading && !weatherData && (
@@ -528,12 +777,15 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob }: 
       {weatherData && (
         <div className="space-y-4">
             {/* Week View Grid - Droppable Days */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3">
-                {getNext7Days().map((day, index) => {
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 items-start">
+                {getNext5Days().map((day, index) => {
                   const dateStr = day.toLocaleDateString('en-CA'); // YYYY-MM-DD format
                   const isToday = index === 0;
                   const dayName = isToday ? 'Today' : day.toLocaleDateString('en-US', { weekday: 'short' });
                   const dayDate = day.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                  
+                  // Get weather for this day - IMPORTANT: index matches the day iteration
+                  const weatherForDay = weatherData?.daily[index];
                   
                   // Get jobs scheduled for this day (excluding jobs that are being moved to another day)
                   const scheduledJobsForDay = jobs.filter(j => {
@@ -551,12 +803,27 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob }: 
                   
                   const totalJobs = scheduledJobsForDay.length + assignedJobs.length;
                   
-                  // Get weather for this day
-                  const weatherForDay = weatherData?.daily[index];
                   const rainChance = weatherForDay?.precipitationChance || 0;
-                  const isGoodWeather = rainChance < 30;
                   const isBadWeather = rainChance >= 60;
                   const isBeingDraggedOver = dragOverDay === dateStr;
+                  
+                  // Determine border color based on precipitation chance
+                  let borderColor = 'border-gray-300';
+                  
+                  if (rainChance >= 60) {
+                    borderColor = 'border-blue-300';
+                  } else if (rainChance >= 30) {
+                    borderColor = 'border-gray-300';
+                  } else {
+                    borderColor = 'border-yellow-200';
+                  }
+                  
+                  // For today, add a slightly bolder accent
+                  if (isToday) {
+                    if (borderColor === 'border-blue-300') borderColor = 'border-blue-400';
+                    else if (borderColor === 'border-yellow-200') borderColor = 'border-yellow-400';
+                    else borderColor = 'border-gray-400';
+                  }
                   
                   return (
                     <div
@@ -566,55 +833,104 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob }: 
                       onDragOver={(e) => handleDragOver(e, dateStr)}
                       onDragLeave={handleDragLeave}
                       onDrop={(e) => handleDrop(e, dateStr)}
-                      className={`rounded-lg border-2 transition-all ${
+                      className={`rounded-xl border-2 transition-all duration-200 overflow-hidden relative ${
                         isBeingDraggedOver
-                          ? 'border-blue-500 bg-blue-100 scale-105 shadow-lg'
-                          : isBadWeather 
-                          ? 'bg-blue-100 border-blue-400 hover:border-blue-500 shadow-sm' 
-                          : isGoodWeather
-                          ? 'bg-green-50 border-green-400 hover:border-green-500 shadow-sm'
-                          : 'bg-blue-50 border-blue-300 hover:border-blue-400'
-                      }`}
+                          ? 'scale-105 shadow-2xl ring-4 ring-blue-400 ring-opacity-50'
+                          : 'shadow-sm'
+                      } ${borderColor}`}
+                      style={isBeingDraggedOver ? {} : weatherForDay ? {
+                        background: weatherForDay.hourlyForecasts && weatherForDay.hourlyForecasts.length > 0
+                          ? `linear-gradient(to bottom, ${weatherForDay.hourlyForecasts.map((h, idx) => {
+                              const desc = h.description.toLowerCase();
+                              // Use the higher of hourly or daily precipitation for accurate colors
+                              const effectiveRain = Math.max(h.precipitation, rainChance);
+                              let color = 'rgb(254, 252, 232)'; // yellow-50 for clear
+                              // Prioritize precipitation percentage over description
+                              if (effectiveRain >= 60 || desc.includes('rain') || desc.includes('drizzle')) {
+                                color = 'rgb(219, 234, 254)'; // blue-50 for rain
+                              } else if (desc.includes('cloud') || effectiveRain >= 30) {
+                                color = 'rgb(249, 250, 251)'; // gray-50 for cloudy
+                              }
+                              return `${color} ${(idx / (weatherForDay.hourlyForecasts!.length - 1)) * 100}%`;
+                            }).join(', ')})`
+                          : (() => {
+                              // Fallback: solid color based on daily rain chance
+                              let bgColor = 'rgb(254, 252, 232)'; // yellow-50 for clear
+                              if (rainChance >= 60) {
+                                bgColor = 'rgb(219, 234, 254)'; // blue-50 for rain
+                              } else if (rainChance >= 30) {
+                                bgColor = 'rgb(249, 250, 251)'; // gray-50 for cloudy
+                              }
+                              return bgColor;
+                            })()
+                      } : {}
+                      }
                     >
-                      {/* Day Header */}
-                      <div className={`p-3 border-b ${isBadWeather ? 'border-blue-300' : 'border-gray-200'}`}>
-                        <div className="flex items-start justify-between mb-1">
-                          <div>
-                            <div className={`font-bold text-sm ${isBadWeather ? 'text-blue-900' : 'text-gray-900'}`}>{dayName}</div>
-                            <div className={`text-xs ${isBadWeather ? 'text-blue-700' : 'text-gray-600'}`}>{dayDate}</div>
-                          </div>
-                          {weatherForDay && (
-                            <img 
-                              src={getWeatherIconUrl(weatherForDay.icon)} 
-                              alt={weatherForDay.description}
-                              className="w-8 h-8 shrink-0"
-                            />
+                      {/* Day Header - Simplified without weather icons */}
+                      <div className="p-4 text-center">
+                        <div className="font-semibold text-base text-gray-900 mb-1">{dayName}</div>
+                        <div className="text-sm text-gray-600">{dayDate}</div>
+                        
+                        {/* Rain Chance Badge - Always takes up space for alignment */}
+                        <div className="h-6 flex items-center justify-center mt-2">
+                          {weatherForDay && rainChance > 0 && (
+                            <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
+                              isBadWeather 
+                                ? 'bg-blue-100 text-blue-800' 
+                                : 'bg-gray-100 text-gray-700'
+                            }`}>
+                              {rainChance}%
+                            </div>
                           )}
                         </div>
-                        
-                        {weatherForDay && (
-                          <div className="space-y-0.5">
-                            <div className={`text-xs font-medium ${isBadWeather ? 'text-blue-900' : 'text-gray-900'}`}>
-                              {weatherForDay.tempMax}° / {weatherForDay.tempMin}°
-                            </div>
-                            <div className={`text-xs font-medium flex items-center gap-1 ${
-                              isBadWeather ? 'text-blue-800' : isGoodWeather ? 'text-green-700' : 'text-blue-700'
-                            }`}>
-                              <CloudRain className="h-3 w-3 shrink-0" />
-                              {rainChance}% rain
-                            </div>
-                          </div>
-                        )}
                       </div>
 
-                      {/* Job Count & Jobs List */}
-                      <div className="p-3">
-                        <div className={`text-xs font-semibold mb-2 ${isBadWeather ? 'text-blue-900' : 'text-gray-900'}`}>
+                      {/* Job Count & Jobs List - With transparent weather icons overlay on right */}
+                      <div className="p-3 pr-16 bg-gray-50/50 relative min-h-[280px]">
+                        {/* Transparent Weather Icons Overlay - Right side */}
+                        {weatherForDay && (
+                          <div className="absolute right-2 top-0 bottom-0 flex flex-col justify-around items-center pointer-events-none z-0 py-3">
+                            {/* Always show 4 time periods representing the full day */}
+                            {(() => {
+                              const times = ['5 AM', '11 AM', '5 PM', '11 PM'];
+                              const timeHours = [5, 11, 17, 23]; // 24-hour format
+                              const currentHour = new Date().getHours();
+                              
+                              // Always create 4 time slots
+                              return times.map((time, idx) => {
+                                // Try to get forecast data for this time slot, fallback to daily weather
+                                const forecast = weatherForDay.hourlyForecasts && weatherForDay.hourlyForecasts[idx]
+                                  ? weatherForDay.hourlyForecasts[idx]
+                                  : { description: weatherForDay.description, precipitation: rainChance };
+                                
+                                const effectivePrecipitation = Math.max(forecast.precipitation, rainChance);
+                                const { Icon: HourIcon, color: hourColor } = getWeatherIcon(forecast.description, effectivePrecipitation);
+                                
+                                // For today, gray out times that have passed
+                                const isPastTime = isToday && currentHour >= timeHours[idx];
+                                const opacityClass = isPastTime ? 'opacity-10' : 'opacity-20';
+                                
+                                return (
+                                  <div key={idx} className={`flex flex-col items-center gap-1 ${opacityClass}`}>
+                                    <HourIcon className={`w-10 h-10 ${hourColor} stroke-[1.5]`} />
+                                    <span className="text-[10px] text-gray-600 font-medium">{times[idx]}</span>
+                                  </div>
+                                );
+                              });
+                            })()}
+                          </div>
+                        )}
+                        
+                        <div className="relative z-10">
+                        <div className="text-xs font-semibold mb-2 text-gray-700 text-center">
                           {totalJobs} job{totalJobs !== 1 ? 's' : ''}
                         </div>
 
-                        {/* Scheduled Jobs (Original) */}
-                        {scheduledJobsForDay.length > 0 && (
+                        {/* Only show job list if there are jobs */}
+                        {totalJobs > 0 && (
+                          <>
+                            {/* Scheduled Jobs (Original) */}
+                            {scheduledJobsForDay.length > 0 && (
                           <div className="space-y-1.5">
                             {scheduledJobsForDay.map(job => {
                               const customer = customers.find(c => c.id === job.customerId);
@@ -713,60 +1029,14 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob }: 
                             Drop here
                           </div>
                         )}
+                          </>
+                        )}
+                        </div>
                       </div>
                     </div>
                   );
                 })}
               </div>
-
-            {/* Confirm Move Button */}
-            {jobAssignments.size > 0 && (
-              <div className="border-2 border-green-300 bg-green-50 rounded-lg p-4 mt-4">
-                <div className="flex flex-col gap-3">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className="h-5 w-5 text-green-600 shrink-0" />
-                    <span className="font-medium text-green-900 text-sm">
-                      {jobAssignments.size} job{jobAssignments.size !== 1 ? 's' : ''} assigned and ready to move!
-                    </span>
-                  </div>
-                  <div className="flex gap-2 justify-end">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setJobAssignments(new Map());
-                        // Don't reset original dates on reset - keep them tracked
-                      }}
-                    >
-                      Reset
-                    </Button>
-                    <Button
-                      size="sm"
-                      className="bg-green-600 hover:bg-green-700"
-                      onClick={async () => {
-                        if (jobAssignments.size === 0 || !onRescheduleJob) return;
-                        
-                        const count = jobAssignments.size;
-                        
-                        for (const [jobId, newDateStr] of jobAssignments.entries()) {
-                          const job = jobs.find(j => j.id === jobId);
-                          if (job) {
-                            await onRescheduleJob(jobId, newDateStr);
-                            // Update the original date to the new date after successful move
-                            originalJobDates.current.set(jobId, newDateStr);
-                          }
-                        }
-                        
-                        setJobAssignments(new Map());
-                        toast.success(`${count} job(s) rescheduled successfully!`);
-                      }}
-                    >
-                      Confirm Move ({jobAssignments.size} job{jobAssignments.size !== 1 ? 's' : ''})
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            )}
 
             {/* No bad weather - all clear! */}
             {recommendations.badWeatherDays.length === 0 && jobs.some(j => j.status === 'scheduled') && (
@@ -805,6 +1075,34 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob }: 
           </AlertDescription>
         </Alert>
       )}
+
+      {/* Drag Preview - Shows the job being dragged */}
+      {draggedJobId && dragPosition && (() => {
+        const draggedJob = jobs.find(j => j.id === draggedJobId);
+        const customer = draggedJob ? customers.find(c => c.id === draggedJob.customerId) : null;
+        
+        if (!draggedJob || !customer) return null;
+        
+        return (
+          <div
+            className="fixed pointer-events-none z-50 opacity-80"
+            style={{
+              left: `${dragPosition.x}px`,
+              top: `${dragPosition.y}px`,
+              transform: 'translate(-50%, -50%)',
+            }}
+          >
+            <div className="rounded p-2 bg-blue-500 border-2 border-blue-600 shadow-2xl text-xs min-w-[120px]">
+              <div className="font-semibold text-white truncate">
+                {customer.name}
+              </div>
+              <div className="text-blue-100 truncate">
+                ${customer.price}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

@@ -32,6 +32,13 @@ export interface WeatherData {
     icon: string;
     windSpeed: number;
     humidity: number;
+    hourlyForecasts?: Array<{
+      time: string;
+      temp: number;
+      precipitation: number;
+      icon: string;
+      description: string;
+    }>;
   }>;
 }
 
@@ -189,6 +196,15 @@ export async function getWeatherData(coordinates: Coordinates): Promise<WeatherD
       const pops = forecasts.map(f => f.pop || 0);
       const mainWeather = forecasts[Math.floor(forecasts.length / 2)].weather[0];
       
+      // Get hourly forecasts for this day (up to 4 time periods)
+      const hourlyForecasts = forecasts.slice(0, 4).map((forecast: any) => ({
+        time: new Date(forecast.dt * 1000).toLocaleTimeString('en-US', { hour: 'numeric' }),
+        temp: Math.round(forecast.main.temp),
+        precipitation: Math.round((forecast.pop || 0) * 100),
+        icon: forecast.weather[0].icon,
+        description: forecast.weather[0].description
+      }));
+      
       return {
         date: new Date(date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
         tempMax: Math.round(Math.max(...temps)),
@@ -198,7 +214,8 @@ export async function getWeatherData(coordinates: Coordinates): Promise<WeatherD
         description: mainWeather.description,
         icon: mainWeather.icon,
         windSpeed: Math.round(forecasts[Math.floor(forecasts.length / 2)].wind.speed),
-        humidity: forecasts[Math.floor(forecasts.length / 2)].main.humidity
+        humidity: forecasts[Math.floor(forecasts.length / 2)].main.humidity,
+        hourlyForecasts
       };
     });
 
