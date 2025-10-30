@@ -8,6 +8,7 @@ import {
   CloudRain, 
   MapPin, 
   Search, 
+  // ...existing code continues...
   Navigation,
   AlertTriangle,
   Loader2,
@@ -51,6 +52,33 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
   const [addressInput, setAddressInput] = useState('');
   const [jobAssignments, setJobAssignments] = useState<Map<string, string>>(new Map()); // jobId -> date mapping
   const [jobTimeSlots, setJobTimeSlots] = useState<Map<string, number>>(new Map()); // jobId -> timeSlot (0-11 for 6am-6pm)
+
+  // Sync jobTimeSlots with jobs order when jobs prop changes (e.g., after optimization)
+  useEffect(() => {
+    if (!jobs || jobs.length === 0) return;
+    // Group jobs by date
+    const jobsByDate = new Map();
+    jobs.forEach((job: any) => {
+      if (!jobsByDate.has(job.date)) jobsByDate.set(job.date, []);
+      jobsByDate.get(job.date).push(job);
+    });
+    setJobTimeSlots((prev: Map<string, number>) => {
+      const newMap = new Map(prev);
+      for (const [, jobsForDate] of jobsByDate.entries()) {
+        // Sort jobs by scheduledTime if available, otherwise by order in array
+        const sorted = [...jobsForDate].sort((a, b) => {
+          if (a.scheduledTime && b.scheduledTime) {
+            return a.scheduledTime.localeCompare(b.scheduledTime);
+          }
+          return 0;
+        });
+        sorted.forEach((job, idx) => {
+          if (job) newMap.set(job.id, idx);
+        });
+      }
+      return newMap;
+    });
+  }, [jobs]);
   const [dayStartTimes, setDayStartTimes] = useState<Map<string, number>>(() => {
     const saved = localStorage.getItem('dayStartTimes');
     return saved ? new Map(JSON.parse(saved)) : new Map();
@@ -1254,7 +1282,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                               }
                               
                               return (
-                                <div className="space-y-1 relative">
+                                <div className="space-y-1 relative h-[468px] flex flex-col justify-between">
                                 {timeSlots.map((slot) => {
                                   const jobInSlot = jobsBySlot[slot.slotIndex];
                                   const isSlotHovered = dragOverSlot?.date === dateStr && dragOverSlot?.slot === slot.slotIndex;
@@ -1291,19 +1319,17 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                     );
                                   };
                                   
-                                  // Check if this slot is before the start time
-                                  const isBeforeStartTime = slot.slotIndex < minSlotIndex;
-                                  
+                                  // All slots are always visible and active
                                   return (
                                     <div 
                                       key={slot.slotIndex}
-                                      className="relative"
+                                      className="relative min-h-[38.5px] h-[38.5px] flex items-center"
                                       data-time-slot="true"
                                       data-slot-index={slot.slotIndex}
-                                      onDragOver={(e) => !isBeforeStartTime && handleDragOver(e, dateStr, slot.slotIndex)}
-                                      onDrop={(e) => !isBeforeStartTime && handleSlotDrop(e, dateStr, slot.slotIndex)}
+                                      onDragOver={(e) => handleDragOver(e, dateStr, slot.slotIndex)}
+                                      onDrop={(e) => handleSlotDrop(e, dateStr, slot.slotIndex)}
                                     >
-                                      <div className={`flex items-center gap-1 ${isBeforeStartTime ? 'opacity-30 pointer-events-none' : ''}`}>
+                                      <div className="flex items-center gap-1 w-full h-full">
                                         {/* Show weather icon with time, or just empty space for alignment */}
                                         {shouldShowWeatherIcon ? getWeatherForHour() : (
                                           <div className="w-10 shrink-0"></div>
@@ -1323,7 +1349,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                               onTouchStart={(e) => !isDraggedItem && handleTouchStart(e, jobInSlot.id)}
                                               onTouchMove={handleTouchMove}
                                               onTouchEnd={handleTouchEnd}
-                                              className={`flex-1 rounded p-1.5 transition-all text-xs group ${
+                                              className={`flex-1 rounded p-1.5] transition-all text-xs group min-h-[40px] h-[40px] overflow-hidden ${
                                                 isDraggedItem
                                                   ? 'bg-blue-50 border-2 border-blue-400 border-dashed opacity-60'
                                                   : isAssigned
@@ -1331,9 +1357,9 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                                   : 'bg-white border border-gray-300 cursor-move hover:shadow-md'
                                               }`}
                                             >
-                                              <div className="flex items-center justify-between gap-1 min-h-[38px]">
+                                              <div className="flex items-center justify-between gap-1 w-full overflow-hidden">
                                                 <div className="flex-1 min-w-0">
-                                                  <div className="font-semibold text-gray-900 truncate">
+                                                  <div className="font-semibold text-gray-900 truncate w-full">
                                                     {customer?.name}
                                                   </div>
                                                   {isDraggedItem && (
@@ -1341,16 +1367,16 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                                       Drop to confirm...
                                                     </div>
                                                   )}
-                                                  {!isDraggedItem && isAssigned ? (
+                                                  {!isDraggedItem && isAssigned && (
                                                     <div className="text-xs text-gray-700 font-medium mt-0.5 italic">
                                                       Moving here...
                                                     </div>
-                                                  ) : null}
-                                                  {!isDraggedItem && !isAssigned ? (
+                                                  )}
+                                                  {!isDraggedItem && !isAssigned && (
                                                     <div className="text-xs text-gray-600 truncate">
                                                       ${customer?.price} • 60 min
                                                     </div>
-                                                  ) : null}
+                                                  )}
                                                 </div>
                                                 {isScheduled && !isDraggedItem && (
                                                   <button

@@ -313,7 +313,9 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
   };
 
   // Fetch real drive times from Google Maps API in background
+  const didDriveTimeRefresh = useRef(false);
   useEffect(() => {
+    didDriveTimeRefresh.current = false; // Reset when jobs or address changes
     const fetchDriveTimes = async () => {
       if (todayJobs.length === 0) return;
 
@@ -339,9 +341,11 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
 
       // Fetch drive times for uncached pairs
       const newCache = new Map(driveTimesCache);
+      let allFetched = true;
       for (const { from, to } of pairs) {
         const cacheKey = `${from}|${to}`;
         if (!newCache.has(cacheKey)) {
+          allFetched = false;
           try {
             const result = await getDriveTime(from, to);
             if (result) {
@@ -353,7 +357,17 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
         }
       }
 
-      setDriveTimesCache(newCache);
+      setDriveTimesCache(prev => {
+        // Only trigger refresh after cache is updated in state
+        if (allFetched && !didDriveTimeRefresh.current && typeof onRefreshJobs === 'function') {
+          didDriveTimeRefresh.current = true;
+          // Use a small timeout to ensure state update is flushed
+          setTimeout(() => {
+            onRefreshJobs();
+          }, 50);
+        }
+        return newCache;
+      });
     };
 
     fetchDriveTimes();
@@ -823,8 +837,8 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
       });
       
       // Update local state FIRST for instant UI feedback
-      console.log('Updating local state...');
-      onUpdateJobs(fullyUpdatedJobs);
+  console.log('Updating local state...');
+  onUpdateJobs(fullyUpdatedJobs);
       
       // Then persist to database in background
       console.log('Persisting to database...');
@@ -845,11 +859,16 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
       // Small delay to ensure database propagation
       await new Promise(resolve => setTimeout(resolve, 300));
       
-      // Final refresh to ensure sync (but local state should already be correct)
-      await onRefreshJobs?.();
-      
+
+  // Final refresh to ensure sync (but local state should already be correct)
+  await onRefreshJobs?.();
+  // Clear drive time cache so drive times are recalculated for new order (after refresh)
+  setDriveTimesCache(new Map());
+  // Trigger another refresh so UI updates with new drive times
+  await onRefreshJobs?.();
+
       console.log('=== ROUTE OPTIMIZATION COMPLETE ===');
-      
+
       toast.success(`Route optimized! ${optimizedJobsWithData.length} stops reordered`, { 
         id: 'optimize-route',
         description: `${optimizedRoute.totalDurationText} driving, ${optimizedRoute.totalDistanceText} total`
@@ -1011,9 +1030,15 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
               // Calculate drive time based on current order
               let driveTime: string;
               if (previousCustomer) {
-                driveTime = estimateDriveTime(previousCustomer.address, customer.address);
+                const cacheKey = `${previousCustomer.address}|${customer.address}`;
+                driveTime = driveTimesCache.has(cacheKey)
+                  ? driveTimesCache.get(cacheKey)!
+                  : 'Calculating...';
               } else if (startingAddress) {
-                driveTime = estimateDriveTime(startingAddress, customer.address);
+                const cacheKey = `${startingAddress}|${customer.address}`;
+                driveTime = driveTimesCache.has(cacheKey)
+                  ? driveTimesCache.get(cacheKey)!
+                  : 'Calculating...';
               } else {
                 driveTime = 'Start';
               }
