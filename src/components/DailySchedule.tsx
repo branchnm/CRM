@@ -285,6 +285,19 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
     return `${mins}m`;
   };
 
+  const formatScheduledTime = (timeString: string) => {
+    // timeString format: "HH:MM" (24-hour)
+    const [hourStr, minuteStr] = timeString.split(':');
+    const hour = parseInt(hourStr);
+    const minute = parseInt(minuteStr);
+    
+    const period = hour >= 12 ? 'PM' : 'AM';
+    const displayHour = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
+    const displayMinute = minute.toString().padStart(2, '0');
+    
+    return `${displayHour}:${displayMinute} ${period}`;
+  };
+
   // Estimate drive time between two addresses (with Google Maps API integration)
   const estimateDriveTime = (address1: string, address2: string): string => {
     // Check cache first
@@ -647,12 +660,15 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
     setNextJobToNotify(null);
   };
 
-  const handleRescheduleJob = async (jobId: string, newDate: string) => {
+  const handleRescheduleJob = async (jobId: string, newDate: string, timeSlot?: number) => {
     const job = jobs.find(j => j.id === jobId);
     if (!job) return;
 
     try {
-      await updateJob({ ...job, date: newDate });
+      // Calculate scheduled time from time slot (6am + slot hours)
+      const scheduledTime = timeSlot !== undefined ? `${6 + timeSlot}:00` : undefined;
+      
+      await updateJob({ ...job, date: newDate, scheduledTime });
       
       // Update customer's nextCutDate if this job was their next cut
       const customer = customers.find(c => c.id === job.customerId);
@@ -721,12 +737,33 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
         console.log(`  ${i + 1}. ${seg.fromAddress} → ${seg.toAddress}: ${seg.durationText}, ${seg.distanceText}`);
       });
       
-      // Map the optimized jobs back to the original job objects with new order
-      const optimizedJobsWithData = optimizedRoute.jobs.map(optimizedJob => {
+      // Map the optimized jobs back to the original job objects with new order and scheduled times
+      // Get start time for today (default 6am if not set)
+      const startHour = 6; // TODO: Get from WeatherForecast day start time
+      let currentTime = startHour * 60; // Convert to minutes from midnight
+      
+      const optimizedJobsWithData = optimizedRoute.jobs.map((optimizedJob, index) => {
         const originalJob = scheduledJobs.find(j => j.id === optimizedJob.id);
+        
+        // Calculate scheduled time
+        const hours = Math.floor(currentTime / 60);
+        const minutes = currentTime % 60;
+        const scheduledTime = `${hours}:${minutes.toString().padStart(2, '0')}`;
+        
+        // Add estimated job duration (60 minutes) + drive time for next iteration
+        const jobDuration = 60; // 1 hour per job
+        currentTime += jobDuration;
+        
+        // Add drive time to next location if available
+        if (index < optimizedRoute.segments.length) {
+          const driveMinutes = optimizedRoute.segments[index].durationMinutes || 10;
+          currentTime += driveMinutes;
+        }
+        
         return {
           ...originalJob!,
-          order: optimizedJob.order
+          order: optimizedJob.order,
+          scheduledTime
         };
       });
       
@@ -959,6 +996,12 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
                         <MapPin className="h-3 w-3 shrink-0" />
                         <span>{customer.address}</span>
                       </div>
+                      {job.scheduledTime && (
+                        <div className="flex items-center justify-center gap-1.5 text-blue-600 text-xs font-medium mt-1">
+                          <Clock className="h-3 w-3" />
+                          <span>Scheduled: {formatScheduledTime(job.scheduledTime)}</span>
+                        </div>
+                      )}
                       <div className="flex items-center justify-center gap-1.5 text-green-600 text-xs mt-1">
                         <Clock className="h-3 w-3" />
                         <span>{driveTime}</span>

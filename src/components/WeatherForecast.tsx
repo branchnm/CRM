@@ -32,10 +32,11 @@ import { toast } from 'sonner';
 interface WeatherForecastProps {
   jobs?: Job[];
   customers?: Customer[];
-  onRescheduleJob?: (jobId: string, newDate: string) => void;
+  onRescheduleJob?: (jobId: string, newDate: string, timeSlot?: number) => void;
+  onUpdateJobTimeSlot?: (jobId: string, timeSlot: number) => void;
 }
 
-export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob }: WeatherForecastProps) {
+export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, onUpdateJobTimeSlot }: WeatherForecastProps) {
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -48,8 +49,14 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob }: 
   });
   const [addressInput, setAddressInput] = useState('');
   const [jobAssignments, setJobAssignments] = useState<Map<string, string>>(new Map()); // jobId -> date mapping
+  const [jobTimeSlots, setJobTimeSlots] = useState<Map<string, number>>(new Map()); // jobId -> timeSlot (0-11 for 6am-6pm)
+  const [dayStartTimes, setDayStartTimes] = useState<Map<string, number>>(() => {
+    const saved = localStorage.getItem('dayStartTimes');
+    return saved ? new Map(JSON.parse(saved)) : new Map();
+  }); // date -> start hour (6-17 for 6am-5pm)
   const [draggedJobId, setDraggedJobId] = useState<string | null>(null);
   const [dragOverDay, setDragOverDay] = useState<string | null>(null);
+  const [dragOverSlot, setDragOverSlot] = useState<{ date: string; slot: number } | null>(null);
   const [showLocationSearch, setShowLocationSearch] = useState(false);
   const [dragPosition, setDragPosition] = useState<{ x: number; y: number } | null>(null);
   const touchStartPos = useRef<{ x: number; y: number } | null>(null);
@@ -226,6 +233,11 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob }: 
       }
     });
   }, [jobs]);
+
+  // Save day start times to localStorage
+  useEffect(() => {
+    localStorage.setItem('dayStartTimes', JSON.stringify(Array.from(dayStartTimes.entries())));
+  }, [dayStartTimes]);
 
   // Load weather on mount if location is set
   useEffect(() => {
@@ -476,13 +488,51 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob }: 
     setIsDragging(true);
   };
 
-  const handleDragOver = (e: React.DragEvent, dateStr: string) => {
+  const handleDragOver = (e: React.DragEvent, dateStr: string, slotIndex?: number) => {
     e.preventDefault();
     setDragOverDay(dateStr);
+    if (slotIndex !== undefined) {
+      setDragOverSlot({ date: dateStr, slot: slotIndex });
+    }
   };
 
   const handleDragLeave = () => {
     setDragOverDay(null);
+    setDragOverSlot(null);
+  };
+
+  const handleSlotDrop = (e: React.DragEvent, dateStr: string, targetSlot: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    
+    if (draggedJobId) {
+      const job = jobs.find(j => j.id === draggedJobId);
+      const originalDate = originalJobDates.current.get(draggedJobId);
+      
+      if (job) {
+        // Update job assignment for the new date
+        setJobAssignments(prev => {
+          const newMap = new Map(prev);
+          if (originalDate === dateStr) {
+            newMap.delete(draggedJobId);
+          } else {
+            newMap.set(draggedJobId, dateStr);
+          }
+          return newMap;
+        });
+        
+        // Update time slot assignment
+        setJobTimeSlots(prev => {
+          const newMap = new Map(prev);
+          newMap.set(draggedJobId, targetSlot);
+          return newMap;
+        });
+      }
+      setDraggedJobId(null);
+    }
+    setDragOverDay(null);
+    setDragOverSlot(null);
   };
 
   const handleDrop = (e: React.DragEvent, dateStr: string) => {
@@ -528,6 +578,11 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob }: 
 
   const unassignJob = (jobId: string) => {
     setJobAssignments(prev => {
+      const newMap = new Map(prev);
+      newMap.delete(jobId);
+      return newMap;
+    });
+    setJobTimeSlots(prev => {
       const newMap = new Map(prev);
       newMap.delete(jobId);
       return newMap;
@@ -596,12 +651,26 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob }: 
     
     const element = document.elementFromPoint(touch.clientX, touch.clientY);
     
-    // Find the day card container
+    // Find the time slot first (more specific)
+    const timeSlot = element?.closest('[data-time-slot]');
+    if (timeSlot) {
+      const dayCard = timeSlot.closest('[data-day-card]');
+      const dateStr = dayCard?.getAttribute('data-date');
+      const slotIndex = timeSlot.getAttribute('data-slot-index');
+      if (dateStr && slotIndex !== null) {
+        setDragOverDay(dateStr);
+        setDragOverSlot({ date: dateStr, slot: parseInt(slotIndex) });
+        return;
+      }
+    }
+    
+    // Fallback to day card
     const dayCard = element?.closest('[data-day-card]');
     if (dayCard) {
       const dateStr = dayCard.getAttribute('data-date');
       if (dateStr) {
         setDragOverDay(dateStr);
+        setDragOverSlot(null);
       }
     }
   };
@@ -621,7 +690,48 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob }: 
     const touch = e.changedTouches[0];
     const element = document.elementFromPoint(touch.clientX, touch.clientY);
     
-    // Find the day card container
+    // Find the time slot first (more specific)
+    const timeSlot = element?.closest('[data-time-slot]');
+    if (timeSlot) {
+      const dayCard = timeSlot.closest('[data-day-card]');
+      const dateStr = dayCard?.getAttribute('data-date');
+      const slotIndexStr = timeSlot.getAttribute('data-slot-index');
+      
+      if (dateStr && slotIndexStr !== null && touchDraggedJobId) {
+        const slotIndex = parseInt(slotIndexStr);
+        const job = jobs.find(j => j.id === touchDraggedJobId);
+        const originalDate = originalJobDates.current.get(touchDraggedJobId);
+        
+        if (job) {
+          // Update job assignment for the new date
+          setJobAssignments(prev => {
+            const newMap = new Map(prev);
+            if (originalDate === dateStr) {
+              newMap.delete(touchDraggedJobId);
+            } else {
+              newMap.set(touchDraggedJobId, dateStr);
+            }
+            return newMap;
+          });
+          
+          // Update time slot assignment
+          setJobTimeSlots(prev => {
+            const newMap = new Map(prev);
+            newMap.set(touchDraggedJobId, slotIndex);
+            return newMap;
+          });
+        }
+      }
+      
+      setTouchDraggedJobId(null);
+      setDraggedJobId(null);
+      setDragOverDay(null);
+      setDragOverSlot(null);
+      document.body.style.overflow = '';
+      return;
+    }
+    
+    // Fallback to day card (no specific time slot)
     const dayCard = element?.closest('[data-day-card]');
     if (dayCard) {
       const dateStr = dayCard.getAttribute('data-date');
@@ -660,8 +770,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob }: 
     setTouchDraggedJobId(null);
     setDraggedJobId(null);
     setDragOverDay(null);
-    touchStartPos.current = null;
-    // Re-enable body scroll
+    setDragOverSlot(null);
     document.body.style.overflow = '';
   };
 
@@ -768,13 +877,15 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob }: 
                   
                   for (const [jobId, newDateStr] of jobAssignments.entries()) {
                     const job = jobs.find(j => j.id === jobId);
+                    const timeSlot = jobTimeSlots.get(jobId);
                     if (job) {
-                      await onRescheduleJob(jobId, newDateStr);
+                      await onRescheduleJob(jobId, newDateStr, timeSlot);
                       originalJobDates.current.set(jobId, newDateStr);
                     }
                   }
                   
                   setJobAssignments(new Map());
+                  setJobTimeSlots(new Map());
                   toast.success(`${count} job(s) rescheduled successfully!`);
                 }}
               >
@@ -838,10 +949,6 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob }: 
                   
                   // Get weather for this day and previous day - IMPORTANT: index matches the day iteration
                   const weatherForDay = weatherData?.daily[index];
-                  const previousDayWeather = index > 0 ? weatherData?.daily[index - 1] : undefined;
-                  
-                  // Check if there was heavy overnight rain affecting morning jobs
-                  const hasOvernightRain = hasHeavyOvernightRain(weatherForDay, previousDayWeather);
                   
                   // Get jobs scheduled for this day (excluding jobs that are being moved to another day)
                   const scheduledJobsForDay = jobs.filter(j => {
@@ -860,7 +967,6 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob }: 
                   const totalJobs = scheduledJobsForDay.length + assignedJobs.length;
                   
                   const rainChance = weatherForDay?.precipitationChance || 0;
-                  const isBadWeather = rainChance >= 60;
                   const isBeingDraggedOver = dragOverDay === dateStr;
                   
                   // Helper function to get border color based on weather
@@ -958,9 +1064,37 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob }: 
                     >
                       {/* Day Header - Compact single line */}
                       <div className="px-3 py-2 flex items-center justify-between bg-white">
-                        <div className="flex flex-col items-start">
-                          <div className="font-semibold text-sm text-gray-900">{dayName}</div>
-                          <div className="text-xs text-gray-600">{dayDate}</div>
+                        <div className="flex items-center gap-3">
+                          <div className="flex flex-col items-start">
+                            <div className="font-semibold text-sm text-gray-900">{dayName}</div>
+                            <div className="text-xs text-gray-600">{dayDate}</div>
+                          </div>
+                          {/* Start Time Selector */}
+                          <div className="flex items-center gap-1">
+                            <span className="text-[10px] text-gray-500">Start:</span>
+                            <select
+                              value={dayStartTimes.get(dateStr) || 6}
+                              onChange={(e) => {
+                                const newStartTime = parseInt(e.target.value);
+                                setDayStartTimes(prev => {
+                                  const newMap = new Map(prev);
+                                  newMap.set(dateStr, newStartTime);
+                                  return newMap;
+                                });
+                              }}
+                              className="text-[11px] border border-gray-300 rounded px-1 py-0.5 bg-white"
+                            >
+                              {Array.from({ length: 12 }, (_, i) => {
+                                const hour = 6 + i;
+                                const label = hour > 12 ? `${hour - 12} PM` : hour === 12 ? '12 PM' : `${hour} AM`;
+                                return (
+                                  <option key={hour} value={hour}>
+                                    {label}
+                                  </option>
+                                );
+                              })}
+                            </select>
+                          </div>
                         </div>
                         
                         {/* Rain Chance Badge - Top right corner */}
@@ -972,10 +1106,10 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob }: 
                       </div>
 
                       {/* Job Count & Jobs List - With weather icons on right */}
-                      <div className="p-3 pr-20 bg-gray-50/50 relative min-h-[280px]">
+                      <div className="px-2 py-3 pr-12 bg-gray-50/50 relative min-h-[280px]">
                         {/* Weather Icons Overlay - Right side, every 3 hours from 5am */}
                         {weatherForDay && (
-                          <div className="absolute right-2 top-0 bottom-0 flex flex-col justify-around items-center pointer-events-none z-0 py-3">
+                          <div className="absolute right-1 top-0 bottom-0 flex flex-col justify-around items-center pointer-events-none z-0 py-3">
                             {/* Show weather symbols every 3 hours: 5 AM, 8 AM, 11 AM, 2 PM, 5 PM, 8 PM */}
                             {(() => {
                               const times = ['5 AM', '8 AM', '11 AM', '2 PM', '5 PM', '8 PM'];
@@ -997,8 +1131,8 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob }: 
                                 
                                 return (
                                   <div key={idx} className="flex flex-col items-center gap-1 opacity-20">
-                                    <HourIcon className={`w-8 h-8 ${hourColor} stroke-[1.5]`} />
-                                    <span className="text-[9px] text-gray-600 font-medium">{time}</span>
+                                    <HourIcon className={`w-6 h-6 ${hourColor} stroke-[1.5]`} />
+                                    <span className="text-[8px] text-gray-600 font-medium">{time}</span>
                                   </div>
                                 );
                               });
@@ -1020,31 +1154,51 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob }: 
                               return { hour, timeLabel, slotIndex: i };
                             });
                             
-                            // Combine all jobs and sort by slot
+                            // Get all jobs for this day
                             const allJobs = [...scheduledJobsForDay, ...assignedJobs];
+                            
+                            // Map jobs to their time slots
+                            const jobsBySlot: { [key: number]: typeof allJobs[0] } = {};
+                            allJobs.forEach(job => {
+                              const assignedSlot = jobTimeSlots.get(job.id);
+                              if (assignedSlot !== undefined) {
+                                jobsBySlot[assignedSlot] = job;
+                              } else {
+                                // If no specific time slot assigned, place sequentially
+                                for (let i = 0; i < 12; i++) {
+                                  if (!jobsBySlot[i]) {
+                                    jobsBySlot[i] = job;
+                                    break;
+                                  }
+                                }
+                              }
+                            });
                             
                             return (
                               <div className="space-y-1">
                                 {timeSlots.map((slot) => {
-                                  const jobInSlot = allJobs[slot.slotIndex];
+                                  const jobInSlot = jobsBySlot[slot.slotIndex];
+                                  const isSlotHovered = dragOverSlot?.date === dateStr && dragOverSlot?.slot === slot.slotIndex;
                                   
                                   return (
-                                    <div key={slot.slotIndex}>
+                                    <div 
+                                      key={slot.slotIndex}
+                                      data-time-slot="true"
+                                      data-slot-index={slot.slotIndex}
+                                      onDragOver={(e) => handleDragOver(e, dateStr, slot.slotIndex)}
+                                      onDragLeave={handleDragLeave}
+                                      onDrop={(e) => handleSlotDrop(e, dateStr, slot.slotIndex)}
+                                    >
                                       {/* Job card */}
                                       {jobInSlot && (() => {
                                         const customer = customers.find(c => c.id === jobInSlot.customerId);
                                         const isScheduled = scheduledJobsForDay.some(j => j.id === jobInSlot.id);
                                         const isAssigned = assignedJobs.some(j => j.id === jobInSlot.id);
-                                        const isOnBadWeatherDay = isBadWeather && isScheduled && !jobAssignments.has(jobInSlot.id);
-                                        
-                                        // Check if job is in early morning and affected by overnight rain
-                                        const isMorningJob = slot.hour < 11;
-                                        const isRainedOut = hasOvernightRain && isMorningJob && isScheduled;
                                         
                                         return (
-                                          <div className="flex items-center gap-2">
+                                          <div className="flex items-center gap-1">
                                             {/* Time label */}
-                                            <div className="text-[10px] text-gray-500 font-medium w-12 shrink-0">
+                                            <div className="text-[10px] text-gray-500 font-medium w-10 shrink-0">
                                               {slot.timeLabel}
                                             </div>
                                             
@@ -1055,45 +1209,30 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob }: 
                                               onTouchStart={(e) => handleTouchStart(e, jobInSlot.id)}
                                               onTouchMove={handleTouchMove}
                                               onTouchEnd={handleTouchEnd}
-                                              className={`flex-1 rounded p-1.5 cursor-move hover:shadow-md transition-all text-xs group ${
-                                                isRainedOut
-                                                  ? 'bg-red-100 border-2 border-red-500'
-                                                  : isOnBadWeatherDay 
-                                                  ? 'bg-blue-200 border-2 border-blue-500 animate-pulse' 
-                                                  : isAssigned
-                                                  ? 'bg-green-100 border-2 border-green-500'
+                                              className={`rounded p-1.5 cursor-move hover:shadow-md transition-all text-xs group ${
+                                                isAssigned
+                                                  ? 'bg-gray-100 border-2 border-gray-400 animate-pulse'
                                                   : 'bg-white border border-gray-300'
                                               }`}
+                                              style={{ width: 'calc(100% - 44px)' }}
                                             >
                                               <div className="flex items-center justify-between gap-1">
                                                 <div className="flex-1 min-w-0">
-                                                  <div className="font-semibold text-gray-900 truncate flex items-center gap-1">
-                                                    {isRainedOut && <AlertTriangle className="h-3 w-3 text-red-800 shrink-0" />}
-                                                    {isOnBadWeatherDay && !isRainedOut && <AlertTriangle className="h-3 w-3 text-blue-800 shrink-0" />}
+                                                  <div className="font-semibold text-gray-900 truncate">
                                                     {customer?.name}
                                                   </div>
-                                                  {isRainedOut && (
-                                                    <div className="text-xs text-red-900 font-bold mt-0.5">
-                                                      🔄 Reschedule to afternoon
-                                                    </div>
-                                                  )}
-                                                  {isOnBadWeatherDay && !isRainedOut && (
-                                                    <div className="text-xs text-blue-900 font-medium mt-0.5">
-                                                      ⚠️ Move to better day
-                                                    </div>
-                                                  )}
                                                   {isAssigned && (
-                                                    <div className="text-xs text-green-900 font-medium mt-0.5">
-                                                      Moving here
+                                                    <div className="text-xs text-gray-700 font-medium mt-0.5 italic">
+                                                      Moving here...
                                                     </div>
                                                   )}
-                                                  {!isOnBadWeatherDay && !isRainedOut && !isAssigned && (
+                                                  {!isAssigned && (
                                                     <div className="text-xs text-gray-600 truncate">
                                                       ${customer?.price} • 60 min
                                                     </div>
                                                   )}
                                                 </div>
-                                                {!isOnBadWeatherDay && !isRainedOut && isScheduled && (
+                                                {isScheduled && (
                                                   <button
                                                     onClick={() => unassignJob(jobInSlot.id)}
                                                     className="opacity-0 group-hover:opacity-100 text-red-600 hover:text-red-800 transition-opacity shrink-0 w-4 h-4 flex items-center justify-center"
@@ -1110,11 +1249,18 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob }: 
                                       
                                       {/* Empty slot - drop zone */}
                                       {!jobInSlot && (
-                                        <div className="flex items-center gap-2 opacity-0 hover:opacity-100 transition-opacity">
-                                          <div className="text-[10px] text-gray-400 font-medium w-12 shrink-0">
+                                        <div className={`flex items-center gap-1 transition-opacity ${
+                                          isSlotHovered ? 'opacity-100 bg-blue-50' : 'opacity-0 hover:opacity-100'
+                                        }`}>
+                                          <div className="text-[10px] text-gray-400 font-medium w-10 shrink-0">
                                             {slot.timeLabel}
                                           </div>
-                                          <div className="flex-1 border border-dashed border-gray-300 rounded p-2 text-center text-[10px] text-gray-400">
+                                          <div 
+                                            className={`border border-dashed rounded p-2 text-center text-[10px] ${
+                                              isSlotHovered ? 'border-blue-500 text-blue-600' : 'border-gray-300 text-gray-400'
+                                            }`}
+                                            style={{ width: 'calc(100% - 44px)' }}
+                                          >
                                             Drop job here
                                           </div>
                                         </div>
@@ -1131,18 +1277,6 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob }: 
                   );
                 })}
               </div>
-
-            {/* No bad weather - all clear! */}
-            {recommendations.badWeatherDays.length === 0 && jobs.some(j => j.status === 'scheduled') && (
-              <div className="border-2 border-green-300 bg-green-50 rounded-lg">
-                <div className="flex items-center justify-center gap-2 py-3 px-4">
-                  <CheckCircle className="h-5 w-5 text-green-600" />
-                  <p className="text-sm font-medium text-green-700">
-                    No bad weather expected for scheduled jobs in the next 7 days
-                  </p>
-                </div>
-              </div>
-            )}
         </div>
       )}
 
