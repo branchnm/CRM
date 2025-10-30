@@ -665,7 +665,7 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
     if (!job) return;
 
     try {
-      // Calculate scheduled time from time slot (6am + slot hours)
+      // Calculate scheduled time from time slot (6am + slot hours, since slots now start at 6am)
       const scheduledTime = timeSlot !== undefined ? `${6 + timeSlot}:00` : undefined;
       
       await updateJob({ ...job, date: newDate, scheduledTime });

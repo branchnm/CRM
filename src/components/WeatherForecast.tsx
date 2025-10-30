@@ -1084,8 +1084,8 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                               }}
                               className="text-[11px] border border-gray-300 rounded px-1 py-0.5 bg-white"
                             >
-                              {Array.from({ length: 12 }, (_, i) => {
-                                const hour = 6 + i;
+                              {Array.from({ length: 14 }, (_, i) => {
+                                const hour = 5 + i;
                                 const label = hour > 12 ? `${hour - 12} PM` : hour === 12 ? '12 PM' : `${hour} AM`;
                                 return (
                                   <option key={hour} value={hour}>
@@ -1105,21 +1105,17 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                         )}
                       </div>
 
-                      {/* Job Count & Jobs List - With weather icons on right */}
-                      <div className="px-2 py-3 pr-12 bg-gray-50/50 relative min-h-[280px]">
-                        {/* Weather Icons Overlay - Right side, every 3 hours from 5am */}
-                        {weatherForDay && (
-                          <div className="absolute right-1 top-0 bottom-0 flex flex-col justify-around items-center pointer-events-none z-0 py-3">
-                            {/* Show weather symbols every 3 hours: 5 AM, 8 AM, 11 AM, 2 PM, 5 PM, 8 PM */}
-                            {(() => {
-                              const times = ['5 AM', '8 AM', '11 AM', '2 PM', '5 PM', '8 PM'];
-                              const hours = [5, 8, 11, 14, 17, 20]; // 24-hour format
-                              
-                              return times.map((time, idx) => {
-                                // Map to hourly forecast slots (approximate to closest available)
-                                const forecastIdx = idx < 2 ? 0 : idx < 4 ? 1 : idx < 5 ? 2 : 3;
-                                const forecast = weatherForDay.hourlyForecasts && weatherForDay.hourlyForecasts[forecastIdx]
-                                  ? weatherForDay.hourlyForecasts[forecastIdx]
+                      {/* Main Content: Day Schedule (left) + Night Weather (right) */}
+                      <div className="grid grid-cols-[1fr_auto] gap-0">
+                        {/* Left: Job Count & Jobs List with day weather icons (5am-6pm) */}
+                        <div className="px-2 py-3 bg-gray-50/50 relative min-h-[280px] border-r border-gray-200">
+                          
+                          <div className="relative z-10">
+                            {/* 5am Weather Symbol with Job Count */}
+                            <div className="flex items-center gap-1 mb-2">
+                              {weatherForDay && (() => {
+                                const forecast = weatherForDay.hourlyForecasts && weatherForDay.hourlyForecasts[0]
+                                  ? weatherForDay.hourlyForecasts[0]
                                   : { description: weatherForDay.description, precipitation: rainChance, rainAmount: 0 };
                                 
                                 const effectivePrecipitation = Math.max(forecast.precipitation, rainChance);
@@ -1130,91 +1126,118 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                 );
                                 
                                 return (
-                                  <div key={idx} className="flex flex-col items-center gap-1 opacity-20">
+                                  <div className="flex flex-col items-center gap-0.5 w-10 shrink-0">
                                     <HourIcon className={`w-6 h-6 ${hourColor} stroke-[1.5]`} />
-                                    <span className="text-[8px] text-gray-600 font-medium">{time}</span>
+                                    <span className="text-[10px] text-gray-500 font-medium whitespace-nowrap">5 AM</span>
                                   </div>
                                 );
-                              });
-                            })()}
-                          </div>
-                        )}
-                        
-                        <div className="relative z-10">
-                          <div className="text-xs font-semibold mb-2 text-gray-700 text-center">
-                            {totalJobs} job{totalJobs !== 1 ? 's' : ''}
-                          </div>
+                              })()}
+                              <div className="flex-1 text-xs font-semibold text-gray-700 text-center">
+                                {totalJobs} job{totalJobs !== 1 ? 's' : ''}
+                              </div>
+                            </div>
 
-                          {/* Time Slot Schedule: 6am-6pm with drag-and-drop */}
-                          {(() => {
-                            // Generate hourly time slots from 6am to 6pm (12 hours)
-                            const timeSlots = Array.from({ length: 12 }, (_, i) => {
-                              const hour = 6 + i;
-                              const timeLabel = hour > 12 ? `${hour - 12} PM` : hour === 12 ? '12 PM' : `${hour} AM`;
-                              return { hour, timeLabel, slotIndex: i };
-                            });
-                            
-                            // Get all jobs for this day
-                            const allJobs = [...scheduledJobsForDay, ...assignedJobs];
-                            
-                            // Map jobs to their time slots
-                            const jobsBySlot: { [key: number]: typeof allJobs[0] } = {};
-                            allJobs.forEach(job => {
-                              const assignedSlot = jobTimeSlots.get(job.id);
-                              if (assignedSlot !== undefined) {
-                                jobsBySlot[assignedSlot] = job;
-                              } else {
-                                // If no specific time slot assigned, place sequentially
-                                for (let i = 0; i < 12; i++) {
-                                  if (!jobsBySlot[i]) {
-                                    jobsBySlot[i] = job;
-                                    break;
+                            {/* Time Slot Schedule: 6am-6pm with drag-and-drop */}
+                            {(() => {
+                              // Generate hourly time slots from 6am to 6pm (13 hours)
+                              const timeSlots = Array.from({ length: 13 }, (_, i) => {
+                                const hour = 6 + i;
+                                const timeLabel = hour > 12 ? `${hour - 12} PM` : hour === 12 ? '12 PM' : `${hour} AM`;
+                                return { hour, timeLabel, slotIndex: i };
+                              });
+                              
+                              // Get all jobs for this day
+                              const allJobs = [...scheduledJobsForDay, ...assignedJobs];
+                              
+                              // Map jobs to their time slots
+                              const jobsBySlot: { [key: number]: typeof allJobs[0] } = {};
+                              allJobs.forEach(job => {
+                                const assignedSlot = jobTimeSlots.get(job.id);
+                                if (assignedSlot !== undefined) {
+                                  jobsBySlot[assignedSlot] = job;
+                                } else {
+                                  // If no specific time slot assigned, place sequentially
+                                  for (let i = 0; i < 13; i++) {
+                                    if (!jobsBySlot[i]) {
+                                      jobsBySlot[i] = job;
+                                      break;
+                                    }
                                   }
                                 }
-                              }
-                            });
-                            
-                            return (
-                              <div className="space-y-1">
+                              });
+                              
+                              return (
+                                <div className="space-y-1 relative">
                                 {timeSlots.map((slot) => {
                                   const jobInSlot = jobsBySlot[slot.slotIndex];
                                   const isSlotHovered = dragOverSlot?.date === dateStr && dragOverSlot?.slot === slot.slotIndex;
                                   
+                                  // Show weather icon at 8am, 11am, 2pm, 5pm (every 3 hours, excluding 6pm)
+                                  const shouldShowWeatherIcon = weatherForDay && [8, 11, 14, 17].includes(slot.hour);
+                                  
+                                  // Get weather icon component for this hour
+                                  const getWeatherForHour = () => {
+                                    if (!shouldShowWeatherIcon) return null;
+                                    
+                                    // Map hour to forecast index
+                                    const forecastIdx = slot.hour <= 8 ? 0 : slot.hour <= 14 ? 1 : slot.hour <= 17 ? 2 : 3;
+                                    const forecast = weatherForDay.hourlyForecasts && weatherForDay.hourlyForecasts[forecastIdx]
+                                      ? weatherForDay.hourlyForecasts[forecastIdx]
+                                      : { description: weatherForDay.description, precipitation: rainChance, rainAmount: 0 };
+                                    
+                                    const effectivePrecipitation = Math.max(forecast.precipitation, rainChance);
+                                    const { Icon: HourIcon, color: hourColor } = getWeatherIcon(
+                                      forecast.description, 
+                                      effectivePrecipitation,
+                                      forecast.rainAmount
+                                    );
+                                    
+                                    const timeLabel = slot.hour > 12 ? `${slot.hour - 12} PM` : slot.hour === 12 ? '12 PM' : `${slot.hour} AM`;
+                                    
+                                    return (
+                                      <div className="flex flex-col items-center gap-0.5 w-10 shrink-0">
+                                        <HourIcon className={`w-6 h-6 ${hourColor} stroke-[1.5]`} />
+                                        <span className="text-[10px] text-gray-500 font-medium whitespace-nowrap">
+                                          {timeLabel}
+                                        </span>
+                                      </div>
+                                    );
+                                  };
+                                  
                                   return (
                                     <div 
                                       key={slot.slotIndex}
+                                      className="relative"
                                       data-time-slot="true"
                                       data-slot-index={slot.slotIndex}
                                       onDragOver={(e) => handleDragOver(e, dateStr, slot.slotIndex)}
                                       onDragLeave={handleDragLeave}
                                       onDrop={(e) => handleSlotDrop(e, dateStr, slot.slotIndex)}
                                     >
-                                      {/* Job card */}
-                                      {jobInSlot && (() => {
-                                        const customer = customers.find(c => c.id === jobInSlot.customerId);
-                                        const isScheduled = scheduledJobsForDay.some(j => j.id === jobInSlot.id);
-                                        const isAssigned = assignedJobs.some(j => j.id === jobInSlot.id);
+                                      <div className="flex items-center gap-1">
+                                        {/* Show weather icon with time, or just empty space for alignment */}
+                                        {shouldShowWeatherIcon ? getWeatherForHour() : (
+                                          <div className="w-10 shrink-0"></div>
+                                        )}
                                         
-                                        return (
-                                          <div className="flex items-center gap-1">
-                                            {/* Time label */}
-                                            <div className="text-[10px] text-gray-500 font-medium w-10 shrink-0">
-                                              {slot.timeLabel}
-                                            </div>
-                                            
-                                            {/* Job card */}
+                                        {/* Job card or empty drop zone */}
+                                        {jobInSlot ? (() => {
+                                          const customer = customers.find(c => c.id === jobInSlot.customerId);
+                                          const isScheduled = scheduledJobsForDay.some(j => j.id === jobInSlot.id);
+                                          const isAssigned = assignedJobs.some(j => j.id === jobInSlot.id);
+                                          
+                                          return (
                                             <div
                                               draggable
                                               onDragStart={() => handleDragStart(jobInSlot.id)}
                                               onTouchStart={(e) => handleTouchStart(e, jobInSlot.id)}
                                               onTouchMove={handleTouchMove}
                                               onTouchEnd={handleTouchEnd}
-                                              className={`rounded p-1.5 cursor-move hover:shadow-md transition-all text-xs group ${
+                                              className={`flex-1 rounded p-1.5 cursor-move hover:shadow-md transition-all text-xs group ${
                                                 isAssigned
                                                   ? 'bg-gray-100 border-2 border-gray-400 animate-pulse'
                                                   : 'bg-white border border-gray-300'
                                               }`}
-                                              style={{ width: 'calc(100% - 44px)' }}
                                             >
                                               <div className="flex items-center justify-between gap-1">
                                                 <div className="flex-1 min-w-0">
@@ -1243,28 +1266,19 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                                 )}
                                               </div>
                                             </div>
-                                          </div>
-                                        );
-                                      })()}
-                                      
-                                      {/* Empty slot - drop zone */}
-                                      {!jobInSlot && (
-                                        <div className={`flex items-center gap-1 transition-opacity ${
-                                          isSlotHovered ? 'opacity-100 bg-blue-50' : 'opacity-0 hover:opacity-100'
-                                        }`}>
-                                          <div className="text-[10px] text-gray-400 font-medium w-10 shrink-0">
-                                            {slot.timeLabel}
-                                          </div>
+                                          );
+                                        })() : (
                                           <div 
-                                            className={`border border-dashed rounded p-2 text-center text-[10px] ${
-                                              isSlotHovered ? 'border-blue-500 text-blue-600' : 'border-gray-300 text-gray-400'
+                                            className={`flex-1 border border-dashed rounded p-2 text-center text-[10px] transition-opacity ${
+                                              isSlotHovered 
+                                                ? 'opacity-100 bg-blue-50 border-blue-500 text-blue-600' 
+                                                : 'opacity-0 hover:opacity-100 border-gray-300 text-gray-400'
                                             }`}
-                                            style={{ width: 'calc(100% - 44px)' }}
                                           >
                                             Drop job here
                                           </div>
-                                        </div>
-                                      )}
+                                        )}
+                                      </div>
                                     </div>
                                   );
                                 })}
@@ -1273,7 +1287,57 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                           })()}
                         </div>
                       </div>
+
+                      {/* Right: Night Weather (8pm, 11pm, 2am) aligned with day rows */}
+                      <div className="bg-slate-800 px-2 py-3 min-h-[280px] w-[55px]">
+                        <div className="text-xs font-semibold mb-2 text-slate-200 text-center h-[28px] flex items-center justify-center">
+                          Tonight
+                        </div>
+                        
+                        {/* Night weather icons aligned with specific day time slots */}
+                        {weatherForDay && (() => {
+                          // Create array matching day schedule structure (13 slots for 6am-6pm)
+                          const nightSlots = Array.from({ length: 13 }, (_, i) => {
+                            const dayHour = 6 + i; // 6am to 6pm
+                            // Show night weather at: 8am slot (8pm), 11am slot (11pm), 2pm slot (2am)
+                            if (dayHour === 8) return { show: true, label: '8 PM' };
+                            if (dayHour === 11) return { show: true, label: '11 PM' };
+                            if (dayHour === 14) return { show: true, label: '2 AM' };
+                            return { show: false };
+                          });
+                          
+                          const forecastIdx = 3; // Use evening/night forecast
+                          const forecast = weatherForDay.hourlyForecasts && weatherForDay.hourlyForecasts[forecastIdx]
+                            ? weatherForDay.hourlyForecasts[forecastIdx]
+                            : { description: weatherForDay.description, precipitation: rainChance, rainAmount: 0 };
+                          
+                          const effectivePrecipitation = Math.max(forecast.precipitation, rainChance);
+                          const { Icon: NightIcon, color: nightColor } = getWeatherIcon(
+                            forecast.description, 
+                            effectivePrecipitation,
+                            forecast.rainAmount
+                          );
+                          
+                          return (
+                            <div className="space-y-1">
+                              {nightSlots.map((slot, idx) => (
+                                <div key={idx} className="h-[40px] flex items-center justify-center">
+                                  {slot.show && (
+                                    <div className="flex flex-col items-center gap-0.5">
+                                      <NightIcon className={`w-6 h-6 ${nightColor} stroke-[1.5]`} />
+                                      <span className="text-[10px] text-slate-300 font-medium whitespace-nowrap">
+                                        {slot.label}
+                                      </span>
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          );
+                        })()}
+                      </div>
                     </div>
+                  </div>
                   );
                 })}
               </div>
