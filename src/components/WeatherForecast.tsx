@@ -1150,6 +1150,29 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                       newMap.set(dateStr, newStartTime);
                                       return newMap;
                                     });
+                                    // Move jobs in now-hidden slots to the first visible slot
+                                    setJobTimeSlots(prev => {
+                                      const minSlotIndex = newStartTime - 6;
+                                      const newMap = new Map(prev);
+                                      // Find jobs in this day with slot < minSlotIndex
+                                      for (const [jobId, slot] of prev.entries()) {
+                                        const job = jobs.find(j => j.id === jobId && (j.date === dateStr || jobAssignments.get(j.id) === dateStr));
+                                        if (job && slot < minSlotIndex) {
+                                          // Find first available visible slot
+                                          let found = false;
+                                          for (let i = minSlotIndex; i < 13; i++) {
+                                            if (![...newMap.entries()].some(([otherId, otherSlot]) => otherId !== jobId && otherSlot === i)) {
+                                              newMap.set(jobId, i);
+                                              found = true;
+                                              break;
+                                            }
+                                          }
+                                          // If no slot found, just set to minSlotIndex
+                                          if (!found) newMap.set(jobId, minSlotIndex);
+                                        }
+                                      }
+                                      return newMap;
+                                    });
                                     // Notify parent component of start time change
                                     onStartTimeChange?.(dateStr, newStartTime);
                                   }}
@@ -1308,7 +1331,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                                   : 'bg-white border border-gray-300 cursor-move hover:shadow-md'
                                               }`}
                                             >
-                                              <div className="flex items-center justify-between gap-1">
+                                              <div className="flex items-center justify-between gap-1 min-h-[38px]">
                                                 <div className="flex-1 min-w-0">
                                                   <div className="font-semibold text-gray-900 truncate">
                                                     {customer?.name}
@@ -1318,16 +1341,16 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                                       Drop to confirm...
                                                     </div>
                                                   )}
-                                                  {!isDraggedItem && isAssigned && (
+                                                  {!isDraggedItem && isAssigned ? (
                                                     <div className="text-xs text-gray-700 font-medium mt-0.5 italic">
                                                       Moving here...
                                                     </div>
-                                                  )}
-                                                  {!isDraggedItem && !isAssigned && (
+                                                  ) : null}
+                                                  {!isDraggedItem && !isAssigned ? (
                                                     <div className="text-xs text-gray-600 truncate">
                                                       ${customer?.price} • 60 min
                                                     </div>
-                                                  )}
+                                                  ) : null}
                                                 </div>
                                                 {isScheduled && !isDraggedItem && (
                                                   <button
