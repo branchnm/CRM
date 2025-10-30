@@ -42,6 +42,7 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
   });
   const [tempStartingAddress, setTempStartingAddress] = useState(startingAddress);
   const [driveTimesCache, setDriveTimesCache] = useState<Map<string, string>>(new Map());
+  const [dayStartTimes, setDayStartTimes] = useState<Map<string, number>>(new Map());
   
   // Track job creation to prevent race conditions
   const creatingJobsRef = useRef<Set<string>>(new Set());
@@ -688,6 +689,38 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
     }
   };
 
+  const handleStartTimeChange = async (date: string, startHour: number) => {
+    // Store the start time
+    setDayStartTimes(prev => {
+      const newMap = new Map(prev);
+      newMap.set(date, startHour);
+      return newMap;
+    });
+
+    // Update scheduled times for all jobs on this date
+    const jobsOnDate = jobs.filter(j => j.date === date && j.scheduledTime);
+    
+    for (const job of jobsOnDate) {
+      if (!job.scheduledTime) continue;
+      
+      // Parse the current scheduled time
+      const [hours] = job.scheduledTime.split(':').map(Number);
+      
+      // If the scheduled time is before the new start time, update it
+      if (hours < startHour) {
+        const newScheduledTime = `${startHour}:00`;
+        try {
+          await updateJob({ ...job, scheduledTime: newScheduledTime });
+        } catch (error) {
+          console.error('Error updating job scheduled time:', error);
+        }
+      }
+    }
+    
+    // Refresh jobs to show updated times
+    await onRefreshJobs?.();
+  };
+
   const handleOptimizeRoute = async () => {
     if (!startingAddress.trim()) {
       toast.error('Please set a starting address first');
@@ -738,8 +771,8 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
       });
       
       // Map the optimized jobs back to the original job objects with new order and scheduled times
-      // Get start time for today (default 6am if not set)
-      const startHour = 6; // TODO: Get from WeatherForecast day start time
+      // Get start time for today from the stored day start times
+      const startHour = dayStartTimes.get(today) || 6;
       let currentTime = startHour * 60; // Convert to minutes from midnight
       
       const optimizedJobsWithData = optimizedRoute.jobs.map((optimizedJob, index) => {
@@ -865,6 +898,7 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
         jobs={jobs}
         customers={customers}
         onRescheduleJob={handleRescheduleJob}
+        onStartTimeChange={handleStartTimeChange}
       />
 
       {/* Today's Jobs Section Header */}
