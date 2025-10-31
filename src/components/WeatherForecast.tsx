@@ -512,13 +512,39 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
   const recommendations = getWeatherRecommendations();
 
   // Drag and drop handlers
-  const handleDragStart = (jobId: string) => {
+  const handleDragStart = (e: React.DragEvent, jobId: string) => {
+    e.stopPropagation();
+    
+    // Create a transparent/empty drag image to prevent the weird blue box
+    const dragImg = document.createElement('div');
+    dragImg.style.opacity = '0';
+    dragImg.style.position = 'absolute';
+    dragImg.style.top = '-9999px';
+    document.body.appendChild(dragImg);
+    e.dataTransfer.setDragImage(dragImg, 0, 0);
+    
+    // Clean up the temporary element after drag starts
+    setTimeout(() => document.body.removeChild(dragImg), 0);
+    
     setDraggedJobId(jobId);
     setIsDragging(true);
+    // Set initial drag position for desktop drag
+    setDragPosition({ x: e.clientX, y: e.clientY });
+  };
+
+  const handleDrag = (e: React.DragEvent) => {
+    // Update drag position while dragging (for desktop)
+    if (e.clientX !== 0 && e.clientY !== 0) {
+      setDragPosition({ x: e.clientX, y: e.clientY });
+    }
   };
 
   const handleDragOver = (e: React.DragEvent, dateStr: string, slotIndex?: number) => {
     e.preventDefault();
+    // Update drag position while dragging over
+    if (e.clientX !== 0 && e.clientY !== 0) {
+      setDragPosition({ x: e.clientX, y: e.clientY });
+    }
     // Only set dragOverDay if not already set (prevents flicker)
     if (dragOverDay !== dateStr) {
       setDragOverDay(dateStr);
@@ -555,6 +581,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(false);
+    setDragPosition(null); // Clear drag position when drop completes
     if (draggedJobId) {
       const job = jobs.find(j => j.id === draggedJobId);
       const originalDate = originalJobDates.current.get(draggedJobId);
@@ -598,6 +625,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
   const handleDrop = (e: React.DragEvent, dateStr: string) => {
     e.preventDefault();
     setIsDragging(false);
+    setDragPosition(null); // Clear drag position when drop completes
     if (draggedJobId) {
       // Find the job to check its current date
       const job = jobs.find(j => j.id === draggedJobId);
@@ -1345,7 +1373,8 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                           return (
                                             <div
                                               draggable={!isDraggedItem}
-                                              onDragStart={() => !isDraggedItem && handleDragStart(jobInSlot.id)}
+                                              onDragStart={(e) => !isDraggedItem && handleDragStart(e, jobInSlot.id)}
+                                              onDrag={handleDrag}
                                               onTouchStart={(e) => !isDraggedItem && handleTouchStart(e, jobInSlot.id)}
                                               onTouchMove={handleTouchMove}
                                               onTouchEnd={handleTouchEnd}
@@ -1494,22 +1523,37 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
         const draggedJob = jobs.find(j => j.id === draggedJobId);
         const customer = draggedJob ? customers.find(c => c.id === draggedJob.customerId) : null;
         if (!draggedJob || !customer) return null;
+        
+        // Check if this job is being moved to a new day
+        const isAssigned = jobAssignments.has(draggedJobId);
+        
         return (
           <div
-            className="fixed pointer-events-none z-50 opacity-80"
+            className="fixed pointer-events-none z-50"
             style={{
               left: `${dragPosition.x}px`,
               top: `${dragPosition.y}px`,
               transform: 'translate(-50%, -50%)',
             }}
           >
-            <div className="rounded-lg p-2 bg-blue-500 border-2 border-blue-600 shadow-2xl text-xs min-w-[120px] flex flex-col items-start"
-                 style={{ minWidth: 120 }}>
-              <div className="font-semibold text-white truncate">
-                {customer.name}
-              </div>
-              <div className="text-blue-100 truncate">
-                ${customer.price}
+            {/* Match the actual job card styling */}
+            <div 
+              className={`rounded px-3 py-2 text-xs min-h-[40px] h-[40px] overflow-hidden flex items-center shadow-2xl ${
+                isAssigned
+                  ? 'bg-gray-100 border-2 border-gray-400'
+                  : 'bg-white border border-gray-300'
+              }`}
+              style={{ minWidth: 150 }}
+            >
+              <div className="flex items-center justify-between gap-1 w-full overflow-hidden">
+                <div className="flex-1 min-w-0">
+                  <div className="font-semibold text-gray-900 truncate w-full">
+                    {customer.name}
+                  </div>
+                  <div className="text-xs text-gray-600 truncate">
+                    ${customer.price} • 60 min
+                  </div>
+                </div>
               </div>
             </div>
           </div>
