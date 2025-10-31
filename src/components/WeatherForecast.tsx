@@ -33,12 +33,15 @@ import { toast } from 'sonner';
 interface WeatherForecastProps {
   jobs?: Job[];
   customers?: Customer[];
-  onRescheduleJob?: (jobId: string, newDate: string, timeSlot?: number) => void;
+  onRescheduleJob?: (jobId: string, newDate: string, timeSlot?: number, skipRefresh?: boolean) => void;
   onUpdateJobTimeSlot?: (jobId: string, timeSlot: number) => void;
   onStartTimeChange?: (date: string, startHour: number) => void;
+  onReorganizeDays?: (dates: string[]) => Promise<void>;
+  onRefreshJobs?: () => Promise<void>;
+  onUpdateJobDate?: (jobId: string, newDate: string) => Promise<void>;
 }
 
-export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, onUpdateJobTimeSlot, onStartTimeChange }: WeatherForecastProps) {
+export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, onUpdateJobTimeSlot, onStartTimeChange, onReorganizeDays, onRefreshJobs, onUpdateJobDate }: WeatherForecastProps) {
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -72,8 +75,20 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
           }
           return 0;
         });
-        sorted.forEach((job, idx) => {
-          if (job) newMap.set(job.id, idx);
+        sorted.forEach((job) => {
+          if (job && job.scheduledTime) {
+            // Calculate actual time slot based on scheduled time
+            const [hours] = job.scheduledTime.split(':').map(Number);
+            const slotIndex = hours - 6; // 6am = slot 0, 7am = slot 1, etc.
+            newMap.set(job.id, slotIndex);
+          } else if (job) {
+            // If no scheduled time, keep sequential index for backwards compatibility
+            const existingSlots = sorted
+              .slice(0, sorted.indexOf(job))
+              .filter(j => newMap.has(j.id));
+            const idx = existingSlots.length;
+            newMap.set(job.id, idx);
+          }
         });
       }
       return newMap;
@@ -959,22 +974,57 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                 size="sm"
                 className="bg-blue-600 hover:bg-blue-700 flex-1"
                 onClick={async () => {
-                  if (jobAssignments.size === 0 || !onRescheduleJob) return;
+                  if (jobAssignments.size === 0) return;
                   
                   const count = jobAssignments.size;
                   
-                  for (const [jobId, newDateStr] of jobAssignments.entries()) {
-                    const job = jobs.find(j => j.id === jobId);
-                    const timeSlot = jobTimeSlots.get(jobId);
-                    if (job) {
-                      await onRescheduleJob(jobId, newDateStr, timeSlot);
+                  // DON'T clear assignments yet - keep them visible while processing
+                  const assignmentsToProcess = new Map(jobAssignments);
+                  
+                  toast.loading('Moving jobs...', { id: 'reschedule' });
+                  
+                  try {
+                    // Track all affected dates (both source and destination)
+                    const affectedDates = new Set<string>();
+                    
+                    // Simply update the date for each job - don't worry about times/order yet
+                    for (const [jobId, newDateStr] of assignmentsToProcess.entries()) {
+                      const job = jobs.find(j => j.id === jobId);
+                      if (!job) continue;
+                      
+                      // Track both source and destination dates
+                      affectedDates.add(job.date);
+                      affectedDates.add(newDateStr);
+                      
+                      // Just update the date - nothing else
+                      if (onUpdateJobDate) {
+                        await onUpdateJobDate(jobId, newDateStr);
+                      }
                       originalJobDates.current.set(jobId, newDateStr);
                     }
+                    
+                    // Refresh jobs data so that reorganize works with updated dates
+                    if (onRefreshJobs) {
+                      console.log('Refreshing jobs after date changes...');
+                      await onRefreshJobs();
+                    }
+                    
+                    // NOW reorganize all affected days - this will set proper order and times
+                    if (onReorganizeDays && affectedDates.size > 0) {
+                      console.log('Reorganizing affected dates:', Array.from(affectedDates));
+                      await onReorganizeDays(Array.from(affectedDates));
+                    }
+                    
+                    // Clear assignments ONLY after everything is complete and refreshed
+                    setJobAssignments(new Map());
+                    
+                    toast.success(`${count} job(s) moved!`, { id: 'reschedule' });
+                  } catch (error) {
+                    console.error('Error moving jobs:', error);
+                    // Clear assignments even on error so user can retry
+                    setJobAssignments(new Map());
+                    toast.error('Failed to move jobs', { id: 'reschedule' });
                   }
-                  
-                  setJobAssignments(new Map());
-                  setJobTimeSlots(new Map());
-                  toast.success(`${count} job(s) rescheduled successfully!`);
                 }}
               >
                 Confirm ({jobAssignments.size})
@@ -1407,15 +1457,6 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                                     </div>
                                                   )}
                                                 </div>
-                                                {isScheduled && !isDraggedItem && (
-                                                  <button
-                                                    onClick={() => unassignJob(jobInSlot.id)}
-                                                    className="opacity-0 group-hover:opacity-100 text-red-600 hover:text-red-800 transition-opacity shrink-0 w-4 h-4 flex items-center justify-center"
-                                                    title="Remove"
-                                                  >
-                                                    ✕
-                                                  </button>
-                                                )}
                                               </div>
                                             </div>
                                           );

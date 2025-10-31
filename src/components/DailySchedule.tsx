@@ -278,6 +278,57 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
     return () => clearInterval(interval);
   }, [jobs]);
 
+  // One-time cleanup: Clear scheduled times for jobs beyond today/tomorrow
+  useEffect(() => {
+    const cleanupJobTimes = async () => {
+      const hasRun = localStorage.getItem('jobTimesCleanedUp');
+      if (hasRun) return; // Only run once
+      
+      console.log('=== CLEANING UP JOB TIMES ===');
+      
+      const today = new Date().toLocaleDateString('en-CA');
+      const tomorrow = new Date(Date.now() + 86400000).toLocaleDateString('en-CA');
+      
+      const jobsToUpdate = jobs.filter(j => {
+        // Only update jobs that have scheduledTime but are beyond today/tomorrow
+        return j.scheduledTime && j.date !== today && j.date !== tomorrow;
+      });
+      
+      if (jobsToUpdate.length === 0) {
+        console.log('No jobs need cleanup');
+        localStorage.setItem('jobTimesCleanedUp', 'true');
+        return;
+      }
+      
+      console.log(`Cleaning up ${jobsToUpdate.length} jobs with scheduled times on future dates`);
+      
+      try {
+        await Promise.all(
+          jobsToUpdate.map(job => {
+            console.log(`Clearing time for job ${job.id} on ${job.date}`);
+            return updateJob({
+              ...job,
+              scheduledTime: undefined
+            });
+          })
+        );
+        
+        console.log('Cleanup complete, refreshing jobs...');
+        await onRefreshJobs?.();
+        localStorage.setItem('jobTimesCleanedUp', 'true');
+        toast.success('Job times cleaned up successfully');
+      } catch (error) {
+        console.error('Error during cleanup:', error);
+        // Don't set the flag so it tries again next time
+      }
+    };
+    
+    if (jobs.length > 0) {
+      cleanupJobTimes();
+    }
+  }, [jobs.length]); // Only run when jobs are first loaded
+
+
   const formatElapsedTime = (minutes: number) => {
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
@@ -676,14 +727,49 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
     setNextJobToNotify(null);
   };
 
-  const handleRescheduleJob = async (jobId: string, newDate: string, timeSlot?: number) => {
+  const handleUpdateJobDate = async (jobId: string, newDate: string) => {
     const job = jobs.find(j => j.id === jobId);
     if (!job) return;
 
     try {
-      // Calculate scheduled time from time slot (6am + slot hours, since slots now start at 6am)
-      const scheduledTime = timeSlot !== undefined ? `${6 + timeSlot}:00` : undefined;
+      console.log(`Updating job ${jobId} date from ${job.date} to ${newDate}`);
       
+      // Simply update the date - don't touch scheduledTime or order
+      await updateJob({ ...job, date: newDate });
+      
+      // Update customer's nextCutDate if this job was their next cut
+      const customer = customers.find(c => c.id === job.customerId);
+      if (customer && customer.nextCutDate === job.date) {
+        await updateCustomer({
+          ...customer,
+          nextCutDate: newDate
+        });
+      }
+    } catch (error) {
+      console.error('Error updating job date:', error);
+      throw error;
+    }
+  };
+
+  const handleRescheduleJob = async (jobId: string, newDate: string, timeSlot?: number, skipRefresh = false) => {
+    const job = jobs.find(j => j.id === jobId);
+    if (!job) return;
+
+    try {
+      const today = new Date().toLocaleDateString('en-CA');
+      const tomorrow = new Date(Date.now() + 86400000).toLocaleDateString('en-CA');
+      
+      // Only set scheduled time for today and tomorrow
+      // For other dates, clear the scheduled time (it will be set when optimized or when it becomes today/tomorrow)
+      let scheduledTime: string | undefined;
+      if (newDate === today || newDate === tomorrow) {
+        scheduledTime = timeSlot !== undefined ? `${6 + timeSlot}:00` : undefined;
+      } else {
+        scheduledTime = undefined; // Clear time for future dates
+      }
+      
+      // Keep the job's existing data but update date and scheduledTime
+      // Don't modify order here - let handleReorganizeDays handle that
       await updateJob({ ...job, date: newDate, scheduledTime });
       
       // Update customer's nextCutDate if this job was their next cut
@@ -693,11 +779,15 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
           ...customer,
           nextCutDate: newDate
         });
-        await onRefreshCustomers();
+        if (!skipRefresh) {
+          await onRefreshCustomers();
+        }
       }
       
-      await onRefreshJobs?.();
-      toast.success('Job rescheduled successfully');
+      if (!skipRefresh) {
+        await onRefreshJobs?.();
+        toast.success('Job rescheduled successfully');
+      }
     } catch (error) {
       console.error('Error rescheduling job:', error);
       toast.error('Failed to reschedule job');
@@ -705,6 +795,8 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
   };
 
   const handleStartTimeChange = async (date: string, startHour: number) => {
+    console.log(`=== START TIME CHANGE for ${date} to ${startHour}:00 ===`);
+    
     // Store the start time
     setDayStartTimes(prev => {
       const newMap = new Map(prev);
@@ -712,28 +804,169 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
       return newMap;
     });
 
-    // Update scheduled times for all jobs on this date
-    const jobsOnDate = jobs.filter(j => j.date === date && j.scheduledTime);
-    
-    for (const job of jobsOnDate) {
-      if (!job.scheduledTime) continue;
-      
-      // Parse the current scheduled time
-      const [hours] = job.scheduledTime.split(':').map(Number);
-      
-      // If the scheduled time is before the new start time, update it
-      if (hours < startHour) {
-        const newScheduledTime = `${startHour}:00`;
-        try {
-          await updateJob({ ...job, scheduledTime: newScheduledTime });
-        } catch (error) {
-          console.error('Error updating job scheduled time:', error);
+    // Get all jobs for THIS SPECIFIC DATE ONLY, sorted by their current order
+    const jobsOnDate = jobs
+      .filter(j => {
+        // CRITICAL: Only affect jobs on the exact date being changed
+        const matchesDate = j.date === date;
+        const isScheduled = j.status === 'scheduled';
+        console.log(`Job ${j.id}: date=${j.date}, matches=${matchesDate}, scheduled=${isScheduled}`);
+        return matchesDate && isScheduled;
+      })
+      .sort((a, b) => {
+        // Sort by order field
+        const orderA = a.order || 999;
+        const orderB = b.order || 999;
+        if (orderA !== orderB) return orderA - orderB;
+        
+        // Fallback to scheduled time if order is the same
+        if (a.scheduledTime && b.scheduledTime) {
+          return a.scheduledTime.localeCompare(b.scheduledTime);
         }
+        return 0;
+      });
+    
+    console.log(`Found ${jobsOnDate.length} jobs on ${date} to update`);
+    
+    if (jobsOnDate.length === 0) {
+      console.log('No jobs to update, returning early');
+      return;
+    }
+    
+    // Calculate new scheduled times starting from the new start hour
+    let currentTime = startHour * 60; // Convert to minutes from midnight
+    const jobDuration = 60; // 60 minutes per job
+    const driveBetweenJobs = 10; // Assume 10 min drive between jobs
+    
+    // Update each job with the new scheduled time
+    const updatePromises = jobsOnDate.map((job, index) => {
+      const hours = Math.floor(currentTime / 60);
+      const minutes = currentTime % 60;
+      const newScheduledTime = `${hours}:${minutes.toString().padStart(2, '0')}`;
+      
+      console.log(`Updating job ${job.id} (order ${job.order}) from ${job.scheduledTime} to ${newScheduledTime}`);
+      
+      // Increment time for next job
+      currentTime += jobDuration;
+      if (index < jobsOnDate.length - 1) {
+        currentTime += driveBetweenJobs; // Add drive time between jobs
       }
+      
+      // CRITICAL: Ensure we're only updating THIS job's data, not affecting other jobs
+      return updateJob({ 
+        ...job, 
+        scheduledTime: newScheduledTime,
+        date: date  // Explicitly keep the date the same
+      });
+    });
+    
+    try {
+      await Promise.all(updatePromises);
+      console.log('All jobs updated successfully');
+      toast.success(`Shifted ${jobsOnDate.length} jobs to start at ${startHour > 12 ? startHour - 12 : startHour}${startHour >= 12 ? 'pm' : 'am'}`);
+    } catch (error) {
+      console.error('Error updating job scheduled times:', error);
+      toast.error('Failed to update job times');
     }
     
     // Refresh jobs to show updated times
     await onRefreshJobs?.();
+    console.log('=== START TIME CHANGE COMPLETE ===');
+  };
+
+  const handleReorganizeDays = async (dates: string[]) => {
+    console.log('=== REORGANIZING DAYS ===', dates);
+
+    try {
+      toast.loading('Updating job order...', { id: 'reorganize-days' });
+      
+      const today = new Date().toLocaleDateString('en-CA');
+      const tomorrow = new Date(Date.now() + 86400000).toLocaleDateString('en-CA');
+      
+      // Process each affected date
+      for (const date of dates) {
+        console.log(`Processing date: ${date}`);
+        
+        // Get all scheduled jobs for this date
+        const jobsOnDate = jobs
+          .filter(j => j.date === date && j.status === 'scheduled')
+          .sort((a, b) => {
+            // Sort by scheduled time if available
+            if (a.scheduledTime && b.scheduledTime) {
+              return a.scheduledTime.localeCompare(b.scheduledTime);
+            }
+            // Otherwise sort by order
+            const orderA = a.order ?? Infinity;
+            const orderB = b.order ?? Infinity;
+            return orderA - orderB;
+          });
+        
+        console.log(`Found ${jobsOnDate.length} jobs to reorder on ${date}`);
+        
+        if (jobsOnDate.length === 0) {
+          console.log(`No jobs to reorder for ${date}`);
+          continue;
+        }
+
+        // Only assign times for today and tomorrow
+        const shouldAssignTimes = (date === today || date === tomorrow);
+        
+        if (shouldAssignTimes) {
+          // Get start time for this day (default to 7am)
+          const startHour = dayStartTimes.get(date) || 7;
+          let currentTime = startHour * 60; // Convert to minutes from midnight
+          const jobDuration = 60; // 60 minutes per job
+          const breakBetweenJobs = 10; // 10 minutes between jobs
+          
+          // Update each job with sequential order and scheduled times
+          const updatePromises = jobsOnDate.map((job, index) => {
+            const hours = Math.floor(currentTime / 60);
+            const minutes = currentTime % 60;
+            const newScheduledTime = `${hours}:${minutes.toString().padStart(2, '0')}`;
+            
+            console.log(`Job ${job.id} → order ${index + 1}, time ${newScheduledTime}`);
+            
+            // Calculate next start time
+            currentTime += jobDuration;
+            if (index < jobsOnDate.length - 1) {
+              currentTime += breakBetweenJobs;
+            }
+            
+            return updateJob({
+              ...job,
+              order: index + 1,
+              scheduledTime: newScheduledTime,
+              date: date
+            });
+          });
+
+          await Promise.all(updatePromises);
+          console.log(`Successfully reordered ${jobsOnDate.length} jobs on ${date}`);
+        } else {
+          // For future dates, clear times but KEEP the order based on current position
+          const updatePromises = jobsOnDate.map((job, index) => {
+            console.log(`Job ${job.id} → order ${index + 1}, clearing time for future date`);
+            
+            return updateJob({
+              ...job,
+              order: index + 1, // Keep sequential order
+              scheduledTime: undefined, // But clear the time
+              date: date
+            });
+          });
+
+          await Promise.all(updatePromises);
+          console.log(`Successfully updated order for ${jobsOnDate.length} jobs on ${date}`);
+        }
+      }
+
+      toast.success('Jobs reordered!', { id: 'reorganize-days' });
+      await onRefreshJobs?.();
+      console.log('=== REORGANIZATION COMPLETE ===');
+    } catch (error) {
+      console.error('Error reorganizing days:', error);
+      toast.error('Failed to reorganize days', { id: 'reorganize-days' });
+    }
   };
 
   const handleOptimizeRoute = async () => {
@@ -931,6 +1164,9 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
         customers={customers}
         onRescheduleJob={handleRescheduleJob}
         onStartTimeChange={handleStartTimeChange}
+        onReorganizeDays={handleReorganizeDays}
+        onRefreshJobs={async () => { await onRefreshJobs?.(); }}
+        onUpdateJobDate={handleUpdateJobDate}
       />
 
       {/* Today's Jobs Section Header */}
