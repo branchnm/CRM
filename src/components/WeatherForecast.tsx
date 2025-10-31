@@ -1349,7 +1349,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                               onTouchStart={(e) => !isDraggedItem && handleTouchStart(e, jobInSlot.id)}
                                               onTouchMove={handleTouchMove}
                                               onTouchEnd={handleTouchEnd}
-                                              className={`flex-1 rounded p-1.5] transition-all text-xs group min-h-[40px] h-[40px] overflow-hidden ${
+                                              className={`flex-1 rounded px-3 py-2 transition-all text-xs group min-h-[40px] h-[40px] overflow-hidden flex items-center ${
                                                 isDraggedItem
                                                   ? 'bg-blue-50 border-2 border-blue-400 border-dashed opacity-60'
                                                   : isAssigned
