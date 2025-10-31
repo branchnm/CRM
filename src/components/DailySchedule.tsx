@@ -43,6 +43,7 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
   const [tempStartingAddress, setTempStartingAddress] = useState(startingAddress);
   const [driveTimesCache, setDriveTimesCache] = useState<Map<string, string>>(new Map());
   const [dayStartTimes, setDayStartTimes] = useState<Map<string, number>>(new Map());
+  const [isOptimizing, setIsOptimizing] = useState(false);
   
   // Track job creation to prevent race conditions
   const creatingJobsRef = useRef<Set<string>>(new Set());
@@ -357,7 +358,7 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
         }
       }
 
-      setDriveTimesCache(prev => {
+      setDriveTimesCache(() => {
         // Only trigger refresh after cache is updated in state
         if (allFetched && !didDriveTimeRefresh.current && typeof onRefreshJobs === 'function') {
           didDriveTimeRefresh.current = true;
@@ -371,7 +372,7 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
     };
 
     fetchDriveTimes();
-  }, [todayJobs.length, startingAddress]); // Re-fetch when jobs or starting address changes
+  }, [todayJobs.map(j => j.id).join(','), startingAddress]); // Re-fetch when job order or starting address changes
 
   // Fallback estimation method (improved estimation)
   const estimateDriveTimeFallback = (address1: string, address2: string): string => {
@@ -743,6 +744,10 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
     }
 
     try {
+      // Clear cache and set optimizing flag to show "Calculating..."
+      setIsOptimizing(true);
+      setDriveTimesCache(new Map());
+      
       toast.loading('Calculating optimal route with Google Maps...', { id: 'optimize-route' });
       
       // Get only scheduled jobs for today (don't reorder in-progress or completed)
@@ -862,10 +867,17 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
 
   // Final refresh to ensure sync (but local state should already be correct)
   await onRefreshJobs?.();
-  // Clear drive time cache so drive times are recalculated for new order (after refresh)
-  setDriveTimesCache(new Map());
-  // Trigger another refresh so UI updates with new drive times
-  await onRefreshJobs?.();
+  
+  // Populate drive time cache with optimization results
+  const newCache = new Map<string, string>();
+  optimizedRoute.segments.forEach((seg) => {
+    const cacheKey = `${seg.fromAddress}|${seg.toAddress}`;
+    newCache.set(cacheKey, seg.durationText);
+  });
+  setDriveTimesCache(newCache);
+  setIsOptimizing(false); // Clear optimizing flag
+  
+  console.log('Drive times cache populated with optimization results:', newCache.size, 'entries');
 
       console.log('=== ROUTE OPTIMIZATION COMPLETE ===');
 
@@ -876,6 +888,7 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
     } catch (error) {
       console.error('=== ROUTE OPTIMIZATION FAILED ===');
       console.error('Error details:', error);
+      setIsOptimizing(false); // Clear optimizing flag on error too
       toast.error('Failed to optimize route', { 
         id: 'optimize-route',
         description: 'Check console for details'
@@ -1029,7 +1042,10 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
               
               // Calculate drive time based on current order
               let driveTime: string;
-              if (previousCustomer) {
+              if (isOptimizing) {
+                // Show "Calculating..." when optimization is in progress
+                driveTime = 'Calculating...';
+              } else if (previousCustomer) {
                 const cacheKey = `${previousCustomer.address}|${customer.address}`;
                 driveTime = driveTimesCache.has(cacheKey)
                   ? driveTimesCache.get(cacheKey)!
