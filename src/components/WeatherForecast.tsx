@@ -56,17 +56,22 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
   // Sync jobTimeSlots with jobs order when jobs prop changes (e.g., after optimization)
   useEffect(() => {
     if (!jobs || jobs.length === 0) return;
+    console.log('WeatherForecast: Syncing job time slots after jobs update');
     // Group jobs by date
     const jobsByDate = new Map();
     jobs.forEach((job: any) => {
       if (!jobsByDate.has(job.date)) jobsByDate.set(job.date, []);
       jobsByDate.get(job.date).push(job);
     });
-    setJobTimeSlots((prev: Map<string, number>) => {
-      const newMap = new Map(prev);
-      for (const [, jobsForDate] of jobsByDate.entries()) {
-        // Sort jobs by scheduledTime if available, otherwise by order in array
+    setJobTimeSlots(() => {
+      // Start fresh - don't merge with previous state
+      const newMap = new Map<string, number>();
+      for (const [dateStr, jobsForDate] of jobsByDate.entries()) {
+        // Sort jobs by order field (from route optimization) first, then by scheduledTime
         const sorted = [...jobsForDate].sort((a, b) => {
+          // Primary sort: by order field if both have it
+          if (a.order && b.order) return a.order - b.order;
+          // Secondary sort: by scheduledTime if available
           if (a.scheduledTime && b.scheduledTime) {
             return a.scheduledTime.localeCompare(b.scheduledTime);
           }
@@ -75,6 +80,9 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
         sorted.forEach((job, idx) => {
           if (job) newMap.set(job.id, idx);
         });
+        console.log(`  ${dateStr}: Sorted ${sorted.length} jobs by order:`, 
+          sorted.map(j => ({ name: j.id.substring(0, 8), order: j.order, slot: newMap.get(j.id) }))
+        );
       }
       return newMap;
     });
@@ -1239,8 +1247,16 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                 return { hour, timeLabel, slotIndex: i };
                               });
                               
-                              // Get all jobs for this day
-                              const allJobs = [...scheduledJobsForDay, ...assignedJobs];
+                              // Get all jobs for this day and sort by order (for optimized routes) or scheduledTime
+                              const allJobs = [...scheduledJobsForDay, ...assignedJobs].sort((a, b) => {
+                                // Primary sort: by order field if both have it
+                                if (a.order && b.order) return a.order - b.order;
+                                // Secondary sort: by scheduledTime if available
+                                if (a.scheduledTime && b.scheduledTime) {
+                                  return a.scheduledTime.localeCompare(b.scheduledTime);
+                                }
+                                return 0;
+                              });
                               
                               // Get start time for this day (default to 6am)
                               const dayStartHour = dayStartTimes.get(dateStr) || 6;
@@ -1250,36 +1266,29 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                               const isDraggingOverThisDay = dragOverSlot?.date === dateStr && draggedJobId;
                               const dragTargetSlot = isDraggingOverThisDay ? dragOverSlot.slot : -1;
                               
-                              // Map jobs to their time slots, accounting for drag-and-drop preview
+                              // Map jobs to their time slots using jobTimeSlots map (updated by useEffect after optimization)
                               const jobsBySlot: { [key: number]: typeof allJobs[0] } = {};
-                              allJobs.forEach(job => {
+                              
+                              allJobs.forEach((job) => {
                                 // Skip the dragged job itself - we'll handle it separately
                                 if (job.id === draggedJobId) return;
                                 
+                                // Get the assigned slot from jobTimeSlots (which reflects optimization order)
                                 const assignedSlot = jobTimeSlots.get(job.id);
-                                if (assignedSlot !== undefined && assignedSlot >= minSlotIndex) {
+                                if (assignedSlot !== undefined) {
                                   let targetSlot = assignedSlot;
                                   
+                                  // Ensure slot is within valid range
+                                  if (targetSlot < minSlotIndex) targetSlot = minSlotIndex;
+                                  if (targetSlot >= 13) targetSlot = 12;
+                                  
                                   // If dragging over this day, shift jobs to make space
-                                  if (isDraggingOverThisDay && assignedSlot >= dragTargetSlot) {
-                                    targetSlot = assignedSlot + 1;
+                                  if (isDraggingOverThisDay && targetSlot >= dragTargetSlot) {
+                                    targetSlot = targetSlot + 1;
                                   }
                                   
-                                  jobsBySlot[targetSlot] = job;
-                                } else {
-                                  // If no specific time slot assigned, place sequentially starting from start time
-                                  for (let i = minSlotIndex; i < 13; i++) {
-                                    let checkSlot = i;
-                                    
-                                    // If dragging, adjust for the insertion point
-                                    if (isDraggingOverThisDay && i >= dragTargetSlot) {
-                                      checkSlot = i + 1;
-                                    }
-                                    
-                                    if (!jobsBySlot[checkSlot]) {
-                                      jobsBySlot[checkSlot] = job;
-                                      break;
-                                    }
+                                  if (targetSlot < 13) {
+                                    jobsBySlot[targetSlot] = job;
                                   }
                                 }
                               });

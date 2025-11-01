@@ -43,6 +43,7 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
   const [tempStartingAddress, setTempStartingAddress] = useState(startingAddress);
   const [driveTimesCache, setDriveTimesCache] = useState<Map<string, string>>(new Map());
   const [dayStartTimes, setDayStartTimes] = useState<Map<string, number>>(new Map());
+  const [isOptimizing, setIsOptimizing] = useState(false);
   
   // Drag and drop state
   const [draggedJobId, setDraggedJobId] = useState<string | null>(null);
@@ -748,111 +749,137 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
     }
 
     try {
-      toast.loading('Calculating optimal route with Google Maps...', { id: 'optimize-route' });
+      // Set optimizing state - this will show "Calculating..." in the UI
+      setIsOptimizing(true);
       
-      // Get only scheduled jobs for today (don't reorder in-progress or completed)
-      const scheduledJobs = todayJobs.filter(j => j.status === 'scheduled');
-      const nonScheduledJobs = todayJobs.filter(j => j.status !== 'scheduled');
+      // Clear the cache temporarily to show "Calculating..." state
+      setDriveTimesCache(new Map());
       
-      if (scheduledJobs.length === 0) {
-        toast.info('No scheduled jobs to optimize', { id: 'optimize-route' });
-        return;
+      toast.loading('Calculating optimal routes for all days...', { id: 'optimize-route' });
+      
+      // Get next 5 days (today + 4 days ahead)
+      const next5Days = [];
+      for (let i = 0; i < 5; i++) {
+        const date = new Date();
+        date.setDate(date.getDate() + i);
+        next5Days.push(date.toLocaleDateString('en-CA'));
       }
-
-      if (scheduledJobs.length === 1) {
-        toast.info('Only one scheduled job, no optimization needed', { id: 'optimize-route' });
-        return;
-      }
-
-      console.log('=== STARTING ROUTE OPTIMIZATION WITH GOOGLE MAPS ===');
-      console.log('Optimizing', scheduledJobs.length, 'scheduled jobs');
+      
+      console.log('=== STARTING MULTI-DAY ROUTE OPTIMIZATION ===');
+      console.log('Optimizing jobs for dates:', next5Days);
       console.log('Starting address:', startingAddress);
       
-      // Convert jobs to the format expected by optimizeRoute
-      const jobsWithAddresses = scheduledJobs.map(job => {
-        const customer = customers.find(c => c.id === job.customerId);
-        return {
-          id: job.id,
-          address: customer?.address || '',
-          order: job.order
-        };
-      });
+      const allOptimizedJobs: Job[] = [];
+      const newDriveTimesCache = new Map<string, string>();
+      let totalOptimizedDays = 0;
       
-      // Optimize the route using Google Maps
-      const optimizedRoute = await optimizeRouteWithGoogleMaps(startingAddress, jobsWithAddresses);
-      
-      console.log('=== OPTIMIZATION RESULTS ===');
-      console.log(`Total Duration: ${optimizedRoute.totalDurationText}`);
-      console.log(`Total Distance: ${optimizedRoute.totalDistanceText}`);
-      console.log('Route segments:');
-      optimizedRoute.segments.forEach((seg, i) => {
-        console.log(`  ${i + 1}. ${seg.fromAddress} → ${seg.toAddress}: ${seg.durationText}, ${seg.distanceText}`);
-      });
-      
-      // Map the optimized jobs back to the original job objects with new order and scheduled times
-      // Get start time for today from the stored day start times
-      const startHour = dayStartTimes.get(today) || 6;
-      let currentTime = startHour * 60; // Convert to minutes from midnight
-      
-      const optimizedJobsWithData = optimizedRoute.jobs.map((optimizedJob, index) => {
-        const originalJob = scheduledJobs.find(j => j.id === optimizedJob.id);
+      // Optimize each day's jobs
+      for (const dateStr of next5Days) {
+        const dayJobs = jobs.filter(j => j.date === dateStr);
+        const scheduledJobs = dayJobs.filter(j => j.status === 'scheduled');
+        const nonScheduledJobs = dayJobs.filter(j => j.status !== 'scheduled');
         
-        // Calculate scheduled time
-        const hours = Math.floor(currentTime / 60);
-        const minutes = currentTime % 60;
-        const scheduledTime = `${hours}:${minutes.toString().padStart(2, '0')}`;
-        
-        // Add estimated job duration (60 minutes) + drive time for next iteration
-        const jobDuration = 60; // 1 hour per job
-        currentTime += jobDuration;
-        
-        // Add drive time to next location if available
-        if (index < optimizedRoute.segments.length) {
-          const driveMinutes = optimizedRoute.segments[index].durationMinutes || 10;
-          currentTime += driveMinutes;
+        if (scheduledJobs.length === 0) {
+          console.log(`Skipping ${dateStr} - no scheduled jobs`);
+          // Keep non-scheduled jobs as-is
+          allOptimizedJobs.push(...nonScheduledJobs);
+          continue;
         }
         
-        return {
-          ...originalJob!,
-          order: optimizedJob.order,
-          scheduledTime
-        };
-      });
+        if (scheduledJobs.length === 1) {
+          console.log(`Skipping ${dateStr} - only one scheduled job`);
+          allOptimizedJobs.push(...dayJobs);
+          continue;
+        }
+        
+        console.log(`\n=== Optimizing ${dateStr} (${scheduledJobs.length} jobs) ===`);
+        
+        // Convert jobs to the format expected by optimizeRoute
+        const jobsWithAddresses = scheduledJobs.map(job => {
+          const customer = customers.find(c => c.id === job.customerId);
+          const jobData = {
+            id: job.id,
+            address: customer?.address || '',
+            order: job.order
+          };
+          console.log(`  Input: ${customer?.name || 'Unknown'} at ${jobData.address}`);
+          return jobData;
+        });
+        
+        // Optimize the route using Google Maps
+        const optimizedRoute = await optimizeRouteWithGoogleMaps(startingAddress, jobsWithAddresses);
+        
+        console.log(`\n=== Results for ${dateStr} ===`);
+        console.log(`  Total Duration: ${optimizedRoute.totalDurationText}`);
+        console.log(`  Total Distance: ${optimizedRoute.totalDistanceText}`);
+        console.log('  Optimized Route Order:');
+        optimizedRoute.jobs.forEach((job, idx) => {
+          const customer = customers.find(c => c.id === job.id);
+          console.log(`    ${idx + 1}. ${customer?.name || 'Unknown'} at ${job.address}`);
+        });
+        console.log('  Route Segments:');
+        optimizedRoute.segments.forEach((seg, idx) => {
+          console.log(`    ${idx + 1}. ${seg.fromAddress.substring(0, 30)}... → ${seg.toAddress.substring(0, 30)}...: ${seg.durationText}`);
+        });
+        
+        // Store drive times in cache
+        optimizedRoute.segments.forEach((segment) => {
+          const cacheKey = `${segment.fromAddress}|${segment.toAddress}`;
+          newDriveTimesCache.set(cacheKey, segment.durationText);
+        });
+        
+        // Map the optimized jobs back to the original job objects with new order and scheduled times
+        const startHour = dayStartTimes.get(dateStr) || 6;
+        let currentTime = startHour * 60; // Convert to minutes from midnight
+        
+        const optimizedJobsWithData = optimizedRoute.jobs.map((optimizedJob, index) => {
+          const originalJob = scheduledJobs.find(j => j.id === optimizedJob.id);
+          
+          // Calculate scheduled time
+          const hours = Math.floor(currentTime / 60);
+          const minutes = currentTime % 60;
+          const scheduledTime = `${hours}:${minutes.toString().padStart(2, '0')}`;
+          
+          // Add estimated job duration (60 minutes) + drive time for next iteration
+          const jobDuration = 60; // 1 hour per job
+          currentTime += jobDuration;
+          
+          // Add drive time to next location if available
+          if (index < optimizedRoute.segments.length) {
+            const driveMinutes = optimizedRoute.segments[index].durationMinutes || 10;
+            currentTime += driveMinutes;
+          }
+          
+          return {
+            ...originalJob!,
+            order: optimizedJob.order,
+            scheduledTime
+          };
+        });
+        
+        // Keep non-scheduled jobs with their existing order (or put at end)
+        const maxScheduledOrder = optimizedJobsWithData.length;
+        const nonScheduledWithOrder = nonScheduledJobs.map((job, index) => ({
+          ...job,
+          order: (job.order && job.order > maxScheduledOrder) ? job.order : maxScheduledOrder + index + 1
+        }));
+        
+        // Add this day's jobs to the collection
+        allOptimizedJobs.push(...optimizedJobsWithData, ...nonScheduledWithOrder);
+        totalOptimizedDays++;
+      }
       
-      // Keep non-scheduled jobs with their existing order (or put at end)
-      const maxScheduledOrder = optimizedJobsWithData.length;
-      const nonScheduledWithOrder = nonScheduledJobs.map((job, index) => ({
-        ...job,
-        order: (job.order && job.order > maxScheduledOrder) ? job.order : maxScheduledOrder + index + 1
-      }));
+      console.log(`\n=== Optimized ${totalOptimizedDays} days ===`);
+      console.log('Total optimized jobs:', allOptimizedJobs.length);
       
-      // Combine all jobs
-      const allJobsWithNewOrder = [...optimizedJobsWithData, ...nonScheduledWithOrder];
-      
-      console.log('=== NEW JOB ORDER ===');
-      allJobsWithNewOrder.forEach(j => {
-        const c = customers.find(cu => cu.id === j.customerId);
-        console.log(`Order ${j.order}: ${c?.name || 'Unknown'} at ${c?.address || 'N/A'} (${j.status})`);
-      });
-      
-      // Update ALL jobs in the jobs array to prevent conflicts
-      const fullyUpdatedJobs = jobs.map(job => {
-        const updatedJob = allJobsWithNewOrder.find(j => j.id === job.id);
-        return updatedJob || job;
-      });
-      
-      // Update local state FIRST for instant UI feedback
-  console.log('Updating local state...');
-  onUpdateJobs(fullyUpdatedJobs);
-      
-      // Then persist to database in background
+      // Persist optimized jobs to database
       console.log('Persisting to database...');
-      const updatePromises = allJobsWithNewOrder.map(async (job) => {
+      const updatePromises = allOptimizedJobs.map(async (job) => {
         try {
           await updateJob(job);
-          console.log(`✓ Updated job ${job.order} in database`);
+          console.log(`✓ Updated job for ${job.date} (order: ${job.order})`);
         } catch (err) {
-          console.error(`✗ Failed to update job ${job.order}:`, err);
+          console.error(`✗ Failed to update job for ${job.date}:`, err);
           throw err;
         }
       });
@@ -862,25 +889,37 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
       console.log('All jobs updated in database, refreshing...');
       
       // Small delay to ensure database propagation
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Refresh jobs from database - this will trigger WeatherForecast to re-sort
+      await onRefreshJobs?.();
+      
+      // Wait a bit for the refresh to propagate through React
       await new Promise(resolve => setTimeout(resolve, 300));
       
+      // Update cache with the new route data from all days
+      setDriveTimesCache(newDriveTimesCache);
+      
+      // Brief delay to show the updated times, then turn off optimizing state
+      await new Promise(resolve => setTimeout(resolve, 500));
+      setIsOptimizing(false);
 
-  // Final refresh to ensure sync (but local state should already be correct)
-  await onRefreshJobs?.();
-  // Clear drive time cache so drive times are recalculated for new order (after refresh)
-  setDriveTimesCache(new Map());
-  // Trigger another refresh so UI updates with new drive times
-  await onRefreshJobs?.();
+      console.log('=== MULTI-DAY ROUTE OPTIMIZATION COMPLETE ===');
+      console.log('Optimized jobs with new order:', allOptimizedJobs.map(j => ({ 
+        id: j.id.substring(0, 8), 
+        date: j.date, 
+        order: j.order,
+        scheduledTime: j.scheduledTime
+      })));
 
-      console.log('=== ROUTE OPTIMIZATION COMPLETE ===');
-
-      toast.success(`Route optimized! ${optimizedJobsWithData.length} stops reordered`, { 
+      toast.success(`Routes optimized for ${totalOptimizedDays} ${totalOptimizedDays === 1 ? 'day' : 'days'}!`, { 
         id: 'optimize-route',
-        description: `${optimizedRoute.totalDurationText} driving, ${optimizedRoute.totalDistanceText} total`
+        description: `${allOptimizedJobs.length} jobs reordered across all days`
       });
     } catch (error) {
       console.error('=== ROUTE OPTIMIZATION FAILED ===');
       console.error('Error details:', error);
+      setIsOptimizing(false); // Reset state on error
       toast.error('Failed to optimize route', { 
         id: 'optimize-route',
         description: 'Check console for details'
@@ -1082,10 +1121,11 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
                 onClick={handleOptimizeRoute}
                 className="bg-blue-600 hover:bg-blue-700"
                 size="sm"
-                disabled={!startingAddress || todayJobs.filter(j => j.status === 'scheduled').length < 2}
+                disabled={!startingAddress}
+                title="Optimize routes for all days in forecast"
               >
                 <Route className="h-3 w-3 mr-1" />
-                Optimize
+                Optimize All Days
               </Button>
             </div>
           </div>
@@ -1112,7 +1152,10 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
               
               // Calculate drive time based on current order
               let driveTime: string;
-              if (previousCustomer) {
+              if (isOptimizing) {
+                // Show "Calculating..." during optimization
+                driveTime = 'Calculating...';
+              } else if (previousCustomer) {
                 const cacheKey = `${previousCustomer.address}|${customer.address}`;
                 driveTime = driveTimesCache.has(cacheKey)
                   ? driveTimesCache.get(cacheKey)!
