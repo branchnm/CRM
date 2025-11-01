@@ -1,14 +1,14 @@
-# Copilot Instructions for Lawn Care CRM
+# Copilot Instructions for Outside AI CRM
 
 ## Project Overview
-React + TypeScript (Vite) frontend with Supabase backend. CRM for lawn care businesses with weather-aware scheduling, route optimization, and automated customer communications.
+React + TypeScript (Vite) frontend with Supabase backend. CRM for outdoor service businesses with weather-aware scheduling, route optimization, and automated customer communications.
 
 **Tech Stack:** React 19 + TypeScript, Tailwind CSS 4, Supabase (Postgres + Edge Functions), Vite with Rolldown, shadcn/ui components
 
 ## Architecture & Key Patterns
 
 ### State Management Pattern
-- **Customer/Job data:** Managed via Supabase in `frontend/src/services/{customers,jobs}.ts`
+- **Customer/Job data:** Managed via Supabase in `src/services/{customers,jobs}.ts`
 - **Refresh pattern:** Components call `onRefreshCustomers()` and `onRefreshJobs()` after mutations to sync with DB
 - **Race condition handling:** Use `creatingJobsRef` (see `DailySchedule.tsx` line 48) to prevent duplicate job creation during auto-scheduling
 - **Local state:** Message templates and equipment stored in `localStorage` (not in DB yet)
@@ -32,15 +32,15 @@ React + TypeScript (Vite) frontend with Supabase backend. CRM for lawn care busi
 - **Weather API:** OpenWeather API via `services/weather.ts` - requires `VITE_OPENWEATHER_API_KEY` in `.env.local`
 
 ### Service Layer Pattern
-All external integrations abstracted in `frontend/src/services/`:
+All external integrations abstracted in `src/services/`:
 - **Supabase client:** `lib/supabase.ts` - uses `projectId` and `publicAnonKey` from `utils/supabase/info.ts` (auto-generated, don't edit)
 - **SMS:** `services/sms.ts` - falls back to MockSMS in dev, uses Supabase Edge Function in prod
-- **Google Maps:** `services/googleMaps.ts` - calls `supabase/functions/get-drive-time` Edge Function (which uses `GOOGLE_MAPS_API_KEY` server secret)
+- **Google Maps:** `services/googleMaps.ts` - calls `supabase/functions/get-drive-time` Edge Function (which uses `GOOGLE_MAPS_API_KEY` server secret) - **Note:** This function needs to be created/deployed separately
 - **Weather:** `services/weather.ts` - direct OpenWeather API calls from frontend
 
 ## Developer Workflows
 
-### Frontend Commands (run in `frontend/`)
+### Frontend Commands (run in project root)
 ```powershell
 npm run dev     # Start Vite dev server (uses Rolldown for faster builds)
 npm run build   # TypeScript compile + production build
@@ -48,24 +48,25 @@ npm run lint    # ESLint with React Compiler support
 ```
 
 ### Environment Variables
-Create `frontend/.env.local` (never commit):
+Create `.env.local` in project root (never commit):
 ```env
 VITE_OPENWEATHER_API_KEY=your_key_here          # For weather.ts
-VITE_GOOGLE_MAPS_API_KEY=your_key_here          # Optional: frontend can call Google Maps directly
+VITE_GOOGLE_MAPS_API_KEY=your_key_here          # Optional: frontend can call Google Maps directly (deprecated, use Edge Function)
 ```
 
 ### Supabase Commands
 ```powershell
-supabase functions deploy get-drive-time --project-ref oqzhxfggzveuhaldjuay
+supabase functions deploy send-sms --project-ref oqzhxfggzveuhaldjuay
+supabase functions deploy get-drive-time --project-ref oqzhxfggzveuhaldjuay  # Need to create this function first
 supabase secrets set GOOGLE_MAPS_API_KEY=your_key
 supabase secrets set TWILIO_ACCOUNT_SID=your_sid TWILIO_AUTH_TOKEN=your_token TWILIO_FROM_NUMBER=+1234567890
 supabase db push   # Apply migrations from supabase/migrations/
 ```
 
 ### Database Schema
-- **customers:** `frontend/src/db/schema.sql` - includes `next_cut_date` (YYYY-MM-DD) for auto-scheduling
-- **jobs:** `frontend/src/db/create_jobs_table.sql` - includes `order` field for drag-and-drop sequence
-- **Migrations:** Located in both `supabase/migrations/` (canonical) and `frontend/supabase/migrations/` (local dev)
+- **customers:** `src/db/schema.sql` - includes `next_cut_date` (YYYY-MM-DD) for auto-scheduling
+- **jobs:** `src/db/create_jobs_table.sql` - includes `order` field for drag-and-drop sequence
+- **Migrations:** SQL files in `src/db/` are reference schemas - actual DB managed via Supabase dashboard/migrations
 
 ## Critical Implementation Details
 
@@ -98,10 +99,10 @@ Enabled via `babel-plugin-react-compiler` in `vite.config.ts` - automatically me
 5. **Vite env vars:** Must start with `VITE_` to be exposed to frontend
 
 ## Integration Setup Docs
-- Weather API: `WEATHER_SETUP.md`
-- Google Maps: `frontend/GOOGLE_MAPS_SETUP.md`
-- SMS/Twilio: `frontend/SUPABASE_SMS_SETUP.md`
-- Deployment: `DEPLOY_EDGE_FUNCTION.md`
+- Weather API: `WEATHER_SETUP.md` (if exists)
+- Google Maps: `GOOGLE_MAPS_SETUP.md`
+- SMS/Twilio: `SUPABASE_SMS_SETUP.md`
+- Route Optimization: `ROUTE_OPTIMIZATION_TESTING.md`
 
 ## UI Conventions
 - Use `components/ui/*` primitives (shadcn/ui) - don't install new UI libraries
@@ -113,7 +114,7 @@ Enabled via `babel-plugin-react-compiler` in `vite.config.ts` - automatically me
 
 ### Add a new service
 ```typescript
-// frontend/src/services/myservice.ts
+// src/services/myservice.ts
 import { supabase } from '../lib/supabase';
 
 export async function fetchData() {

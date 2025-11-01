@@ -95,6 +95,11 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
   const originalJobDates = useRef<Map<string, string>>(new Map()); // Track original dates for jobs
   const autoScrollInterval = useRef<number | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  
+  // Detect if device supports touch
+  const isTouchDevice = useRef(
+    'ontouchstart' in window || navigator.maxTouchPoints > 0
+  );
 
   // Auto-scroll when dragging near viewport edges
   useEffect(() => {
@@ -512,9 +517,15 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
   const recommendations = getWeatherRecommendations();
 
   // Drag and drop handlers
-  const handleDragStart = (jobId: string) => {
+  const handleDragStart = (e: React.DragEvent, jobId: string) => {
+    e.stopPropagation();
     setDraggedJobId(jobId);
     setIsDragging(true);
+    
+    // Hide the default drag ghost image
+    const img = new Image();
+    img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+    e.dataTransfer.setDragImage(img, 0, 0);
   };
 
   const handleDragOver = (e: React.DragEvent, dateStr: string, slotIndex?: number) => {
@@ -1345,13 +1356,13 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                           return (
                                             <div
                                               draggable={!isDraggedItem}
-                                              onDragStart={() => !isDraggedItem && handleDragStart(jobInSlot.id)}
-                                              onTouchStart={(e) => !isDraggedItem && handleTouchStart(e, jobInSlot.id)}
-                                              onTouchMove={handleTouchMove}
-                                              onTouchEnd={handleTouchEnd}
-                                              className={`flex-1 rounded px-3 py-2 transition-all text-xs group min-h-[40px] h-[40px] overflow-hidden flex items-center ${
+                                              onDragStart={(e) => !isDraggedItem && handleDragStart(e, jobInSlot.id)}
+                                              onTouchStart={isTouchDevice.current ? (e) => !isDraggedItem && handleTouchStart(e, jobInSlot.id) : undefined}
+                                              onTouchMove={isTouchDevice.current ? handleTouchMove : undefined}
+                                              onTouchEnd={isTouchDevice.current ? handleTouchEnd : undefined}
+                                              className={`flex-1 rounded px-3 py-2 transition-all text-xs group min-h-[40px] h-[40px] overflow-hidden flex items-center select-none ${
                                                 isDraggedItem
-                                                  ? 'bg-blue-50 border-2 border-blue-400 border-dashed opacity-60'
+                                                  ? 'bg-white border-2 border-blue-600 opacity-50'
                                                   : isAssigned
                                                   ? 'bg-gray-100 border-2 border-gray-400 animate-pulse cursor-move hover:shadow-md'
                                                   : 'bg-white border border-gray-300 cursor-move hover:shadow-md'
@@ -1362,11 +1373,6 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                                   <div className="font-semibold text-gray-900 truncate w-full">
                                                     {customer?.name}
                                                   </div>
-                                                  {isDraggedItem && (
-                                                    <div className="text-xs text-blue-600 font-medium mt-0.5 italic">
-                                                      Drop to confirm...
-                                                    </div>
-                                                  )}
                                                   {!isDraggedItem && isAssigned && (
                                                     <div className="text-xs text-gray-700 font-medium mt-0.5 italic">
                                                       Moving here...
@@ -1496,21 +1502,27 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
         if (!draggedJob || !customer) return null;
         return (
           <div
-            className="fixed pointer-events-none z-50 opacity-80"
+            className="fixed pointer-events-none z-50 opacity-90"
             style={{
               left: `${dragPosition.x}px`,
               top: `${dragPosition.y}px`,
               transform: 'translate(-50%, -50%)',
             }}
           >
-            <div className="rounded-lg p-2 bg-blue-500 border-2 border-blue-600 shadow-2xl text-xs min-w-[120px] flex flex-col items-start"
-                 style={{ minWidth: 120 }}>
-              <div className="font-semibold text-white truncate">
+            <div className="rounded-lg px-3 py-2 bg-white border-2 border-blue-600 shadow-2xl min-w-[200px]">
+              <div className="font-semibold text-gray-900 text-sm mb-1">
                 {customer.name}
               </div>
-              <div className="text-blue-100 truncate">
-                ${customer.price}
+              <div className="text-xs text-gray-600">
+                ${customer.price} • {customer.squareFootage.toLocaleString()} sq ft
               </div>
+              {customer.isHilly || customer.hasFencing || customer.hasObstacles ? (
+                <div className="flex gap-1 mt-1">
+                  {customer.isHilly && <span className="text-[10px] bg-gray-200 px-1.5 py-0.5 rounded">Hilly</span>}
+                  {customer.hasFencing && <span className="text-[10px] bg-gray-200 px-1.5 py-0.5 rounded">Fenced</span>}
+                  {customer.hasObstacles && <span className="text-[10px] bg-gray-200 px-1.5 py-0.5 rounded">Obstacles</span>}
+                </div>
+              ) : null}
             </div>
           </div>
         );

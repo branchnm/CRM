@@ -270,19 +270,19 @@ function App() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-linear-to-br from-green-50 to-emerald-50 flex items-center justify-center">
-        <div className="text-green-800 text-xl">Loading customers...</div>
+      <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-yellow-50 flex items-center justify-center">
+        <div className="text-blue-800 text-xl">Loading customers...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-green-50 to-emerald-50 pb-20 md:pb-0">
+    <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-yellow-50 pb-20 md:pb-0">
       <div className="container mx-auto p-4 md:p-8 max-w-7xl">
         <div className="mb-6">
-          <h1 className="text-green-800 mb-1">Lawn Care CRM</h1>
-          <p className="text-green-600">
-            Manage your crew, customers, and grow your business
+          <h1 className="text-blue-800 mb-1">Outside AI CRM</h1>
+          <p className="text-blue-600">
+            Streamline scheduling and communication for outdoor service businesses
           </p>
         </div>
 
@@ -347,7 +347,7 @@ function App() {
                 onClick={() => setActiveTab(item.id)}
                 className={`flex flex-col items-center justify-center py-3 px-4 ${
                   activeTab === item.id
-                    ? "text-green-600"
+                    ? "text-blue-600"
                     : "text-gray-500"
                 }`}
               >
@@ -368,7 +368,7 @@ function App() {
               onClick={() => setActiveTab(item.id)}
               className={`flex items-center gap-2 px-4 py-2 rounded-md transition-colors ${
                 activeTab === item.id
-                  ? "bg-green-100 text-green-700"
+                  ? "bg-blue-100 text-blue-700"
                   : "text-gray-600 hover:bg-gray-100"
               }`}
             >

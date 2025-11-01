@@ -44,6 +44,11 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
   const [driveTimesCache, setDriveTimesCache] = useState<Map<string, string>>(new Map());
   const [dayStartTimes, setDayStartTimes] = useState<Map<string, number>>(new Map());
   
+  // Drag and drop state
+  const [draggedJobId, setDraggedJobId] = useState<string | null>(null);
+  const [dragPosition, setDragPosition] = useState<{ x: number; y: number } | null>(null);
+  const [draggedOverIndex, setDraggedOverIndex] = useState<number | null>(null);
+  
   // Track job creation to prevent race conditions
   const creatingJobsRef = useRef<Set<string>>(new Set());
 
@@ -890,6 +895,84 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
     toast.success('Starting address saved');
   };
 
+  // Drag and drop handlers
+  const handleDragStart = (e: React.DragEvent, jobId: string) => {
+    e.stopPropagation();
+    setDraggedJobId(jobId);
+    setDragPosition({ x: e.clientX, y: e.clientY });
+    e.dataTransfer.effectAllowed = 'move';
+    
+    // Hide the default drag ghost image
+    const img = new Image();
+    img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+    e.dataTransfer.setDragImage(img, 0, 0);
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    setDraggedOverIndex(index);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedJobId(null);
+    setDragPosition(null);
+    setDraggedOverIndex(null);
+  };
+
+  const handleDrop = async (e: React.DragEvent, targetIndex: number) => {
+    e.preventDefault();
+    if (!draggedJobId) return;
+
+    const sourceIndex = todayJobs.findIndex(j => j.id === draggedJobId);
+    if (sourceIndex === -1 || sourceIndex === targetIndex) {
+      setDraggedJobId(null);
+      setDragPosition(null);
+      setDraggedOverIndex(null);
+      return;
+    }
+
+    // Reorder jobs
+    const reorderedJobs = [...todayJobs];
+    const [movedJob] = reorderedJobs.splice(sourceIndex, 1);
+    reorderedJobs.splice(targetIndex, 0, movedJob);
+
+    // Update order field for all affected jobs
+    const updatedJobs = reorderedJobs.map((job, idx) => ({
+      ...job,
+      order: idx + 1
+    }));
+
+    // Update in database
+    try {
+      await Promise.all(
+        updatedJobs.map(job => updateJob(job))
+      );
+      await onRefreshJobs?.();
+      toast.success('Job order updated');
+    } catch (error) {
+      console.error('Failed to update job order:', error);
+      toast.error('Failed to update job order');
+    }
+
+    setDraggedJobId(null);
+    setDragPosition(null);
+    setDraggedOverIndex(null);
+  };
+
+  // Track mouse movement for drag preview
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (draggedJobId) {
+        setDragPosition({ x: e.clientX, y: e.clientY });
+      }
+    };
+
+    if (draggedJobId) {
+      window.addEventListener('mousemove', handleMouseMove);
+      return () => window.removeEventListener('mousemove', handleMouseMove);
+    }
+  }, [draggedJobId]);
+
   const getCustomer = (customerId: string) => {
     return customers.find(c => c.id === customerId);
   };
@@ -898,7 +981,7 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
     return (
       <Card className="bg-white/80 backdrop-blur">
         <CardHeader>
-          <CardTitle>Welcome to Your Lawn Care CRM</CardTitle>
+          <CardTitle>Welcome to Outside AI CRM</CardTitle>
           <CardDescription>Add customers to start scheduling jobs</CardDescription>
         </CardHeader>
         <CardContent>
@@ -923,9 +1006,9 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
       {/* Today's Jobs Section Header */}
       {todayJobs.length > 0 && (
         <div className="flex items-center gap-3 mb-4">
-          <div className="h-1 flex-1 bg-linear-to-r from-green-200 to-green-400 rounded-full"></div>
-          <h2 className="text-2xl font-bold text-green-900 uppercase tracking-wide">Today's Jobs</h2>
-          <div className="h-1 flex-1 bg-linear-to-l from-green-200 to-green-400 rounded-full"></div>
+          <div className="h-1 flex-1 bg-linear-to-r from-blue-200 via-yellow-200 to-blue-200 rounded-full"></div>
+          <h2 className="text-2xl font-bold text-blue-900 uppercase tracking-wide">Today's Jobs</h2>
+          <div className="h-1 flex-1 bg-linear-to-l from-blue-200 via-yellow-200 to-blue-200 rounded-full"></div>
         </div>
       )}
 
@@ -936,19 +1019,19 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
             <div className="grid grid-cols-3 divide-x divide-gray-200">
               {/* Completed Houses */}
               <div className="flex items-center justify-center gap-2 px-4">
-                <CheckCircle className="h-5 w-5 text-green-600" />
+                <CheckCircle className="h-5 w-5 text-blue-600" />
                 <span className="text-2xl font-semibold text-gray-800">{completedToday}/{totalDueToday}</span>
               </div>
               
               {/* Work Time */}
               <div className="flex items-center justify-center gap-2 px-4">
-                <Clock className="h-5 w-5 text-green-600" />
+                <Clock className="h-5 w-5 text-blue-600" />
                 <span className="text-2xl font-semibold text-gray-800">{totalWorkTime} min</span>
               </div>
               
               {/* Drive Time */}
               <div className="flex items-center justify-center gap-2 px-4">
-                <Navigation className="h-5 w-5 text-green-600" />
+                <Navigation className="h-5 w-5 text-blue-600" />
                 <span className="text-2xl font-semibold text-gray-800">{totalDriveTime} min</span>
               </div>
             </div>
@@ -958,10 +1041,10 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
 
       {/* Route Optimization Controls - Compact */}
       {todayJobs.length > 1 && (
-        <div className="bg-green-50/50 border border-green-200 rounded-lg p-3 mb-4">
+        <div className="bg-blue-50/50 border border-blue-200 rounded-lg p-3 mb-4">
           <div className="flex flex-col sm:flex-row items-center justify-center gap-2">
-            <Route className="h-4 w-4 text-green-600 shrink-0" />
-            <span className="text-sm text-green-900 font-medium text-center">
+            <Route className="h-4 w-4 text-blue-600 shrink-0" />
+            <span className="text-sm text-blue-900 font-medium text-center">
               {startingAddress || 'No starting address set'}
             </span>
             <div className="flex gap-2">
@@ -997,7 +1080,7 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
               </Dialog>
               <Button 
                 onClick={handleOptimizeRoute}
-                className="bg-green-600 hover:bg-green-700"
+                className="bg-blue-600 hover:bg-blue-700"
                 size="sm"
                 disabled={!startingAddress || todayJobs.filter(j => j.status === 'scheduled').length < 2}
               >
@@ -1045,24 +1128,38 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
               
 //this job.id is where i can control the colors of the background for the cards. 
             return (
-              <Card key={job.id} className={`backdrop-blur ${job.status === 'completed' ? 'bg-green-50 border border-green-300' : 'bg-white/80'} ${job.status === 'completed' ? '' : ''}`}>
+              <Card 
+                key={job.id} 
+                className={`backdrop-blur cursor-move transition-all select-none ${
+                  job.status === 'completed' 
+                    ? 'bg-blue-50 border border-blue-300' 
+                    : draggedOverIndex === index 
+                      ? 'bg-blue-50 border-2 border-blue-400 border-dashed' 
+                      : 'bg-white/80'
+                } ${draggedJobId === job.id ? 'opacity-50' : ''}`}
+                draggable={job.status === 'scheduled'}
+                onDragStart={(e) => handleDragStart(e, job.id)}
+                onDragOver={(e) => handleDragOver(e, index)}
+                onDragEnd={handleDragEnd}
+                onDrop={(e) => handleDrop(e, index)}
+              >
                 <CardContent className="p-4">
                   {/* Centered layout */}
                   <div className="flex flex-col items-center text-center gap-4">
                     <div className="w-full">
-                      <h3 className="text-green-800 text-sm font-semibold">{customer.name}</h3>
+                      <h3 className="text-blue-800 text-sm font-semibold">{customer.name}</h3>
                       <div className="flex items-center justify-center gap-1.5 text-gray-600 text-xs mt-1">
-                        <MapPin className="h-3 w-3 shrink-0" />
+                        <MapPin className="h-3 w-3 shrink-0 pointer-events-none" />
                         <span>{customer.address}</span>
                       </div>
                       {job.scheduledTime && (
                         <div className="flex items-center justify-center gap-1.5 text-blue-600 text-xs font-medium mt-1">
-                          <Clock className="h-3 w-3" />
+                          <Clock className="h-3 w-3 pointer-events-none" />
                           <span>Scheduled: {formatScheduledTime(job.scheduledTime)}</span>
                         </div>
                       )}
-                      <div className="flex items-center justify-center gap-1.5 text-green-600 text-xs mt-1">
-                        <Clock className="h-3 w-3" />
+                      <div className="flex items-center justify-center gap-1.5 text-blue-600 text-xs mt-1">
+                        <Clock className="h-3 w-3 pointer-events-none" />
                         <span>{driveTime}</span>
                       </div>
                     </div>
@@ -1084,7 +1181,7 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
                         <>
                           <Button
                             onClick={() => handleStartJobClick(job)}
-                            className="bg-green-600 hover:bg-green-700 flex-1 h-8 text-xs"
+                            className="bg-blue-600 hover:bg-blue-700 flex-1 h-8 text-xs"
                           >
                             <Play className="h-3 w-3 mr-1" />
                             Start
@@ -1428,6 +1525,48 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Drag Preview - Shows the job being dragged */}
+      {draggedJobId && dragPosition && (() => {
+        const draggedJob = todayJobs.find(j => j.id === draggedJobId);
+        const customer = draggedJob ? getCustomer(draggedJob.customerId) : null;
+        if (!draggedJob || !customer) return null;
+        
+        return (
+          <div
+            className="fixed pointer-events-none z-50 opacity-90"
+            style={{
+              left: `${dragPosition.x}px`,
+              top: `${dragPosition.y}px`,
+              transform: 'translate(-50%, -50%)',
+            }}
+          >
+            <Card className="backdrop-blur bg-white/80 shadow-2xl border-2 border-blue-600 w-[280px]">
+              <CardContent className="p-4">
+                {/* Centered layout - matching the original card */}
+                <div className="flex flex-col items-center text-center gap-4">
+                  <div className="w-full">
+                    <h3 className="text-blue-800 text-sm font-semibold">{customer.name}</h3>
+                    <div className="flex items-center justify-center gap-1.5 text-gray-600 text-xs mt-1">
+                      <MapPin className="h-3 w-3 shrink-0" />
+                      <span>{customer.address}</span>
+                    </div>
+                  </div>
+
+                  {/* Badges row */}
+                  <div className="flex flex-wrap gap-1 justify-center">
+                    {customer.isHilly && <Badge variant="secondary" className="text-[10px] py-0 px-1.5">Hilly</Badge>}
+                    {customer.hasFencing && <Badge variant="secondary" className="text-[10px] py-0 px-1.5">Fenced</Badge>}
+                    {customer.hasObstacles && <Badge variant="secondary" className="text-[10px] py-0 px-1.5">Obstacles</Badge>}
+                    <Badge variant="outline" className="text-[10px] py-0 px-1.5">{customer.squareFootage.toLocaleString()} sq ft</Badge>
+                    <Badge variant="outline" className="text-[10px] py-0 px-1.5">${customer.price}</Badge>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        );
+      })()}
     </div>
   );
 }
