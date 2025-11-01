@@ -370,7 +370,7 @@ export function CustomerManagement({ customers, onUpdateCustomers, onRefreshCust
             </div>
             <Dialog open={isAddingCustomer} onOpenChange={setIsAddingCustomer}>
               <DialogTrigger asChild>
-                <Button className="bg-green-600 hover:bg-green-700" size="lg" onClick={resetForm}>
+                <Button className="bg-blue-600 hover:bg-blue-700" size="lg" onClick={resetForm}>
                   <Plus className="h-5 w-5 mr-2" />
                   Add Customer
                 </Button>
@@ -551,7 +551,7 @@ export function CustomerManagement({ customers, onUpdateCustomers, onRefreshCust
                     </div>
                   </div>
 
-                  <Button onClick={handleAddCustomer} className="w-full bg-green-600 hover:bg-green-700" size="lg">
+                  <Button onClick={handleAddCustomer} className="w-full bg-blue-600 hover:bg-blue-700" size="lg">
                     Add Customer
                   </Button>
                 </div>
@@ -577,7 +577,7 @@ export function CustomerManagement({ customers, onUpdateCustomers, onRefreshCust
               <CardContent className="pt-6">
                 <div className="flex flex-col md:flex-row justify-between gap-4">
                   <div className="flex-1">
-                    <h3 className="text-green-800 mb-2">{customer.name}</h3>
+                    <h3 className="text-blue-800 mb-2">{customer.name}</h3>
                     <p className="text-gray-600 mb-2">{customer.address}</p>
                     <div className="flex flex-wrap gap-2 mb-2">
                       <Badge variant="outline">{customer.squareFootage.toLocaleString()} sq ft</Badge>
@@ -602,8 +602,8 @@ export function CustomerManagement({ customers, onUpdateCustomers, onRefreshCust
                         )}
                         {customer.nextCutDate && (
                           <div className="flex items-center gap-1">
-                            <Calendar className="h-4 w-4 text-green-600" />
-                            <span className={`font-medium ${isOverdue(customer.nextCutDate) ? 'text-red-600' : getDaysUntil(customer.nextCutDate) === 0 ? 'text-yellow-600' : 'text-green-600'}`}>
+                            <Calendar className="h-4 w-4 text-blue-600" />
+                            <span className={`font-medium ${isOverdue(customer.nextCutDate) ? 'text-red-600' : getDaysUntil(customer.nextCutDate) === 0 ? 'text-yellow-600' : 'text-blue-600'}`}>
                               Next: {formatDate(customer.nextCutDate)}
                               {isOverdue(customer.nextCutDate) && <AlertCircle className="inline h-3 w-3 ml-1" />}
                             </span>
@@ -785,7 +785,7 @@ export function CustomerManagement({ customers, onUpdateCustomers, onRefreshCust
                             </div>
                           </div>
 
-                          <Button onClick={handleEditCustomer} className="w-full bg-green-600 hover:bg-green-700" size="lg">
+                          <Button onClick={handleEditCustomer} className="w-full bg-blue-600 hover:bg-blue-700" size="lg">
                             Save Changes
                           </Button>
                         </div>

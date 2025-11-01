@@ -1280,15 +1280,15 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
                                 </div>
 
                                 {/* Messaging prompt */}
-                                <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                                <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
                                   <div className="flex items-center gap-2 mb-2">
-                                    <MessageSquare className="h-4 w-4 text-green-600" />
-                                    <span className="text-green-800">Send completion message?</span>
+                                    <MessageSquare className="h-4 w-4 text-blue-600" />
+                                    <span className="text-blue-800">Send completion message?</span>
                                   </div>
                                   <div className="flex gap-2">
                                     <Button
                                       onClick={() => setCompletionMessage(true)}
-                                      className={`flex-1 ${completionMessage === true ? 'bg-green-600 text-white hover:bg-green-700' : 'hover:bg-green-100 hover:border-green-300'}`}
+                                      className={`flex-1 ${completionMessage === true ? 'bg-blue-600 text-white hover:bg-blue-700' : 'hover:bg-blue-100 hover:border-blue-300'}`}
                                       variant={completionMessage === true ? 'default' : 'outline'}
                                       size="lg"
                                     >
@@ -1297,7 +1297,7 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
                                     </Button>
                                     <Button
                                       onClick={() => setCompletionMessage(false)}
-                                      className={`flex-1 ${completionMessage === false ? 'bg-green-600 text-white hover:bg-green-700' : 'hover:bg-green-100 hover:border-green-300'}`}
+                                      className={`flex-1 ${completionMessage === false ? 'bg-blue-600 text-white hover:bg-blue-700' : 'hover:bg-blue-100 hover:border-blue-300'}`}
                                       variant={completionMessage === false ? 'default' : 'outline'}
                                       size="lg"
                                     >
@@ -1317,7 +1317,7 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
                                         setCompletionMessage(null);
                                         setSelectedTime(null);
                                       }}
-                                      className="w-full bg-green-600 hover:bg-green-700"
+                                      className="w-full bg-blue-600 hover:bg-blue-700"
                                       size="lg"
                                     >
                                       <CheckCircle className="h-5 w-5 mr-2" />
@@ -1366,7 +1366,7 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
                               toast.error('Failed to revert job status');
                             }
                           }}
-                          className="flex-1 text-center text-green-600 hover:bg-green-50 rounded-lg p-1.5 transition-colors border border-green-300"
+                          className="flex-1 text-center text-blue-600 hover:bg-blue-50 rounded-lg p-1.5 transition-colors border border-blue-300"
                           title="Click to undo completion"
                         >
                           <CheckCircle className="h-4 w-4 mx-auto" />
@@ -1488,7 +1488,7 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
             >
               Start (No Message)
             </Button>
-            <AlertDialogAction onClick={() => confirmStartJob(true)} className="bg-green-600 hover:bg-green-700">
+            <AlertDialogAction onClick={() => confirmStartJob(true)} className="bg-blue-600 hover:bg-blue-700">
               <Send className="h-4 w-4 mr-2" />
               Send "Starting Now"
             </AlertDialogAction>
@@ -1518,7 +1518,7 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
             }}>
               Skip
             </AlertDialogCancel>
-            <AlertDialogAction onClick={notifyNextCustomer} className="bg-green-600 hover:bg-green-700">
+            <AlertDialogAction onClick={notifyNextCustomer} className="bg-blue-600 hover:bg-blue-700">
               <Send className="h-4 w-4 mr-2" />
               Send Message
             </AlertDialogAction>

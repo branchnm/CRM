@@ -164,9 +164,9 @@ export function JobHistory({ jobs, customers, onRefreshJobs }: JobHistoryProps) 
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'completed':
-        return 'bg-green-100 text-green-800 border-green-200';
-      case 'in-progress':
         return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'in-progress':
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       case 'scheduled':
         return 'bg-gray-100 text-gray-800 border-gray-200';
       default:
@@ -184,7 +184,7 @@ export function JobHistory({ jobs, customers, onRefreshJobs }: JobHistoryProps) 
               <CardTitle>Job History</CardTitle>
               <CardDescription>View and manage all past and scheduled jobs</CardDescription>
             </div>
-            <Button onClick={() => setIsAddingJob(true)} className="bg-green-600 hover:bg-green-700">
+            <Button onClick={() => setIsAddingJob(true)} className="bg-blue-600 hover:bg-blue-700">
               <Plus className="h-4 w-4 mr-2" />
               Add Job
             </Button>
@@ -430,7 +430,7 @@ export function JobHistory({ jobs, customers, onRefreshJobs }: JobHistoryProps) 
             }}>
               Cancel
             </Button>
-            <Button onClick={handleSaveJob} className="bg-green-600 hover:bg-green-700">
+            <Button onClick={handleSaveJob} className="bg-blue-600 hover:bg-blue-700">
               {editingJob ? 'Update Job' : 'Add Job'}
             </Button>
           </DialogFooter>

@@ -206,7 +206,7 @@ export function CustomerComms({ customers, messageTemplates, onUpdateTemplates }
             </p>
           </div>
 
-          <Button onClick={handleSendMessage} className="w-full bg-green-600 hover:bg-green-700" size="lg">
+          <Button onClick={handleSendMessage} className="w-full bg-blue-600 hover:bg-blue-700" size="lg">
             <Send className="h-5 w-5 mr-2" />
             Send Message
           </Button>
@@ -223,7 +223,7 @@ export function CustomerComms({ customers, messageTemplates, onUpdateTemplates }
             </div>
             <Dialog open={isEditingTemplate && !editingTemplate} onOpenChange={setIsEditingTemplate}>
               <DialogTrigger asChild>
-                <Button className="bg-green-600 hover:bg-green-700" onClick={resetTemplateForm}>
+                <Button className="bg-blue-600 hover:bg-blue-700" onClick={resetTemplateForm}>
                   <Plus className="h-4 w-4 mr-2" />
                   New Template
                 </Button>
@@ -285,7 +285,7 @@ export function CustomerComms({ customers, messageTemplates, onUpdateTemplates }
                     />
                   </div>
 
-                  <Button onClick={handleAddTemplate} className="w-full bg-green-600 hover:bg-green-700">
+                  <Button onClick={handleAddTemplate} className="w-full bg-blue-600 hover:bg-blue-700">
                     Create Template
                   </Button>
                 </div>
@@ -301,8 +301,8 @@ export function CustomerComms({ customers, messageTemplates, onUpdateTemplates }
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
-                        <h4 className="text-green-800">{template.name}</h4>
-                        <Badge variant={template.active ? 'default' : 'secondary'} className={template.active ? 'bg-green-600' : ''}>
+                        <h4 className="text-blue-800">{template.name}</h4>
+                        <Badge variant={template.active ? 'default' : 'secondary'} className={template.active ? 'bg-blue-600' : ''}>
                           {template.active ? 'Active' : 'Inactive'}
                         </Badge>
                         <Badge variant="outline">{getTriggerLabel(template.trigger)}</Badge>
@@ -363,7 +363,7 @@ export function CustomerComms({ customers, messageTemplates, onUpdateTemplates }
                               />
                             </div>
 
-                            <Button onClick={handleEditTemplate} className="w-full bg-green-600 hover:bg-green-700">
+                            <Button onClick={handleEditTemplate} className="w-full bg-blue-600 hover:bg-blue-700">
                               Save Changes
                             </Button>
                           </div>

@@ -94,7 +94,7 @@ export function Settings({ equipment, onUpdateEquipment }: SettingsProps) {
             </div>
             <Dialog open={isAddingEquipment} onOpenChange={setIsAddingEquipment}>
               <DialogTrigger asChild>
-                <Button className="bg-green-600 hover:bg-green-700" onClick={resetForm}>
+                <Button className="bg-blue-600 hover:bg-blue-700" onClick={resetForm}>
                   <Plus className="h-4 w-4 mr-2" />
                   Add Equipment
                 </Button>
@@ -161,7 +161,7 @@ export function Settings({ equipment, onUpdateEquipment }: SettingsProps) {
                     </div>
                   </div>
 
-                  <Button onClick={handleAddEquipment} className="w-full bg-green-600 hover:bg-green-700">
+                  <Button onClick={handleAddEquipment} className="w-full bg-blue-600 hover:bg-blue-700">
                     Add Equipment
                   </Button>
                 </div>
@@ -184,7 +184,7 @@ export function Settings({ equipment, onUpdateEquipment }: SettingsProps) {
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
                       <Wrench className="h-5 w-5 text-gray-600" />
-                      <h3 className="text-green-800">{item.name}</h3>
+                      <h3 className="text-blue-800">{item.name}</h3>
                       {needsMaintenance && (
                         <Badge className="bg-orange-600">
                           <AlertTriangle className="h-3 w-3 mr-1" />

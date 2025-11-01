@@ -213,7 +213,7 @@ export function InsightsDashboard({ customers, jobs, equipment }: InsightsDashbo
         <Card className="bg-white/80 backdrop-blur">
           <CardHeader className="pb-3">
             <CardDescription>Total Revenue</CardDescription>
-            <CardTitle className="text-green-600">${totalRevenue.toFixed(2)}</CardTitle>
+            <CardTitle className="text-blue-600">${totalRevenue.toFixed(2)}</CardTitle>
           </CardHeader>
         </Card>
 
@@ -270,7 +270,7 @@ export function InsightsDashboard({ customers, jobs, equipment }: InsightsDashbo
       {/* Insights & Recommendations */}
       {insights.length > 0 && (
         <div className="space-y-3">
-          <h2 className="text-green-800">Insights & Recommendations</h2>
+          <h2 className="text-blue-800">Insights & Recommendations</h2>
           {insights.map((insight, idx) => (
             <Alert
               key={idx}
@@ -278,7 +278,7 @@ export function InsightsDashboard({ customers, jobs, equipment }: InsightsDashbo
                 insight.type === 'hiring' ? 'border-blue-300 bg-blue-50/80' :
                 insight.type === 'pricing' ? 'border-orange-300 bg-orange-50/80' :
                 insight.type === 'maintenance' ? 'border-red-300 bg-red-50/80' :
-                insight.type === 'success' ? 'border-green-300 bg-green-50/80' :
+                insight.type === 'success' ? 'border-blue-300 bg-blue-50/80' :
                 'border-purple-300 bg-purple-50/80'
               }
             >
@@ -347,7 +347,7 @@ export function InsightsDashboard({ customers, jobs, equipment }: InsightsDashbo
                 return (
                   <div key={idx} className="flex items-center justify-between p-4 border rounded-lg">
                     <div>
-                      <h4 className="text-green-800">{item.customer.name}</h4>
+                      <h4 className="text-blue-800">{item.customer.name}</h4>
                       <p className="text-gray-600 text-sm">{item.customer.address}</p>
                       <div className="flex gap-2 mt-2">
                         <Badge variant="outline">Current: ${item.customer.price}</Badge>
@@ -381,16 +381,16 @@ export function InsightsDashboard({ customers, jobs, equipment }: InsightsDashbo
               return (
                 <div key={idx} className="flex items-center justify-between p-3 border rounded-lg">
                   <div className="flex-1">
-                    <p className="text-green-800">{customer.name}</p>
+                    <p className="text-blue-800">{customer.name}</p>
                     <p className="text-sm text-gray-600">{customer.jobCount} jobs completed</p>
                   </div>
                   <div className="text-right">
-                    <p className={isAboveAvg ? 'text-green-600' : 'text-orange-600'}>
+                    <p className={isAboveAvg ? 'text-blue-600' : 'text-orange-600'}>
                       ${customer.effectiveRate}/hr
                     </p>
                     <p className="text-sm text-gray-600">${customer.price} / {customer.avgTime} min</p>
                   </div>
-                  <Badge className={isAboveAvg ? 'bg-green-600 ml-3' : 'bg-orange-600 ml-3'}>
+                  <Badge className={isAboveAvg ? 'bg-blue-600 ml-3' : 'bg-orange-600 ml-3'}>
                     {isAboveAvg ? 'Good' : 'Review'}
                   </Badge>
                 </div>
