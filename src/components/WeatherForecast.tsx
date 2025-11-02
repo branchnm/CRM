@@ -17,7 +17,8 @@ import {
   Sun,
   CloudSnow,
   CloudDrizzle,
-  CloudRainWind
+  CloudRainWind,
+  Route
 } from 'lucide-react';
 import { 
   getWeatherData, 
@@ -36,9 +37,12 @@ interface WeatherForecastProps {
   onRescheduleJob?: (jobId: string, newDate: string, timeSlot?: number) => void;
   onUpdateJobTimeSlot?: (jobId: string, timeSlot: number) => void;
   onStartTimeChange?: (date: string, startHour: number) => void;
+  onOptimizeRoute?: () => void;
+  isOptimizing?: boolean;
+  startingAddress?: string;
 }
 
-export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, onUpdateJobTimeSlot, onStartTimeChange }: WeatherForecastProps) {
+export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, onUpdateJobTimeSlot, onStartTimeChange, onOptimizeRoute, isOptimizing = false, startingAddress = '' }: WeatherForecastProps) {
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -50,6 +54,10 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
     return localStorage.getItem('weatherLocationName') || '';
   });
   const [addressInput, setAddressInput] = useState('');
+  const [streetAddress, setStreetAddress] = useState(() => localStorage.getItem('routeStreetAddress') || '');
+  const [addressSaved, setAddressSaved] = useState(false);
+  const [showAddressSuggestions, setShowAddressSuggestions] = useState(false);
+  const [addressSuggestions, setAddressSuggestions] = useState<Array<{ description: string; place_id: string }>>([]);
   const [jobAssignments, setJobAssignments] = useState<Map<string, string>>(new Map()); // jobId -> date mapping
   const [jobTimeSlots, setJobTimeSlots] = useState<Map<string, number>>(new Map()); // jobId -> timeSlot (0-11 for 6am-6pm)
 
@@ -302,9 +310,13 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
           const name = await getLocationName(coords.lat, coords.lon);
           setLocationName(name);
           localStorage.setItem('weatherLocationName', name);
+          // Also set as route starting address
+          localStorage.setItem('routeStartingAddress', name);
         } else if (coords.name) {
           setLocationName(coords.name);
           localStorage.setItem('weatherLocationName', coords.name);
+          // Also set as route starting address
+          localStorage.setItem('routeStartingAddress', coords.name);
         }
       } else {
         const errorMsg = 'Failed to load weather data - API may not be activated yet';
@@ -381,6 +393,63 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
       const errorMessage = error instanceof Error ? error.message : 'Failed to get location';
       toast.error(errorMessage, { id: 'gps' });
       setError(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSaveStreetAddress = () => {
+    const trimmed = streetAddress.trim();
+    if (!trimmed) {
+      toast.error('Please enter a street address');
+      return;
+    }
+    
+    localStorage.setItem('routeStreetAddress', trimmed);
+    // Build full address for route optimization
+    const fullAddress = `${trimmed}, ${locationName}`;
+    localStorage.setItem('routeStartingAddress', fullAddress);
+    
+    // Show confirmation
+    setAddressSaved(true);
+    toast.success('Starting address saved!');
+    
+    // Reset confirmation after 2 seconds
+    setTimeout(() => setAddressSaved(false), 2000);
+  };
+
+  const handleSetAddress = async () => {
+    const trimmed = addressInput.trim();
+    if (!trimmed) {
+      toast.error('Please enter an address');
+      return;
+    }
+
+    setLoading(true);
+    toast.loading('Setting address...', { id: 'set-address' });
+    
+    try {
+      const coords = await getCoordinatesFromAddress(trimmed);
+      if (coords) {
+        setLocation(coords);
+        const displayName = coords.name || trimmed;
+        setLocationName(displayName);
+        localStorage.setItem('weatherLocation', JSON.stringify(coords));
+        localStorage.setItem('weatherLocationName', displayName);
+        localStorage.setItem('routeStartingAddress', displayName);
+        
+        // Show confirmation
+        setAddressSaved(true);
+        toast.success(`Address set: ${displayName}`, { id: 'set-address' });
+        setTimeout(() => setAddressSaved(false), 2000);
+        
+        // Load weather
+        await loadWeather(coords);
+      }
+    } catch (error) {
+      console.error('Error setting address:', error);
+      const errorMsg = error instanceof Error ? error.message : 'Failed to set address';
+      toast.error(errorMsg, { id: 'set-address' });
     } finally {
       setLoading(false);
     }
@@ -873,57 +942,71 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
         <div className="h-1 flex-1 bg-linear-to-l from-blue-200 to-blue-400 rounded-full"></div>
       </div>
 
-      {/* Location Selector - Centered on mobile - Blue theme, no box */}
+      {/* Location Selector - Centered - Single unified address input */}
       <div className="flex justify-center mb-4">
-        <div className="w-full md:w-fit">
-          <div className="flex flex-col md:flex-row items-center gap-2 justify-center">
-            {/* Location Display - Clickable when location is set */}
-            <div 
-              className={`flex items-center gap-2 ${locationName && !showLocationSearch ? 'cursor-pointer hover:bg-blue-50 rounded px-2 py-1 -mx-2 -my-1 transition-colors' : ''}`}
-              onClick={() => {
-                if (locationName && !showLocationSearch) {
-                  setShowLocationSearch(true);
-                }
-              }}
-            >
-              <MapPin className="h-4 w-4 text-blue-600 shrink-0" />
-              <span className="text-sm text-blue-900 font-medium whitespace-nowrap">
-                {locationName || 'No location set'}
-              </span>
-            </div>
-
-            {/* Search Controls - Show if no location or if toggled open */}
-            {(!locationName || showLocationSearch) && (
-              <div className="flex items-center gap-2 flex-wrap justify-center">
-                <Input
-                  placeholder="City, address, or ZIP"
-                  value={addressInput}
-                  onChange={(e) => setAddressInput(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleAddressSearch()}
-                  className="w-48 h-8 text-sm border-blue-200 focus:border-blue-400 focus:ring-blue-400"
-                />
-                <Button onClick={handleAddressSearch} disabled={loading} size="sm" variant="outline" className="border-blue-300 text-blue-700 hover:bg-blue-50 h-8">
-                  <Search className="h-3 w-3 mr-1" />
-                  <span className="hidden sm:inline">Search</span>
-                </Button>
-                <Button onClick={handleUseGPS} disabled={loading} size="sm" className="bg-blue-600 hover:bg-blue-700 h-8">
-                  <Navigation className="h-3 w-3 mr-1" />
-                  <span className="hidden sm:inline">GPS</span>
-                </Button>
-                {/* Close button when location exists */}
-                {locationName && showLocationSearch && (
-                  <Button 
-                    onClick={() => setShowLocationSearch(false)} 
-                    size="sm" 
-                    variant="outline" 
-                    className="h-8"
-                  >
-                    Done
-                  </Button>
+        <div className="w-full max-w-3xl">
+          <div className="flex items-center gap-2 justify-center flex-wrap">
+            <div className="relative flex-1 min-w-[300px] max-w-[500px]">
+              <Input
+                placeholder={locationName || "Enter full address (e.g., 123 Main St, Homewood, Alabama)"}
+                value={addressInput}
+                onChange={(e) => {
+                  setAddressInput(e.target.value);
+                  setAddressSaved(false);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleSetAddress();
+                  }
+                }}
+                onBlur={() => {
+                  if (addressInput.trim() && addressInput !== locationName) {
+                    handleSetAddress();
+                  }
+                }}
+                autoComplete="street-address"
+                disabled={loading}
+                className={`h-10 pr-24 transition-all ${
+                  addressSaved 
+                    ? 'border-green-500 focus:border-green-500 focus:ring-green-500' 
+                    : 'border-blue-200 focus:border-blue-400 focus:ring-blue-400'
+                }`}
+              />
+              <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                {addressSaved && (
+                  <CheckCircle className="h-4 w-4 text-green-600" />
                 )}
+                <Button 
+                  onClick={handleUseGPS} 
+                  disabled={loading} 
+                  size="sm" 
+                  variant="ghost"
+                  className="h-7 px-2"
+                  title="Use my current location"
+                >
+                  <Navigation className="h-3 w-3" />
+                </Button>
               </div>
+            </div>
+            
+            {locationName && (
+              <Button 
+                onClick={onOptimizeRoute}
+                disabled={isOptimizing || !startingAddress}
+                size="sm"
+                className="bg-blue-600 hover:bg-blue-700 h-10"
+              >
+                <Route className="h-3 w-3 mr-1" />
+                {isOptimizing ? 'Optimizing...' : 'Optimize Routes'}
+              </Button>
             )}
           </div>
+          {locationName && (
+            <p className="text-xs text-center text-gray-600 mt-1">
+              <MapPin className="h-3 w-3 inline mr-1" />
+              {locationName}
+            </p>
+          )}
         </div>
       </div>
 
@@ -1192,34 +1275,13 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                   value={dayStartTimes.get(dateStr) || 6}
                                   onChange={(e) => {
                                     const newStartTime = parseInt(e.target.value);
+                                    
                                     setDayStartTimes(prev => {
                                       const newMap = new Map(prev);
                                       newMap.set(dateStr, newStartTime);
                                       return newMap;
                                     });
-                                    // Move jobs in now-hidden slots to the first visible slot
-                                    setJobTimeSlots(prev => {
-                                      const minSlotIndex = newStartTime - 6;
-                                      const newMap = new Map(prev);
-                                      // Find jobs in this day with slot < minSlotIndex
-                                      for (const [jobId, slot] of prev.entries()) {
-                                        const job = jobs.find(j => j.id === jobId && (j.date === dateStr || jobAssignments.get(j.id) === dateStr));
-                                        if (job && slot < minSlotIndex) {
-                                          // Find first available visible slot
-                                          let found = false;
-                                          for (let i = minSlotIndex; i < 13; i++) {
-                                            if (![...newMap.entries()].some(([otherId, otherSlot]) => otherId !== jobId && otherSlot === i)) {
-                                              newMap.set(jobId, i);
-                                              found = true;
-                                              break;
-                                            }
-                                          }
-                                          // If no slot found, just set to minSlotIndex
-                                          if (!found) newMap.set(jobId, minSlotIndex);
-                                        }
-                                      }
-                                      return newMap;
-                                    });
+                                    
                                     // Notify parent component of start time change
                                     onStartTimeChange?.(dateStr, newStartTime);
                                   }}
@@ -1240,7 +1302,10 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
 
                             {/* Time Slot Schedule: 6am-6pm with drag-and-drop */}
                             {(() => {
-                              // Generate hourly time slots from 6am to 6pm (13 hours)
+                              // Get start time for this day (default to 6am)
+                              const dayStartHour = dayStartTimes.get(dateStr) || 6;
+                              
+                              // Always generate hourly time slots from 6am to 6pm (13 hours) for consistent display
                               const timeSlots = Array.from({ length: 13 }, (_, i) => {
                                 const hour = 6 + i;
                                 const timeLabel = hour > 12 ? `${hour - 12} PM` : hour === 12 ? '12 PM' : `${hour} AM`;
@@ -1258,11 +1323,8 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                 return 0;
                               });
                               
-                              // Get start time for this day (default to 6am)
-                              const dayStartHour = dayStartTimes.get(dateStr) || 6;
-                              const minSlotIndex = dayStartHour - 6; // Convert hour to slot index (6am = slot 0)
-                              
-                              // Check if we're dragging over this day
+                              // Calculate offset based on start time (e.g., if start is 8am, offset is 2)
+                              const slotOffset = dayStartHour - 6;
                               const isDraggingOverThisDay = dragOverSlot?.date === dateStr && draggedJobId;
                               const dragTargetSlot = isDraggingOverThisDay ? dragOverSlot.slot : -1;
                               
@@ -1276,10 +1338,11 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                 // Get the assigned slot from jobTimeSlots (which reflects optimization order)
                                 const assignedSlot = jobTimeSlots.get(job.id);
                                 if (assignedSlot !== undefined) {
-                                  let targetSlot = assignedSlot;
+                                  // Apply the slot offset to shift jobs based on day start time
+                                  let targetSlot = assignedSlot + slotOffset;
                                   
-                                  // Ensure slot is within valid range
-                                  if (targetSlot < minSlotIndex) targetSlot = minSlotIndex;
+                                  // Ensure slot is within valid range (0-12)
+                                  if (targetSlot < 0) targetSlot = 0;
                                   if (targetSlot >= 13) targetSlot = 12;
                                   
                                   // If dragging over this day, shift jobs to make space

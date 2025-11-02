@@ -8,11 +8,10 @@ import { addJob, updateJob } from '../services/jobs';
 import { smsService } from '../services/sms';
 import { getDriveTime } from '../services/googleMaps';
 import { optimizeRoute as optimizeRouteWithGoogleMaps } from '../services/routeOptimizer';
-import { Clock, MapPin, Navigation, CheckCircle, Play, Phone, StopCircle, MessageSquare, Send, Route } from 'lucide-react';
+import { Clock, MapPin, Navigation, CheckCircle, Play, Phone, StopCircle, MessageSquare, Send } from 'lucide-react';
 import { toast } from 'sonner';
 import { Textarea } from './ui/textarea';
 import { Label } from './ui/label';
-import { Input } from './ui/input';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from './ui/alert-dialog';
 import { WeatherForecast } from './WeatherForecast';
@@ -36,11 +35,11 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
   const [nextJobToNotify, setNextJobToNotify] = useState<Job | null>(null);
   const [completionMessage, setCompletionMessage] = useState<boolean | null>(null);
   const [selectedTime, setSelectedTime] = useState<number | null>(null);
-  const [showRouteDialog, setShowRouteDialog] = useState(false);
   const [startingAddress, setStartingAddress] = useState(() => {
-    return localStorage.getItem('routeStartingAddress') || '';
+    // Try routeStartingAddress first, then fall back to weatherLocationName
+    return localStorage.getItem('routeStartingAddress') || 
+           localStorage.getItem('weatherLocationName') || '';
   });
-  const [tempStartingAddress, setTempStartingAddress] = useState(startingAddress);
   const [driveTimesCache, setDriveTimesCache] = useState<Map<string, string>>(new Map());
   const [dayStartTimes, setDayStartTimes] = useState<Map<string, number>>(new Map());
   const [isOptimizing, setIsOptimizing] = useState(false);
@@ -81,6 +80,14 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
     if (!a.scheduledTime || !b.scheduledTime) return 0;
     return a.scheduledTime.localeCompare(b.scheduledTime);
   });
+
+  // Sync starting address with weather location
+  useEffect(() => {
+    const weatherLocation = localStorage.getItem('weatherLocationName');
+    if (weatherLocation && !startingAddress) {
+      setStartingAddress(weatherLocation);
+    }
+  }, []); // Run once on mount
 
   // Auto-create jobs for customers due today who don't have a job yet (in Supabase)
   useEffect(() => {
@@ -744,7 +751,6 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
   const handleOptimizeRoute = async () => {
     if (!startingAddress.trim()) {
       toast.error('Please set a starting address first');
-      setShowRouteDialog(true);
       return;
     }
 
@@ -927,13 +933,6 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
     }
   };
 
-  const handleSaveStartingAddress = () => {
-    setStartingAddress(tempStartingAddress);
-    localStorage.setItem('routeStartingAddress', tempStartingAddress);
-    setShowRouteDialog(false);
-    toast.success('Starting address saved');
-  };
-
   // Drag and drop handlers
   const handleDragStart = (e: React.DragEvent, jobId: string) => {
     e.stopPropagation();
@@ -1040,6 +1039,9 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
         customers={customers}
         onRescheduleJob={handleRescheduleJob}
         onStartTimeChange={handleStartTimeChange}
+        onOptimizeRoute={handleOptimizeRoute}
+        isOptimizing={isOptimizing}
+        startingAddress={startingAddress}
       />
 
       {/* Today's Jobs Section Header */}
@@ -1076,60 +1078,6 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
             </div>
           </CardContent>
         </Card>
-      )}
-
-      {/* Route Optimization Controls - Compact */}
-      {todayJobs.length > 1 && (
-        <div className="bg-blue-50/50 border border-blue-200 rounded-lg p-3 mb-4">
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-2">
-            <Route className="h-4 w-4 text-blue-600 shrink-0" />
-            <span className="text-sm text-blue-900 font-medium text-center">
-              {startingAddress || 'No starting address set'}
-            </span>
-            <div className="flex gap-2">
-              <Dialog open={showRouteDialog} onOpenChange={setShowRouteDialog}>
-                <DialogTrigger asChild>
-                  <Button variant="outline" size="sm">
-                    <MapPin className="h-3 w-3 mr-1" />
-                    {startingAddress ? 'Change' : 'Set Start'}
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Set Starting Address</DialogTitle>
-                    <DialogDescription>
-                      Enter your starting location (home, office, etc.) to optimize the route
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4 mt-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="start-address">Starting Address</Label>
-                      <Input
-                        id="start-address"
-                        value={tempStartingAddress}
-                        onChange={(e) => setTempStartingAddress(e.target.value)}
-                        placeholder="123 Main St, City, State 12345"
-                      />
-                    </div>
-                    <Button onClick={handleSaveStartingAddress} className="w-full">
-                      Save Address
-                    </Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
-              <Button 
-                onClick={handleOptimizeRoute}
-                className="bg-blue-600 hover:bg-blue-700"
-                size="sm"
-                disabled={!startingAddress}
-                title="Optimize routes for all days in forecast"
-              >
-                <Route className="h-3 w-3 mr-1" />
-                Optimize All Days
-              </Button>
-            </div>
-          </div>
-        </div>
       )}
 
       {/* Job List */}
