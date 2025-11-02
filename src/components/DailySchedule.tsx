@@ -748,6 +748,13 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
     await onRefreshJobs?.();
   };
 
+  // Address autocomplete handlers
+  const handleStartingAddressChange = (address: string) => {
+    setStartingAddress(address);
+    localStorage.setItem('routeStartingAddress', address);
+    localStorage.setItem('weatherLocationName', address);
+  };
+
   const handleOptimizeRoute = async () => {
     if (!startingAddress.trim()) {
       toast.error('Please set a starting address first');
@@ -1042,6 +1049,7 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
         onOptimizeRoute={handleOptimizeRoute}
         isOptimizing={isOptimizing}
         startingAddress={startingAddress}
+        onStartingAddressChange={handleStartingAddressChange}
       />
 
       {/* Today's Jobs Section Header */}

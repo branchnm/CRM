@@ -40,9 +40,10 @@ interface WeatherForecastProps {
   onOptimizeRoute?: () => void;
   isOptimizing?: boolean;
   startingAddress?: string;
+  onStartingAddressChange?: (address: string) => void;
 }
 
-export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, onUpdateJobTimeSlot, onStartTimeChange, onOptimizeRoute, isOptimizing = false, startingAddress = '' }: WeatherForecastProps) {
+export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, onUpdateJobTimeSlot, onStartTimeChange, onOptimizeRoute, isOptimizing = false, startingAddress = '', onStartingAddressChange }: WeatherForecastProps) {
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -53,13 +54,72 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
   const [locationName, setLocationName] = useState<string>(() => {
     return localStorage.getItem('weatherLocationName') || '';
   });
-  const [addressInput, setAddressInput] = useState('');
+  const [addressInput, setAddressInput] = useState(() => {
+    return localStorage.getItem('weatherLocationName') || localStorage.getItem('routeStartingAddress') || '';
+  });
   const [streetAddress, setStreetAddress] = useState(() => localStorage.getItem('routeStreetAddress') || '');
   const [addressSaved, setAddressSaved] = useState(false);
   const [showAddressSuggestions, setShowAddressSuggestions] = useState(false);
-  const [addressSuggestions, setAddressSuggestions] = useState<Array<{ description: string; place_id: string }>>([]);
+  const [addressSuggestions, setAddressSuggestions] = useState<Array<{ display_name: string; lat: string; lon: string }>>([]);
+  const [isSearchingAddress, setIsSearchingAddress] = useState(false);
+  const [isEditingAddress, setIsEditingAddress] = useState(false);
+  const addressInputRef = useRef<HTMLInputElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [userGPSLocation, setUserGPSLocation] = useState<{ lat: number; lon: number } | null>(null);
   const [jobAssignments, setJobAssignments] = useState<Map<string, string>>(new Map()); // jobId -> date mapping
   const [jobTimeSlots, setJobTimeSlots] = useState<Map<string, number>>(new Map()); // jobId -> timeSlot (0-11 for 6am-6pm)
+
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+      // Don't close if clicking inside the input or dropdown
+      if (
+        addressInputRef.current && !addressInputRef.current.contains(target) &&
+        dropdownRef.current && !dropdownRef.current.contains(target)
+      ) {
+        setShowAddressSuggestions(false);
+      }
+    };
+
+    if (showAddressSuggestions) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showAddressSuggestions]);
+
+  // Get user's GPS location on mount to bias address search results
+  useEffect(() => {
+    if ('geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setUserGPSLocation({
+            lat: position.coords.latitude,
+            lon: position.coords.longitude
+          });
+        },
+        (error) => {
+          console.log('GPS permission denied or unavailable:', error);
+          // Silently fail - we'll just not bias the search
+        },
+        { timeout: 5000, enableHighAccuracy: false }
+      );
+    }
+  }, []);
+
+  // Sync addressInput with startingAddress prop
+  useEffect(() => {
+    if (startingAddress && !addressInput) {
+      setAddressInput(startingAddress);
+    }
+  }, [startingAddress, addressInput]);
+
+  // Auto-focus input when entering edit mode
+  useEffect(() => {
+    if (isEditingAddress && addressInputRef.current) {
+      addressInputRef.current.focus();
+    }
+  }, [isEditingAddress]);
 
   // Sync jobTimeSlots with jobs order when jobs prop changes (e.g., after optimization)
   useEffect(() => {
@@ -443,6 +503,9 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
         toast.success(`Address set: ${displayName}`, { id: 'set-address' });
         setTimeout(() => setAddressSaved(false), 2000);
         
+        // Hide suggestions
+        setShowAddressSuggestions(false);
+        
         // Load weather
         await loadWeather(coords);
       }
@@ -453,6 +516,134 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleAddressInputChange = async (value: string) => {
+    setAddressInput(value);
+    setAddressSaved(false);
+
+    if (value.length < 3) {
+      setShowAddressSuggestions(false);
+      setAddressSuggestions([]);
+      return;
+    }
+
+    setIsSearchingAddress(true);
+
+    try {
+      // Build Nominatim API URL with US country filter and optional GPS bias
+      let url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(value)}&limit=5&addressdetails=1&countrycodes=us`;
+      
+      // Add viewbox (bounding box) if we have GPS location to prioritize nearby results
+      if (userGPSLocation) {
+        const buffer = 0.5; // degrees (~35 miles radius)
+        const { lat, lon } = userGPSLocation;
+        url += `&viewbox=${lon - buffer},${lat + buffer},${lon + buffer},${lat - buffer}&bounded=1`;
+      }
+
+      const response = await fetch(url, {
+        headers: {
+          'User-Agent': 'OutsideAI-CRM/1.0'
+        }
+      });
+
+      if (response.ok) {
+        const results = await response.json();
+        if (results && results.length > 0) {
+          setAddressSuggestions(results);
+          setShowAddressSuggestions(true);
+        } else {
+          setShowAddressSuggestions(false);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching address suggestions:', error);
+    } finally {
+      setIsSearchingAddress(false);
+    }
+  };
+
+  const handleSelectSuggestion = async (suggestion: { display_name: string; lat: string; lon: string }) => {
+    console.log('handleSelectSuggestion called with:', suggestion.display_name);
+    
+    // First, fill in the address and close dropdown
+    setAddressInput(suggestion.display_name);
+    setShowAddressSuggestions(false);
+    setIsEditingAddress(false); // Exit edit mode after selection
+    setLoading(true);
+
+    try {
+      const coords = {
+        lat: parseFloat(suggestion.lat),
+        lon: parseFloat(suggestion.lon),
+        name: suggestion.display_name
+      };
+
+      setLocation(coords);
+      setLocationName(suggestion.display_name);
+      localStorage.setItem('weatherLocation', JSON.stringify(coords));
+      localStorage.setItem('weatherLocationName', suggestion.display_name);
+      localStorage.setItem('routeStartingAddress', suggestion.display_name);
+
+      console.log('Address saved to localStorage:', suggestion.display_name);
+
+      // Update parent component's starting address
+      if (onStartingAddressChange) {
+        onStartingAddressChange(suggestion.display_name);
+        console.log('Parent component notified of address change');
+      }
+
+      // Show confirmation
+      setAddressSaved(true);
+      toast.success('Address set successfully!');
+      
+      // Load weather
+      await loadWeather(coords);
+      
+      // Keep confirmation visible briefly, then trigger optimization
+      setTimeout(() => {
+        setAddressSaved(false);
+        // Trigger route optimization if the callback is available
+        if (onOptimizeRoute) {
+          onOptimizeRoute();
+        }
+      }, 1500);
+    } catch (error) {
+      console.error('Error setting address:', error);
+      toast.error('Failed to set address');
+      setAddressSaved(false);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Helper function to extract street address and zip code from full address
+  const getShortAddress = (fullAddress: string) => {
+    // Try to extract street address and zip code
+    // Format from OpenStreetMap is typically: "Number, Street Name, City, State, Zip, Country"
+    // We want: "Number Street Name, Zip"
+    const parts = fullAddress.split(',').map(p => p.trim());
+    
+    // Get the street number and name (first two parts if available)
+    let street = '';
+    if (parts.length >= 2) {
+      // Combine first two parts (street number and street name) without comma
+      street = `${parts[0]} ${parts[1]}`;
+    } else {
+      street = parts[0] || '';
+    }
+    
+    // Try to find zip code (usually 5 digits, possibly with dash and 4 more digits)
+    const zipMatch = fullAddress.match(/\b\d{5}(?:-\d{4})?\b/);
+    const zip = zipMatch ? zipMatch[0] : '';
+    
+    if (street && zip) {
+      return `${street}, ${zip}`;
+    } else if (street) {
+      return street;
+    }
+    
+    return fullAddress; // Fallback to full address if parsing fails
   };
 
   const getRainAlerts = () => {
@@ -942,54 +1133,105 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
         <div className="h-1 flex-1 bg-linear-to-l from-blue-200 to-blue-400 rounded-full"></div>
       </div>
 
-      {/* Location Selector - Centered - Single unified address input */}
+      {/* Location Selector - Centered - Single unified address input with autocomplete */}
       <div className="flex justify-center mb-4">
-        <div className="w-full max-w-3xl">
-          <div className="flex items-center gap-2 justify-center flex-wrap">
-            <div className="relative flex-1 min-w-[300px] max-w-[500px]">
-              <Input
-                placeholder={locationName || "Enter full address (e.g., 123 Main St, Homewood, Alabama)"}
-                value={addressInput}
-                onChange={(e) => {
-                  setAddressInput(e.target.value);
-                  setAddressSaved(false);
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    handleSetAddress();
-                  }
-                }}
-                onBlur={() => {
-                  if (addressInput.trim() && addressInput !== locationName) {
-                    handleSetAddress();
-                  }
-                }}
-                autoComplete="street-address"
-                disabled={loading}
-                className={`h-10 pr-24 transition-all ${
-                  addressSaved 
-                    ? 'border-green-500 focus:border-green-500 focus:ring-green-500' 
-                    : 'border-blue-200 focus:border-blue-400 focus:ring-blue-400'
-                }`}
-              />
-              <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                {addressSaved && (
-                  <CheckCircle className="h-4 w-4 text-green-600" />
+        <div className="w-full max-w-3xl px-4">
+          {/* Show input when editing or no location set */}
+          {(isEditingAddress || !locationName) ? (
+            <div className="flex items-center gap-2 justify-center flex-wrap">
+              <div className="relative flex-1 min-w-[300px] max-w-[500px]">
+                <Input
+                  ref={addressInputRef}
+                  placeholder="Enter full address (e.g., 123 Main St, Homewood, Alabama)"
+                  value={addressInput}
+                  onChange={(e) => handleAddressInputChange(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !showAddressSuggestions) {
+                      handleSetAddress();
+                    } else if (e.key === 'Escape') {
+                      setShowAddressSuggestions(false);
+                      if (locationName) {
+                        setIsEditingAddress(false);
+                      }
+                    }
+                  }}
+                  onFocus={() => {
+                    if (addressInput.length >= 3 && addressSuggestions.length > 0) {
+                      setShowAddressSuggestions(true);
+                    }
+                  }}
+                  autoComplete="off"
+                  disabled={loading}
+                  className={`h-10 pr-10 transition-all ${
+                    addressSaved 
+                      ? 'border-green-500 focus:border-green-500 focus:ring-green-500' 
+                      : 'border-blue-200 focus:border-blue-400 focus:ring-blue-400'
+                  }`}
+                />
+                <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none">
+                  {addressSaved && (
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                  )}
+                  {isSearchingAddress && !addressSaved && (
+                    <Loader2 className="h-4 w-4 text-blue-600 animate-spin" />
+                  )}
+                </div>
+                
+                {/* Address Suggestions Dropdown */}
+                {showAddressSuggestions && addressSuggestions.length > 0 && (
+                  <div 
+                    ref={dropdownRef}
+                    className="absolute top-full left-0 right-0 mt-1 bg-white border border-blue-300 rounded-md shadow-lg max-h-60 overflow-y-auto z-50"
+                  >
+                    {addressSuggestions.map((suggestion, index) => (
+                      <button
+                        key={index}
+                        type="button"
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          console.log('Button clicked for:', suggestion.display_name);
+                          handleSelectSuggestion(suggestion);
+                        }}
+                        className="w-full text-left px-4 py-2 hover:bg-blue-50 transition-colors border-b border-gray-100 last:border-b-0 cursor-pointer"
+                      >
+                        <div className="flex items-start gap-2 pointer-events-none">
+                          <MapPin className="h-4 w-4 text-blue-600 mt-0.5 shrink-0" />
+                          <span className="text-sm text-gray-900">{suggestion.display_name}</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
                 )}
-                <Button 
-                  onClick={handleUseGPS} 
-                  disabled={loading} 
-                  size="sm" 
-                  variant="ghost"
-                  className="h-7 px-2"
-                  title="Use my current location"
-                >
-                  <Navigation className="h-3 w-3" />
-                </Button>
               </div>
+              
+              {locationName && (
+                <Button 
+                  onClick={onOptimizeRoute}
+                  disabled={isOptimizing || !startingAddress}
+                  size="sm"
+                  className="bg-blue-600 hover:bg-blue-700 h-10"
+                >
+                  <Route className="h-3 w-3 mr-1" />
+                  {isOptimizing ? 'Optimizing...' : 'Optimize Routes'}
+                </Button>
+              )}
             </div>
-            
-            {locationName && (
+          ) : (
+            /* Show clickable location display when location is set and not editing */
+            <div className="flex items-center gap-2 justify-center flex-wrap">
+              <button
+                onClick={() => setIsEditingAddress(true)}
+                className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:text-blue-600 transition-colors group"
+              >
+                <MapPin className="h-4 w-4 text-blue-600 group-hover:text-blue-700" />
+                <span className="text-gray-600">Current location:</span>
+                <span className="font-medium">{getShortAddress(locationName)}</span>
+                <span className="text-xs text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
+                  (click to change)
+                </span>
+              </button>
+              
               <Button 
                 onClick={onOptimizeRoute}
                 disabled={isOptimizing || !startingAddress}
@@ -999,13 +1241,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                 <Route className="h-3 w-3 mr-1" />
                 {isOptimizing ? 'Optimizing...' : 'Optimize Routes'}
               </Button>
-            )}
-          </div>
-          {locationName && (
-            <p className="text-xs text-center text-gray-600 mt-1">
-              <MapPin className="h-3 w-3 inline mr-1" />
-              {locationName}
-            </p>
+            </div>
           )}
         </div>
       </div>
