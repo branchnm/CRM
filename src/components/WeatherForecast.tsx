@@ -18,7 +18,9 @@ import {
   CloudSnow,
   CloudDrizzle,
   CloudRainWind,
-  Route
+  Route,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { 
   getWeatherData, 
@@ -68,6 +70,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
   const [userGPSLocation, setUserGPSLocation] = useState<{ lat: number; lon: number } | null>(null);
   const [jobAssignments, setJobAssignments] = useState<Map<string, string>>(new Map()); // jobId -> date mapping
   const [jobTimeSlots, setJobTimeSlots] = useState<Map<string, number>>(new Map()); // jobId -> timeSlot (0-11 for 6am-6pm)
+  const [dayOffset, setDayOffset] = useState(0); // 0 = today, -1 = yesterday, 1 = tomorrow, etc.
 
   // Close suggestions when clicking outside
   useEffect(() => {
@@ -1113,12 +1116,12 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
     document.body.style.overflow = '';
   };
 
-  // Get the next 5 days for the forecast view
+  // Get the next 5 days for the forecast view, starting from the offset
   const getNext5Days = () => {
     const days = [];
     for (let i = 0; i < 5; i++) {
       const date = new Date();
-      date.setDate(date.getDate() + i);
+      date.setDate(date.getDate() + dayOffset + i);
       days.push(date);
     }
     return days;
@@ -1205,21 +1208,35 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                 )}
               </div>
               
-              {locationName && (
-                <Button 
-                  onClick={onOptimizeRoute}
-                  disabled={isOptimizing || !startingAddress}
-                  size="sm"
-                  className="bg-blue-600 hover:bg-blue-700 h-10"
-                >
-                  <Route className="h-3 w-3 mr-1" />
-                  {isOptimizing ? 'Optimizing...' : 'Optimize Routes'}
-                </Button>
-              )}
+              <div className="flex items-center gap-3 flex-wrap">
+                {locationName && (
+                  <Button 
+                    onClick={onOptimizeRoute}
+                    disabled={isOptimizing || !startingAddress}
+                    size="sm"
+                    className="bg-blue-600 hover:bg-blue-700 h-10"
+                  >
+                    <Route className="h-3 w-3 mr-1" />
+                    {isOptimizing ? 'Optimizing...' : 'Optimize Routes'}
+                  </Button>
+                )}
+                
+                {/* Today Button - Only show if not already viewing today */}
+                {dayOffset !== 0 && locationName && (
+                  <Button
+                    onClick={() => setDayOffset(0)}
+                    size="sm"
+                    variant="outline"
+                    className="h-10 border-blue-600 text-blue-600 hover:bg-blue-50"
+                  >
+                    Today
+                  </Button>
+                )}
+              </div>
             </div>
           ) : (
             /* Show clickable location display when location is set and not editing */
-            <div className="flex items-center gap-2 justify-center flex-wrap">
+            <div className="flex items-center gap-3 flex-wrap">
               <button
                 onClick={() => setIsEditingAddress(true)}
                 className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:text-blue-600 transition-colors group"
@@ -1232,15 +1249,29 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                 </span>
               </button>
               
-              <Button 
-                onClick={onOptimizeRoute}
-                disabled={isOptimizing || !startingAddress}
-                size="sm"
-                className="bg-blue-600 hover:bg-blue-700 h-10"
-              >
-                <Route className="h-3 w-3 mr-1" />
-                {isOptimizing ? 'Optimizing...' : 'Optimize Routes'}
-              </Button>
+              <div className="flex items-center gap-3">
+                <Button 
+                  onClick={onOptimizeRoute}
+                  disabled={isOptimizing || !startingAddress}
+                  size="sm"
+                  className="bg-blue-600 hover:bg-blue-700 h-10"
+                >
+                  <Route className="h-3 w-3 mr-1" />
+                  {isOptimizing ? 'Optimizing...' : 'Optimize Routes'}
+                </Button>
+                
+                {/* Today Button - Only show if not already viewing today */}
+                {dayOffset !== 0 && (
+                  <Button
+                    onClick={() => setDayOffset(0)}
+                    size="sm"
+                    variant="outline"
+                    className="h-10 border-blue-600 text-blue-600 hover:bg-blue-50"
+                  >
+                    Today
+                  </Button>
+                )}
+              </div>
             </div>
           )}
         </div>
@@ -1337,11 +1368,23 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
       {/* Combined Weather Forecast & Job Planning Card */}
       {weatherData && (
         <div className="space-y-4">
-            {/* Week View Grid - Droppable Days */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 items-start">
+            {/* Week View Grid - Droppable Days with Navigation */}
+            <div className="flex items-center gap-6">
+              {/* Left Arrow */}
+              <button
+                onClick={() => setDayOffset(dayOffset - 1)}
+                className="shrink-0 w-12 h-12 rounded-full bg-blue-600 hover:bg-blue-700 flex items-center justify-center text-white shadow-lg transition-all hover:scale-110"
+                aria-label="Previous day"
+              >
+                <ChevronLeft className="w-6 h-6" />
+              </button>
+
+              {/* Forecast Grid */}
+              <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 items-start">
                 {getNext5Days().map((day, index) => {
                   const dateStr = day.toLocaleDateString('en-CA'); // YYYY-MM-DD format
-                  const isToday = index === 0;
+                  const todayStr = new Date().toLocaleDateString('en-CA');
+                  const isToday = dateStr === todayStr;
                   const dayName = isToday ? 'Today' : day.toLocaleDateString('en-US', { weekday: 'short' });
                   const dayDate = day.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
                   
@@ -1416,7 +1459,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                       onDragOver={(e) => handleDayCardDragOver(e, dateStr)}
                       onDragLeave={handleDragLeave}
                       onDrop={(e) => handleDrop(e, dateStr)}
-                      className={`transition-all duration-200 overflow-hidden relative ${
+                      className={`transition-all duration-200 relative ${
                         isBeingDraggedOver
                           ? 'scale-[1.02] shadow-2xl ring-4 ring-blue-400 ring-opacity-50'
                           : 'shadow-sm'
@@ -1458,7 +1501,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                       }}
                     >
                       {/* Day Header - Compact single line */}
-                      <div className="px-3 py-2 flex items-center justify-between bg-white">
+                      <div className="px-3 py-2 flex items-center justify-between bg-white overflow-hidden">
                         <div className="flex items-center gap-3">
                           <div className="flex flex-col items-start">
                             <div className="font-semibold text-sm text-gray-900">{dayName}</div>
@@ -1479,9 +1522,9 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                       </div>
 
                       {/* Main Content: Day Schedule (left) + Night Weather (right) */}
-                      <div className="grid grid-cols-[1fr_auto] gap-0">
+                      <div className="grid grid-cols-[1fr_auto] gap-0 min-h-[280px] overflow-visible">
                         {/* Left: Job Count & Jobs List with day weather icons (5am-6pm) */}
-                        <div className="px-1 py-2 bg-gray-50/50 relative min-h-[280px] border-r border-gray-200">
+                        <div className="px-1 py-2 bg-gray-50/50 relative border-r border-gray-200 overflow-hidden">
                           
                           <div className="relative z-10">
                             {/* 5am Weather Symbol with Start Time Selector */}
@@ -1726,8 +1769,9 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                       </div>
 
                       {/* Right: Night Weather (8pm, 11pm, 2am) aligned with day rows */}
-                      <div className="bg-slate-800 px-1 py-2 min-h-[280px] w-[50px]">
-                        <div className="mb-1 h-[24px]"></div>
+                      <div className="bg-slate-800 px-1 py-2 w-[40px] h-full">
+                        {/* Spacer to align with the day header + 5AM row */}
+                        <div className="h-[52px]"></div>
                         
                         {/* Night weather icons aligned with specific day time slots */}
                         {weatherForDay && (() => {
@@ -1756,7 +1800,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                           return (
                             <div className="space-y-1">
                               {nightSlots.map((slot, idx) => (
-                                <div key={idx} className="h-[40px] flex items-center justify-center">
+                                <div key={idx} className="h-10 flex items-center justify-center">
                                   {slot.show && (
                                     <div className="flex flex-col items-center gap-0.5">
                                       <NightIcon className={`w-6 h-6 ${nightColor} stroke-[1.5]`} />
@@ -1776,6 +1820,16 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                   );
                 })}
               </div>
+
+              {/* Right Arrow */}
+              <button
+                onClick={() => setDayOffset(dayOffset + 1)}
+                className="shrink-0 w-12 h-12 rounded-full bg-blue-600 hover:bg-blue-700 flex items-center justify-center text-white shadow-lg transition-all hover:scale-110"
+                aria-label="Next day"
+              >
+                <ChevronRight className="w-6 h-6" />
+              </button>
+            </div>
         </div>
       )}
 
