@@ -6,7 +6,7 @@ const GEOCODING_API_URL = 'https://api.openweathermap.org/geo/1.0/direct';
 const WEATHER_API_URL = 'https://api.openweathermap.org/data/2.5';
 
 // Enable test mode to demonstrate rainfall tracking features
-const USE_TEST_WEATHER = false;
+const USE_TEST_WEATHER = true;
 
 export interface WeatherData {
   current: {
@@ -169,95 +169,95 @@ function getTestWeatherData(): WeatherData {
       precipitation: 0
     },
     hourly: [
-      { time: '1 PM', temp: 68, precipitation: 10, icon: '02d', description: 'partly cloudy', rainAmount: 0 },
-      { time: '4 PM', temp: 65, precipitation: 20, icon: '03d', description: 'scattered clouds', rainAmount: 0 },
-      { time: '7 PM', temp: 62, precipitation: 30, icon: '04d', description: 'overcast clouds', rainAmount: 0 },
-      { time: '10 PM', temp: 58, precipitation: 40, icon: '10d', description: 'light rain', rainAmount: 0.8 },
+      { time: '1 PM', temp: 68, precipitation: 15, icon: '02d', description: 'partly cloudy', rainAmount: 0 },
+      { time: '4 PM', temp: 65, precipitation: 30, icon: '03d', description: 'scattered clouds', rainAmount: 0 },
+      { time: '7 PM', temp: 62, precipitation: 45, icon: '04d', description: 'overcast clouds', rainAmount: 0 },
+      { time: '10 PM', temp: 58, precipitation: 60, icon: '10d', description: 'light rain', rainAmount: 1.2 },
     ],
     daily: [
       {
         date: 'Today',
         tempMax: 72,
         tempMin: 58,
-        precipitation: 2.5,
-        precipitationChance: 40,
-        description: 'light rain',
+        precipitation: 8.5,
+        precipitationChance: 75,
+        description: 'heavy rain',
         icon: '10d',
-        windSpeed: 8,
-        humidity: 70,
+        windSpeed: 12,
+        humidity: 85,
         hourlyForecasts: [
-          { time: '5 AM', temp: 55, precipitation: 20, icon: '02d', description: 'partly cloudy', rainAmount: 0, hour24: 5 },
-          { time: '11 AM', temp: 68, precipitation: 30, icon: '03d', description: 'scattered clouds', rainAmount: 0, hour24: 11 },
-          { time: '5 PM', temp: 70, precipitation: 60, icon: '09d', description: 'light rain', rainAmount: 0.8, hour24: 17 },
-          { time: '11 PM', temp: 60, precipitation: 70, icon: '10d', description: 'moderate rain', rainAmount: 3.2, hour24: 23 },
+          { time: '8 AM', temp: 60, precipitation: 85, icon: '11d', description: 'thunderstorm with heavy rain', rainAmount: 7.5, hour24: 8 },
+          { time: '11 AM', temp: 62, precipitation: 70, icon: '10d', description: 'moderate rain', rainAmount: 4.2, hour24: 11 },
+          { time: '2 PM', temp: 65, precipitation: 40, icon: '09d', description: 'light drizzle', rainAmount: 0.8, hour24: 14 },
+          { time: '5 PM', temp: 68, precipitation: 10, icon: '02d', description: 'partly cloudy', rainAmount: 0, hour24: 17 },
         ]
       },
       {
         date: 'Tomorrow',
-        tempMax: 65,
-        tempMin: 52,
-        precipitation: 15.5,
-        precipitationChance: 90,
-        description: 'thunderstorm',
-        icon: '11d',
-        windSpeed: 15,
-        humidity: 85,
+        tempMax: 75,
+        tempMin: 62,
+        precipitation: 0.5,
+        precipitationChance: 20,
+        description: 'partly cloudy',
+        icon: '02d',
+        windSpeed: 6,
+        humidity: 65,
         hourlyForecasts: [
-          { time: '5 AM', temp: 52, precipitation: 95, icon: '11d', description: 'thunderstorm with heavy rain', rainAmount: 8.5, hour24: 5 },
-          { time: '11 AM', temp: 58, precipitation: 75, icon: '10d', description: 'moderate rain', rainAmount: 4.2, hour24: 11 },
-          { time: '5 PM', temp: 62, precipitation: 50, icon: '09d', description: 'light rain', rainAmount: 1.5, hour24: 17 },
-          { time: '11 PM', temp: 55, precipitation: 85, icon: '11d', description: 'thunderstorm', rainAmount: 6.8, hour24: 23 },
+          { time: '8 AM', temp: 62, precipitation: 15, icon: '03d', description: 'scattered clouds', rainAmount: 0, hour24: 8 },
+          { time: '11 AM', temp: 70, precipitation: 5, icon: '01d', description: 'clear sky', rainAmount: 0, hour24: 11 },
+          { time: '2 PM', temp: 74, precipitation: 0, icon: '01d', description: 'clear sky', rainAmount: 0, hour24: 14 },
+          { time: '5 PM', temp: 73, precipitation: 0, icon: '01d', description: 'clear sky', rainAmount: 0, hour24: 17 },
         ]
       },
       {
         date: 'Wed',
-        tempMax: 68,
-        tempMin: 54,
-        precipitation: 8.2,
-        precipitationChance: 85,
-        description: 'heavy rain',
-        icon: '09d',
-        windSpeed: 12,
-        humidity: 80,
-        hourlyForecasts: [
-          { time: '5 AM', temp: 54, precipitation: 90, icon: '09d', description: 'heavy intensity rain', rainAmount: 7.2, hour24: 5 },
-          { time: '11 AM', temp: 62, precipitation: 40, icon: '03d', description: 'scattered clouds', rainAmount: 0.5, hour24: 11 },
-          { time: '5 PM', temp: 66, precipitation: 20, icon: '02d', description: 'partly cloudy', rainAmount: 0, hour24: 17 },
-          { time: '11 PM', temp: 58, precipitation: 10, icon: '01d', description: 'clear sky', rainAmount: 0, hour24: 23 },
-        ]
-      },
-      {
-        date: 'Thu',
-        tempMax: 75,
-        tempMin: 60,
-        precipitation: 0.3,
-        precipitationChance: 15,
-        description: 'light drizzle',
-        icon: '09d',
-        windSpeed: 6,
-        humidity: 60,
-        hourlyForecasts: [
-          { time: '5 AM', temp: 60, precipitation: 20, icon: '09d', description: 'light drizzle', rainAmount: 0.3, hour24: 5 },
-          { time: '11 AM', temp: 70, precipitation: 10, icon: '02d', description: 'partly cloudy', rainAmount: 0, hour24: 11 },
-          { time: '5 PM', temp: 75, precipitation: 5, icon: '01d', description: 'clear sky', rainAmount: 0, hour24: 17 },
-          { time: '11 PM', temp: 65, precipitation: 0, icon: '01d', description: 'clear sky', rainAmount: 0, hour24: 23 },
-        ]
-      },
-      {
-        date: 'Fri',
         tempMax: 78,
-        tempMin: 62,
+        tempMin: 64,
         precipitation: 0,
         precipitationChance: 5,
         description: 'clear sky',
         icon: '01d',
         windSpeed: 5,
-        humidity: 50,
+        humidity: 55,
         hourlyForecasts: [
-          { time: '5 AM', temp: 62, precipitation: 0, icon: '01d', description: 'clear sky', rainAmount: 0, hour24: 5 },
-          { time: '11 AM', temp: 72, precipitation: 5, icon: '01d', description: 'clear sky', rainAmount: 0, hour24: 11 },
-          { time: '5 PM', temp: 78, precipitation: 5, icon: '02d', description: 'partly cloudy', rainAmount: 0, hour24: 17 },
-          { time: '11 PM', temp: 68, precipitation: 0, icon: '01d', description: 'clear sky', rainAmount: 0, hour24: 23 },
+          { time: '8 AM', temp: 64, precipitation: 0, icon: '01d', description: 'clear sky', rainAmount: 0, hour24: 8 },
+          { time: '11 AM', temp: 72, precipitation: 0, icon: '01d', description: 'clear sky', rainAmount: 0, hour24: 11 },
+          { time: '2 PM', temp: 77, precipitation: 5, icon: '02d', description: 'partly cloudy', rainAmount: 0, hour24: 14 },
+          { time: '5 PM', temp: 76, precipitation: 10, icon: '03d', description: 'scattered clouds', rainAmount: 0, hour24: 17 },
+        ]
+      },
+      {
+        date: 'Thu',
+        tempMax: 70,
+        tempMin: 58,
+        precipitation: 15.8,
+        precipitationChance: 90,
+        description: 'heavy rain',
+        icon: '10d',
+        windSpeed: 15,
+        humidity: 88,
+        hourlyForecasts: [
+          { time: '8 AM', temp: 58, precipitation: 35, icon: '09d', description: 'light drizzle', rainAmount: 0.6, hour24: 8 },
+          { time: '11 AM', temp: 62, precipitation: 75, icon: '10d', description: 'moderate rain', rainAmount: 3.8, hour24: 11 },
+          { time: '2 PM', temp: 65, precipitation: 95, icon: '11d', description: 'thunderstorm with heavy rain', rainAmount: 9.2, hour24: 14 },
+          { time: '5 PM', temp: 63, precipitation: 85, icon: '10d', description: 'heavy intensity rain', rainAmount: 6.5, hour24: 17 },
+        ]
+      },
+      {
+        date: 'Fri',
+        tempMax: 68,
+        tempMin: 56,
+        precipitation: 2.5,
+        precipitationChance: 50,
+        description: 'light rain',
+        icon: '10d',
+        windSpeed: 8,
+        humidity: 72,
+        hourlyForecasts: [
+          { time: '8 AM', temp: 56, precipitation: 60, icon: '10d', description: 'light rain', rainAmount: 2.1, hour24: 8 },
+          { time: '11 AM', temp: 62, precipitation: 50, icon: '09d', description: 'light drizzle', rainAmount: 0.9, hour24: 11 },
+          { time: '2 PM', temp: 66, precipitation: 30, icon: '04d', description: 'overcast clouds', rainAmount: 0, hour24: 14 },
+          { time: '5 PM', temp: 65, precipitation: 5, icon: '01d', description: 'clear sky', rainAmount: 0, hour24: 17 },
         ]
       }
     ]

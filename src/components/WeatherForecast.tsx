@@ -15,6 +15,9 @@ import {
   CheckCircle,
   Cloud,
   Sun,
+  Moon,
+  Sunrise,
+  Sunset,
   CloudSnow,
   CloudDrizzle,
   CloudRainWind,
@@ -314,39 +317,57 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
   // Desktop drag auto-scroll disabled for mobile performance
   // Touch scrolling works naturally on mobile devices
   
-  // Helper function to get weather icon based on description and precipitation
-  const getWeatherIcon = (description: string, rainChance: number, rainAmount?: number) => {
+  // Helper function to get weather icon based on description, precipitation, and time of day
+  const getWeatherIcon = (description: string, rainChance: number, rainAmount?: number, hour24?: number) => {
     const desc = description.toLowerCase();
+    const amount = rainAmount || 0;
     
     // Check for snow
     if (desc.includes('snow') || desc.includes('sleet')) {
       return { Icon: CloudSnow, color: 'text-blue-400' };
     }
     
-    // Check for rain/drizzle with intensity based on actual rain amount
-    if (rainChance >= 30 || desc.includes('rain') || desc.includes('drizzle') || desc.includes('thunder') || desc.includes('storm')) {
-      const amount = rainAmount || 0;
-      
-      // Heavy rain (>5mm/3h) - includes thunderstorms
-      if (amount > 5 || rainChance >= 80 || desc.includes('thunder') || desc.includes('storm')) {
-        return { Icon: CloudRainWind, color: 'text-blue-600' };
-      }
-      
-      // Light drizzle (<1mm/3h)
-      if (amount < 1 && rainChance < 60) {
-        return { Icon: CloudDrizzle, color: 'text-blue-300' };
-      }
-      
-      // Moderate rain (1-5mm/3h)
-      if (rainChance >= 60) {
-        return { Icon: CloudRain, color: 'text-blue-500' };
-      }
+    // Heavy rain/thunderstorm (>5mm) - DARK BLUE
+    if (amount > 5 || desc.includes('thunder') || desc.includes('heavy')) {
+      return { Icon: CloudRainWind, color: 'text-blue-800' };
     }
     
-    if (desc.includes('cloud')) {
+    // Moderate rain (1-5mm) - MEDIUM BLUE
+    if (amount > 1 || (rainChance >= 60 && desc.includes('rain'))) {
+      return { Icon: CloudRain, color: 'text-blue-600' };
+    }
+    
+    // Light drizzle/mist (<1mm) - LIGHT BLUE
+    if (amount > 0 || desc.includes('drizzle') || desc.includes('mist')) {
+      return { Icon: CloudDrizzle, color: 'text-blue-400' };
+    }
+    
+    // Cloudy (no rain)
+    if (desc.includes('cloud') || desc.includes('overcast')) {
       return { Icon: Cloud, color: 'text-gray-500' };
     }
     
+    // Clear sky - use time-based icons if hour is provided
+    if (hour24 !== undefined) {
+      // Night time (9 PM to 5 AM) - show moon
+      if (hour24 >= 21 || hour24 < 5) {
+        return { Icon: Moon, color: 'text-blue-400' };
+      }
+      // Sunrise (5 AM to 7 AM) - show sunrise (sun with arrow up)
+      else if (hour24 >= 5 && hour24 < 7) {
+        return { Icon: Sunrise, color: 'text-yellow-500' };
+      }
+      // Daytime (7 AM to 5 PM) - show sun
+      else if (hour24 >= 7 && hour24 < 17) {
+        return { Icon: Sun, color: 'text-yellow-500' };
+      }
+      // Sunset (5 PM to 9 PM) - show sunset (sun with arrow down)
+      else if (hour24 >= 17 && hour24 < 21) {
+        return { Icon: Sunset, color: 'text-yellow-500' };
+      }
+    }
+    
+    // Default: daytime sun
     return { Icon: Sun, color: 'text-yellow-500' };
   };
 
@@ -387,32 +408,47 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
   // Helper to create gradient based on weather progression throughout the day
   const getWeatherGradient = (hourlyForecasts: any[] | undefined) => {
     if (!hourlyForecasts || hourlyForecasts.length === 0) {
-      return 'bg-gray-50';
+      return 'bg-yellow-50'; // Default sunny
     }
 
     const colors = hourlyForecasts.map(forecast => {
       const desc = forecast.description.toLowerCase();
-      const rain = forecast.precipitation;
+      const rainAmount = forecast.rainAmount || 0;
       
-      if (desc.includes('rain') || desc.includes('drizzle') || rain >= 60) {
-        return 'rgb(219, 234, 254)'; // blue-50
-      } else if (desc.includes('cloud')) {
-        return 'rgb(249, 250, 251)'; // gray-50
-      } else {
-        return 'rgb(254, 252, 232)'; // yellow-50
+      // Heavy rain/thunderstorm (>5mm) - DARK BLUE
+      if (rainAmount > 5 || desc.includes('thunder') || desc.includes('heavy')) {
+        return '#93C5FD'; // blue-300 (darker than before)
+      }
+      // Moderate rain (1-5mm) - MEDIUM BLUE
+      else if (rainAmount > 1 || desc.includes('moderate rain')) {
+        return '#BFDBFE'; // blue-200
+      }
+      // Light drizzle/mist (<1mm) - LIGHT BLUE
+      else if (rainAmount > 0 || desc.includes('drizzle') || desc.includes('mist') || desc.includes('light rain')) {
+        return '#DBEAFE'; // blue-100
+      }
+      // Overcast/cloudy - light gray
+      else if (desc.includes('overcast') || desc.includes('cloud')) {
+        return '#E5E7EB'; // gray-200
+      }
+      // Clear/sunny - light yellow
+      else {
+        return '#FEF9C3'; // yellow-100
       }
     });
 
-    // Create gradient string
+    // Create inline gradient with actual color values
     if (colors.length === 1) {
-      return `bg-[${colors[0]}]`;
+      return { background: colors[0] };
     } else if (colors.length === 2) {
-      return `bg-gradient-to-r from-[${colors[0]}] to-[${colors[1]}]`;
-    } else if (colors.length >= 3) {
-      return `bg-gradient-to-r from-[${colors[0]}] via-[${colors[Math.floor(colors.length / 2)]}] to-[${colors[colors.length - 1]}]`;
+      return { background: `linear-gradient(to bottom, ${colors[0]}, ${colors[1]})` };
+    } else if (colors.length === 3) {
+      return { background: `linear-gradient(to bottom, ${colors[0]}, ${colors[1]}, ${colors[2]})` };
+    } else if (colors.length >= 4) {
+      return { background: `linear-gradient(to bottom, ${colors[0]}, ${colors[1]}, ${colors[2]}, ${colors[3]})` };
     }
     
-    return 'bg-gray-50';
+    return { background: '#FEF9C3' }; // Default yellow
   };
 
   // Initialize original job dates when jobs change
@@ -1759,47 +1795,6 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                   const rainChance = weatherForDay?.precipitationChance || 0;
                   const isBeingDraggedOver = dragOverDay === dateStr;
                   
-                  // Helper function to get border color based on weather
-                  const getBorderColorForWeather = (precipitation: number, description: string, rainAmount?: number) => {
-                    const desc = description.toLowerCase();
-                    const amount = rainAmount || 0;
-                    
-                    // Heavy rain, thunderstorm - DARK BLUE (Cannot mow)
-                    if (desc.includes('thunder') || desc.includes('storm') || desc.includes('heavy') || amount > 3 || precipitation >= 70) {
-                      return 'rgb(29, 78, 216)'; // blue-700 - Cannot mow - More vibrant
-                    }
-                    
-                    // Moderate rain - MEDIUM BLUE (Risky to mow)
-                    if (amount > 1 || precipitation >= 60 || desc.includes('rain')) {
-                      return 'rgb(37, 99, 235)'; // blue-600 - Risky - More vibrant
-                    }
-                    
-                    // Light drizzle - LIGHT BLUE (Can mow)
-                    if (amount > 0 || precipitation >= 30 || desc.includes('drizzle')) {
-                      return 'rgb(96, 165, 250)'; // blue-400 - Can mow after - More vibrant
-                    }
-                    
-                    // Cloudy - GRAY (Can mow)
-                    if (desc.includes('cloud')) {
-                      return 'rgb(156, 163, 175)'; // gray-400 - Can mow - Stronger gray
-                    }
-                    
-                    // Clear/sunny - BRIGHT YELLOW (Perfect for mowing)
-                    return 'rgb(234, 179, 8)'; // yellow-500 - Perfect - More vibrant
-                  };
-                  
-                  // Generate border gradient based on weather progression
-                  const borderGradient = weatherForDay?.hourlyForecasts && weatherForDay.hourlyForecasts.length > 0
-                    ? weatherForDay.hourlyForecasts.map((h, idx) => {
-                        const effectiveRain = Math.max(h.precipitation, rainChance);
-                        const color = getBorderColorForWeather(effectiveRain, h.description, h.rainAmount);
-                        return `${color} ${(idx / (weatherForDay.hourlyForecasts!.length - 1)) * 100}%`;
-                      }).join(', ')
-                    : (() => {
-                        // Fallback: solid border based on daily rain chance
-                        return getBorderColorForWeather(rainChance, weatherForDay?.description || 'clear sky');
-                      })();
-                  
                   return (
                     <div
                       key={dateStr}
@@ -1819,58 +1814,57 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                         background: weatherForDay?.hourlyForecasts && weatherForDay.hourlyForecasts.length > 0
                           ? `linear-gradient(to bottom, ${weatherForDay.hourlyForecasts.map((h, idx) => {
                               const desc = h.description.toLowerCase();
-                              const effectiveRain = Math.max(h.precipitation, rainChance);
                               const amount = h.rainAmount || 0;
                               
-                              let color = 'rgb(254, 249, 195)'; // yellow-100 - Sunny/Clear
+                              let color = 'rgb(254, 243, 199)'; // yellow-200 - Sunny/Clear (BRIGHTER)
                               
-                              // Heavy rain/thunderstorm - DARK BLUE
-                              if (desc.includes('thunder') || desc.includes('storm') || desc.includes('heavy') || amount > 3 || effectiveRain >= 70) {
-                                color = 'rgb(59, 130, 246)'; // blue-500 - Dark blue for storms
+                              // Heavy rain/thunderstorm (>5mm) - VERY DARK BLUE (match blue-800 icon)
+                              if (amount > 5 || desc.includes('thunder') || desc.includes('heavy')) {
+                                color = 'rgb(30, 64, 175)'; // blue-800 - VERY DARK BLUE
                               }
-                              // Moderate to heavy rain - LIGHT BLUE
-                              else if (amount > 1 || effectiveRain >= 50 || desc.includes('rain')) {
-                                color = 'rgb(147, 197, 253)'; // blue-300 - Light blue for rain
+                              // Moderate rain (1-5mm) - MEDIUM DARK BLUE (match blue-600 icon)
+                              else if (amount > 1 || desc.includes('moderate rain')) {
+                                color = 'rgb(37, 99, 235)'; // blue-600 - MEDIUM DARK BLUE
                               }
-                              // Light drizzle - VERY LIGHT BLUE
-                              else if (amount > 0 || effectiveRain >= 30 || desc.includes('drizzle')) {
-                                color = 'rgb(191, 219, 254)'; // blue-200 - Very light blue for drizzle
+                              // Light drizzle/mist (<1mm) - LIGHT BLUE (match blue-400 icon)
+                              else if (amount > 0 || desc.includes('drizzle') || desc.includes('mist') || desc.includes('light rain')) {
+                                color = 'rgb(96, 165, 250)'; // blue-400 - LIGHT BLUE
                               }
-                              // Cloudy/Overcast - GRAY
+                              // Cloudy/Overcast - MEDIUM GRAY (more visible)
                               else if (desc.includes('cloud') || desc.includes('overcast')) {
-                                color = 'rgb(229, 231, 235)'; // gray-200 - Gray for cloudy
+                                color = 'rgb(209, 213, 219)'; // gray-300 - More visible gray
                               }
-                              // Clear/Sunny stays yellow-100
+                              // Clear/Sunny - BRIGHT YELLOW
                               
                               return `${color} ${(idx / (weatherForDay.hourlyForecasts!.length - 1)) * 100}%`;
                             }).join(', ')})`
                           : (() => {
-                              // Fallback: solid color based on daily weather description and rain chance
-                              if (!weatherForDay) return 'rgb(254, 249, 195)'; // yellow default
+                              // Fallback: solid color based on daily weather description
+                              if (!weatherForDay) return 'rgb(254, 243, 199)'; // yellow default
                               
                               const desc = (weatherForDay.description || '').toLowerCase();
+                              const amount = weatherForDay.precipitation || 0;
                               
-                              // Heavy rain/thunderstorm - DARK BLUE
-                              if (desc.includes('thunder') || desc.includes('storm') || desc.includes('heavy') || rainChance >= 70) {
-                                return 'rgb(59, 130, 246)'; // blue-500
+                              // Heavy rain/thunderstorm - VERY DARK BLUE
+                              if (amount > 5 || desc.includes('thunder') || desc.includes('heavy')) {
+                                return 'rgb(30, 64, 175)'; // blue-800
                               }
-                              // Moderate rain - LIGHT BLUE
-                              if (rainChance >= 50 || desc.includes('rain')) {
-                                return 'rgb(147, 197, 253)'; // blue-300
+                              // Moderate rain - MEDIUM DARK BLUE
+                              if (amount > 1 || desc.includes('moderate rain')) {
+                                return 'rgb(37, 99, 235)'; // blue-600
                               }
-                              // Light drizzle - VERY LIGHT BLUE
-                              if (rainChance >= 30 || desc.includes('drizzle')) {
-                                return 'rgb(191, 219, 254)'; // blue-200
+                              // Light drizzle - LIGHT BLUE
+                              if (amount > 0 || desc.includes('drizzle') || desc.includes('light rain')) {
+                                return 'rgb(96, 165, 250)'; // blue-400
                               }
-                              // Cloudy/Overcast - GRAY
+                              // Cloudy/Overcast - MEDIUM GRAY
                               if (desc.includes('cloud') || desc.includes('overcast')) {
-                                return 'rgb(229, 231, 235)'; // gray-200
+                                return 'rgb(209, 213, 219)'; // gray-300
                               }
-                              // Clear/Sunny - YELLOW
-                              return 'rgb(254, 249, 195)'; // yellow-100
+                              // Clear/Sunny - BRIGHT YELLOW
+                              return 'rgb(254, 243, 199)'; // yellow-200
                             })(),
-                        border: '3px solid transparent',
-                        borderImage: `linear-gradient(to bottom, ${borderGradient}) 1`
+                        border: '3px solid rgb(209, 213, 219)' // gray-300 neutral border
                       }}
                     >
                       {/* Day Header - Compact single line */}
@@ -1905,13 +1899,15 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                               {weatherForDay && (() => {
                                 const forecast = weatherForDay.hourlyForecasts && weatherForDay.hourlyForecasts[0]
                                   ? weatherForDay.hourlyForecasts[0]
-                                  : { description: weatherForDay.description, precipitation: rainChance, rainAmount: 0 };
+                                  : { description: weatherForDay.description, precipitation: rainChance, rainAmount: 0, hour24: 5 };
                                 
                                 const effectivePrecipitation = Math.max(forecast.precipitation, rainChance);
+                                // Always use hour24: 5 for the 5 AM display, not the forecast's hour
                                 const { Icon: HourIcon, color: hourColor } = getWeatherIcon(
                                   forecast.description, 
                                   effectivePrecipitation,
-                                  forecast.rainAmount
+                                  forecast.rainAmount,
+                                  5  // Always 5 AM for this slot
                                 );
                                 
                                 return (
@@ -2033,13 +2029,15 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                     const forecastIdx = slot.hour <= 8 ? 0 : slot.hour <= 14 ? 1 : slot.hour <= 17 ? 2 : 3;
                                     const forecast = weatherForDay.hourlyForecasts && weatherForDay.hourlyForecasts[forecastIdx]
                                       ? weatherForDay.hourlyForecasts[forecastIdx]
-                                      : { description: weatherForDay.description, precipitation: rainChance, rainAmount: 0 };
+                                      : { description: weatherForDay.description, precipitation: rainChance, rainAmount: 0, hour24: slot.hour };
                                     
                                     const effectivePrecipitation = Math.max(forecast.precipitation, rainChance);
+                                    // Use slot.hour for time-based icons, not forecast.hour24
                                     const { Icon: HourIcon, color: hourColor } = getWeatherIcon(
                                       forecast.description, 
                                       effectivePrecipitation,
-                                      forecast.rainAmount
+                                      forecast.rainAmount,
+                                      slot.hour  // Use the actual slot hour, not the forecast's hour24
                                     );
                                     
                                     const timeLabel = slot.hour > 12 ? `${slot.hour - 12} PM` : slot.hour === 12 ? '12 PM' : `${slot.hour} AM`;
@@ -2185,13 +2183,15 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                           const forecastIdx = 3; // Use evening/night forecast
                           const forecast = weatherForDay.hourlyForecasts && weatherForDay.hourlyForecasts[forecastIdx]
                             ? weatherForDay.hourlyForecasts[forecastIdx]
-                            : { description: weatherForDay.description, precipitation: rainChance, rainAmount: 0 };
+                            : { description: weatherForDay.description, precipitation: rainChance, rainAmount: 0, hour24: 23 };
                           
                           const effectivePrecipitation = Math.max(forecast.precipitation, rainChance);
+                          // Use hour24: 21 (9 PM) for nighttime icons
                           const { Icon: NightIcon, color: nightColor } = getWeatherIcon(
                             forecast.description, 
                             effectivePrecipitation,
-                            forecast.rainAmount
+                            forecast.rainAmount,
+                            21  // 9 PM for nighttime display
                           );
                           
                           return (

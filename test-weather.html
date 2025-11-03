@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather API Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 { color: #2563eb; }
+        h2 { color: #1e40af; margin-top: 20px; }
+        .input-group {
+            margin: 20px 0;
+        }
+        input {
+            padding: 10px;
+            width: 300px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-right: 10px;
+        }
+        button {
+            padding: 10px 20px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover { background: #1d4ed8; }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f0f9ff;
+            border-left: 4px solid #2563eb;
+            border-radius: 4px;
+        }
+        .error {
+            background: #fef2f2;
+            border-left-color: #dc2626;
+            color: #991b1b;
+        }
+        .success {
+            background: #f0fdf4;
+            border-left-color: #16a34a;
+            color: #166534;
+        }
+        .weather-card {
+            display: inline-block;
+            margin: 10px;
+            padding: 15px;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            min-width: 150px;
+        }
+        .timestamp {
+            color: #6b7280;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        th {
+            background: #f9fafb;
+            font-weight: 600;
+        }
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f4f6;
+            border-top-color: #2563eb;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌤️ Weather API Verification Tool</h1>
+        <p>This tool will verify your OpenWeather API is working correctly and showing accurate data.</p>
+
+        <div class="input-group">
+            <input type="text" id="apiKey" placeholder="Enter your OpenWeather API Key">
+            <input type="text" id="location" placeholder="City name or address" value="Birmingham, Alabama">
+            <button onclick="testWeather()">Test Weather Data</button>
+        </div>
+
+        <div id="results"></div>
+    </div>
+
+    <script>
+        const resultsDiv = document.getElementById('results');
+
+        async function testWeather() {
+            const apiKey = document.getElementById('apiKey').value.trim();
+            const location = document.getElementById('location').value.trim();
+
+            if (!apiKey) {
+                showError('Please enter your OpenWeather API key');
+                return;
+            }
+
+            if (!location) {
+                showError('Please enter a location');
+                return;
+            }
+
+            resultsDiv.innerHTML = '<div class="result"><span class="loading"></span> Testing API...</div>';
+
+            try {
+                // Step 1: Geocoding
+                const geoUrl = `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(location)}&limit=1&appid=${apiKey}`;
+                const geoResponse = await fetch(geoUrl);
+                
+                if (!geoResponse.ok) {
+                    if (geoResponse.status === 401) {
+                        showError('API Key Error: Invalid or not activated yet. New keys take up to 2 hours to activate.');
+                        return;
+                    }
+                    throw new Error(`Geocoding failed: ${geoResponse.status}`);
+                }
+
+                const geoData = await geoResponse.json();
+                if (geoData.length === 0) {
+                    showError('Location not found. Try a different city or address.');
+                    return;
+                }
+
+                const { lat, lon, name, state, country } = geoData[0];
+                const locationName = `${name}${state ? ', ' + state : ''}, ${country}`;
+
+                // Step 2: Current Weather
+                const currentUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=imperial&appid=${apiKey}`;
+                const currentResponse = await fetch(currentUrl);
+                
+                if (!currentResponse.ok) {
+                    throw new Error(`Current weather failed: ${currentResponse.status}`);
+                }
+
+                const currentData = await currentResponse.json();
+
+                // Step 3: Forecast
+                const forecastUrl = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&units=imperial&appid=${apiKey}`;
+                const forecastResponse = await fetch(forecastUrl);
+                
+                if (!forecastResponse.ok) {
+                    throw new Error(`Forecast failed: ${forecastResponse.status}`);
+                }
+
+                const forecastData = await forecastResponse.json();
+
+                // Display results
+                displayResults(locationName, lat, lon, currentData, forecastData);
+
+            } catch (error) {
+                showError('Error: ' + error.message);
+                console.error(error);
+            }
+        }
+
+        function displayResults(locationName, lat, lon, currentData, forecastData) {
+            const now = new Date();
+            const localTime = now.toLocaleString();
+            const utcTime = now.toUTCString();
+
+            let html = `
+                <div class="result success">
+                    <h2>✅ API Working Successfully!</h2>
+                    <p><strong>Location:</strong> ${locationName}</p>
+                    <p><strong>Coordinates:</strong> ${lat.toFixed(4)}, ${lon.toFixed(4)}</p>
+                    <p class="timestamp"><strong>Test Time:</strong> ${localTime} (Local) | ${utcTime} (UTC)</p>
+                </div>
+
+                <h2>Current Weather</h2>
+                <div class="weather-card">
+                    <div style="font-size: 24px; font-weight: bold;">${Math.round(currentData.main.temp)}°F</div>
+                    <div>${currentData.weather[0].description}</div>
+                    <div style="margin-top: 10px; font-size: 14px; color: #6b7280;">
+                        Feels like: ${Math.round(currentData.main.feels_like)}°F<br>
+                        Humidity: ${currentData.main.humidity}%<br>
+                        Wind: ${Math.round(currentData.wind.speed)} mph
+                    </div>
+                    <img src="https://openweathermap.org/img/wn/${currentData.weather[0].icon}@2x.png" alt="weather icon">
+                    <div class="timestamp">Data from: ${new Date(currentData.dt * 1000).toLocaleString()}</div>
+                </div>
+
+                <h2>5-Day Forecast</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date/Time</th>
+                            <th>Temp</th>
+                            <th>Weather</th>
+                            <th>Rain Chance</th>
+                            <th>Rain Amount</th>
+                            <th>Wind</th>
+                            <th>Humidity</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            // Show next 12 forecast entries (3-hour intervals)
+            forecastData.list.slice(0, 12).forEach(item => {
+                const date = new Date(item.dt * 1000);
+                const rainAmount = item.rain?.['3h'] || 0;
+                const rainChance = Math.round((item.pop || 0) * 100);
+                
+                html += `
+                    <tr>
+                        <td>${date.toLocaleString()}</td>
+                        <td>${Math.round(item.main.temp)}°F</td>
+                        <td>${item.weather[0].description}</td>
+                        <td>${rainChance}%</td>
+                        <td>${rainAmount > 0 ? rainAmount.toFixed(2) + ' mm' : '—'}</td>
+                        <td>${Math.round(item.wind.speed)} mph</td>
+                        <td>${item.main.humidity}%</td>
+                    </tr>
+                `;
+            });
+
+            html += `
+                    </tbody>
+                </table>
+
+                <h2>Verification Checklist</h2>
+                <div class="result">
+                    <p><strong>✅ Time Accuracy:</strong> Check that the forecast times above match your local timezone</p>
+                    <p><strong>✅ Location Accuracy:</strong> Verify coordinates are correct for "${locationName}"</p>
+                    <p><strong>✅ Data Freshness:</strong> Current weather data timestamp should be recent (within last hour)</p>
+                    <p><strong>✅ Temperature Units:</strong> Using Fahrenheit (°F) as configured</p>
+                    <p><strong>✅ Rain Data:</strong> Rain amounts shown in mm (3-hour totals)</p>
+                </div>
+
+                <h2>Raw API Response (for debugging)</h2>
+                <details>
+                    <summary style="cursor: pointer; color: #2563eb;">Click to view current weather JSON</summary>
+                    <pre style="background: #f9fafb; padding: 10px; overflow-x: auto; font-size: 12px;">${JSON.stringify(currentData, null, 2)}</pre>
+                </details>
+                <details>
+                    <summary style="cursor: pointer; color: #2563eb;">Click to view forecast JSON (first entry)</summary>
+                    <pre style="background: #f9fafb; padding: 10px; overflow-x: auto; font-size: 12px;">${JSON.stringify(forecastData.list[0], null, 2)}</pre>
+                </details>
+            `;
+
+            resultsDiv.innerHTML = html;
+        }
+
+        function showError(message) {
+            resultsDiv.innerHTML = `<div class="result error">${message}</div>`;
+        }
+    </script>
+</body>
+</html>
