@@ -6,7 +6,7 @@ const GEOCODING_API_URL = 'https://api.openweathermap.org/geo/1.0/direct';
 const WEATHER_API_URL = 'https://api.openweathermap.org/data/2.5';
 
 // Enable test mode to demonstrate rainfall tracking features
-const USE_TEST_WEATHER = true;
+const USE_TEST_WEATHER = false;
 
 export interface WeatherData {
   current: {

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Card, CardContent } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -32,6 +32,23 @@ import {
   type Coordinates 
 } from '../services/weather';
 import { toast } from 'sonner';
+
+// Debounce helper function
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+}
 
 interface WeatherForecastProps {
   jobs?: Job[];
@@ -71,6 +88,53 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
   const [jobAssignments, setJobAssignments] = useState<Map<string, string>>(new Map()); // jobId -> date mapping
   const [jobTimeSlots, setJobTimeSlots] = useState<Map<string, number>>(new Map()); // jobId -> timeSlot (0-11 for 6am-6pm)
   const [dayOffset, setDayOffset] = useState(0); // 0 = today, -1 = yesterday, 1 = tomorrow, etc.
+  
+  // Touch swipe detection for mobile
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Debounce address input to reduce API calls
+  const debouncedAddressInput = useDebounce(addressInput, 500); // 500ms delay
+
+  // Detect if device is mobile
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768 || 'ontouchstart' in window);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Minimum swipe distance (in px)
+  const minSwipeDistance = 50;
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+
+    if (isLeftSwipe) {
+      // Swipe left = next day
+      setDayOffset(prev => prev + 1);
+    }
+    if (isRightSwipe) {
+      // Swipe right = previous day
+      setDayOffset(prev => prev - 1);
+    }
+  };
 
   // Close suggestions when clicking outside
   useEffect(() => {
@@ -96,30 +160,35 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
     if ('geolocation' in navigator) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          setUserGPSLocation({
+          const gpsData = {
             lat: position.coords.latitude,
             lon: position.coords.longitude
-          });
+          };
+          setUserGPSLocation(gpsData);
+          console.log('GPS Location acquired:', gpsData, 'Accuracy:', position.coords.accuracy, 'meters');
         },
         (error) => {
-          console.log('GPS permission denied or unavailable:', error);
+          console.log('GPS permission denied or unavailable:', error.message);
           // Silently fail - we'll just not bias the search
         },
-        { timeout: 5000, enableHighAccuracy: false }
+        { timeout: 10000, enableHighAccuracy: true, maximumAge: 0 } // Better accuracy settings
       );
     }
   }, []);
 
-  // Sync addressInput with startingAddress prop
+  // Sync addressInput with startingAddress prop ONLY on initial mount
   useEffect(() => {
     if (startingAddress && !addressInput) {
       setAddressInput(startingAddress);
     }
-  }, [startingAddress, addressInput]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run once on mount
 
-  // Auto-focus input when entering edit mode
+  // Auto-focus input and clear it when entering edit mode
   useEffect(() => {
     if (isEditingAddress && addressInputRef.current) {
+      setAddressInput(''); // Clear the input when entering edit mode
+      setShowAddressSuggestions(false);
       addressInputRef.current.focus();
     }
   }, [isEditingAddress]);
@@ -166,77 +235,28 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
   const [dragOverDay, setDragOverDay] = useState<string | null>(null);
   const [dragOverSlot, setDragOverSlot] = useState<{ date: string; slot: number } | null>(null);
   const [showLocationSearch, setShowLocationSearch] = useState(false);
-  const [dragPosition, setDragPosition] = useState<{ x: number; y: number } | null>(null);
+  // const [dragPosition, setDragPosition] = useState<{ x: number; y: number } | null>(null); // Removed for mobile performance
   const touchStartPos = useRef<{ x: number; y: number } | null>(null);
   const touchStartTime = useRef<number | null>(null);
   const dragDelayTimeout = useRef<number | null>(null);
   const [touchDraggedJobId, setTouchDraggedJobId] = useState<string | null>(null);
   const originalJobDates = useRef<Map<string, string>>(new Map()); // Track original dates for jobs
   const autoScrollInterval = useRef<number | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
+  // const [isDragging, setIsDragging] = useState(false); // Removed for mobile performance
+  
+  // Mobile cut/paste mode - better UX than drag on mobile
+  const [cutJobId, setCutJobId] = useState<string | null>(null);
+  const lastTapTime = useRef<number>(0);
+  const lastTapJobId = useRef<string | null>(null);
   
   // Detect if device supports touch
   const isTouchDevice = useRef(
     'ontouchstart' in window || navigator.maxTouchPoints > 0
   );
 
-  // Auto-scroll when dragging near viewport edges
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!isDragging) return;
-
-      // Update drag position for visual feedback
-      setDragPosition({ x: e.clientX, y: e.clientY });
-
-      const scrollThreshold = 100; // pixels from edge to trigger scroll
-      const scrollSpeed = 10; // pixels to scroll per interval
-      const viewportHeight = window.innerHeight;
-      const mouseY = e.clientY;
-
-      // Clear existing interval
-      if (autoScrollInterval.current) {
-        clearInterval(autoScrollInterval.current);
-        autoScrollInterval.current = null;
-      }
-
-      // Scroll up if near top
-      if (mouseY < scrollThreshold) {
-        autoScrollInterval.current = setInterval(() => {
-          window.scrollBy(0, -scrollSpeed);
-        }, 16) as unknown as number; // ~60fps
-      }
-      // Scroll down if near bottom
-      else if (mouseY > viewportHeight - scrollThreshold) {
-        autoScrollInterval.current = setInterval(() => {
-          window.scrollBy(0, scrollSpeed);
-        }, 16) as unknown as number;
-      }
-    };
-
-    const handleMouseUp = () => {
-      if (autoScrollInterval.current) {
-        clearInterval(autoScrollInterval.current);
-        autoScrollInterval.current = null;
-      }
-      setIsDragging(false);
-      setDragPosition(null);
-    };
-
-    if (isDragging) {
-      window.addEventListener('mousemove', handleMouseMove);
-      window.addEventListener('mouseup', handleMouseUp);
-    }
-
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
-      if (autoScrollInterval.current) {
-        clearInterval(autoScrollInterval.current);
-        autoScrollInterval.current = null;
-      }
-    };
-  }, [isDragging]);
-
+  // Desktop drag auto-scroll disabled for mobile performance
+  // Touch scrolling works naturally on mobile devices
+  
   // Helper function to get weather icon based on description and precipitation
   const getWeatherIcon = (description: string, rainChance: number, rainAmount?: number) => {
     const desc = description.toLowerCase();
@@ -352,9 +372,65 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
     localStorage.setItem('dayStartTimes', JSON.stringify(Array.from(dayStartTimes.entries())));
   }, [dayStartTimes]);
 
-  // Load weather on mount if location is set
+  // Load weather based on customer job locations (not starting address)
   useEffect(() => {
-    if (location) {
+    const loadWeatherForCustomerLocations = async () => {
+      // Get today's date
+      const todayStr = new Date().toLocaleDateString('en-CA');
+      
+      // Find jobs scheduled for today or the next few days
+      const upcomingJobs = jobs.filter(j => {
+        if (!j.date) return false;
+        const jobDate = new Date(j.date);
+        const today = new Date(todayStr);
+        const daysDiff = Math.floor((jobDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+        return daysDiff >= 0 && daysDiff < 7; // Next 7 days
+      });
+      
+      if (upcomingJobs.length === 0) {
+        console.log('No upcoming jobs found, using stored location or GPS');
+        // Fall back to stored location or GPS
+        if (location) {
+          loadWeather(location);
+        }
+        return;
+      }
+      
+      // Get the first customer with a job
+      const firstJob = upcomingJobs[0];
+      const customer = customers.find(c => c.id === firstJob.customerId);
+      
+      if (customer?.address) {
+        console.log('Loading weather for customer location:', customer.address);
+        try {
+          const coords = await getCoordinatesFromAddress(customer.address);
+          if (coords) {
+            coords.name = customer.address;
+            setLocation(coords);
+            localStorage.setItem('weatherLocation', JSON.stringify(coords));
+            await loadWeather(coords);
+          }
+        } catch (error) {
+          console.error('Failed to get coordinates for customer address:', error);
+          // Fall back to stored location
+          if (location) {
+            loadWeather(location);
+          }
+        }
+      } else if (location) {
+        // No customer address, use stored location
+        loadWeather(location);
+      }
+    };
+    
+    if (jobs.length > 0 && customers.length > 0) {
+      loadWeatherForCustomerLocations();
+    }
+  }, [jobs, customers]);
+
+  // Load weather on mount if location is set (fallback)
+  useEffect(() => {
+    if (location && jobs.length === 0) {
       loadWeather(location);
     }
   }, []);
@@ -524,47 +600,151 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
   const handleAddressInputChange = async (value: string) => {
     setAddressInput(value);
     setAddressSaved(false);
+    // Don't fetch suggestions here - let the debounced effect handle it
+  };
 
-    if (value.length < 3) {
-      setShowAddressSuggestions(false);
-      setAddressSuggestions([]);
-      return;
-    }
-
-    setIsSearchingAddress(true);
-
-    try {
-      // Build Nominatim API URL with US country filter and optional GPS bias
-      let url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(value)}&limit=5&addressdetails=1&countrycodes=us`;
-      
-      // Add viewbox (bounding box) if we have GPS location to prioritize nearby results
-      if (userGPSLocation) {
-        const buffer = 0.5; // degrees (~35 miles radius)
-        const { lat, lon } = userGPSLocation;
-        url += `&viewbox=${lon - buffer},${lat + buffer},${lon + buffer},${lat - buffer}&bounded=1`;
+  // Fetch address suggestions when debounced input changes
+  useEffect(() => {
+    const fetchAddressSuggestions = async () => {
+      if (debouncedAddressInput.length < 3) {
+        setShowAddressSuggestions(false);
+        setAddressSuggestions([]);
+        return;
       }
 
-      const response = await fetch(url, {
-        headers: {
-          'User-Agent': 'OutsideAI-CRM/1.0'
-        }
-      });
+      setIsSearchingAddress(true);
 
-      if (response.ok) {
-        const results = await response.json();
-        if (results && results.length > 0) {
-          setAddressSuggestions(results);
-          setShowAddressSuggestions(true);
+      try {
+        let searchQuery = debouncedAddressInput;
+        
+        // Add state to search query if we have GPS location
+        if (userGPSLocation) {
+          console.log('Using GPS location for search:', userGPSLocation);
+          // We'll append ", Alabama" or detected state to improve results
+        }
+        
+        // Use geocode.maps.co - more reliable, no rate limiting issues
+        const url = `https://geocode.maps.co/search?q=${encodeURIComponent(searchQuery)}&limit=10`;
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+        const response = await fetch(url, {
+          signal: controller.signal
+        });
+
+        clearTimeout(timeoutId);
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data && data.length > 0) {
+            // Format and filter results
+            const results = data
+              .filter((item: any) => {
+                // Must have location data and be in US
+                if (!item.display_name || !item.lat || !item.lon) return false;
+                const displayLower = item.display_name.toLowerCase();
+                // Filter for US addresses only
+                return displayLower.includes('united states') || 
+                       displayLower.includes(', us') ||
+                       displayLower.includes('usa') ||
+                       /\b(alabama|alaska|arizona|arkansas|california|colorado|connecticut|delaware|florida|georgia|hawaii|idaho|illinois|indiana|iowa|kansas|kentucky|louisiana|maine|maryland|massachusetts|michigan|minnesota|mississippi|missouri|montana|nebraska|nevada|new hampshire|new jersey|new mexico|new york|north carolina|north dakota|ohio|oklahoma|oregon|pennsylvania|rhode island|south carolina|south dakota|tennessee|texas|utah|vermont|virginia|washington|west virginia|wisconsin|wyoming)\b/i.test(displayLower);
+              })
+              .map((item: any) => {
+                // Parse display_name for cleaner format
+                const parts = item.display_name.split(',').map((p: string) => p.trim());
+                const addr = item.address || {};
+                
+                // Build comprehensive address with all components
+                const addressParts = [];
+                
+                // Street address (first part usually)
+                if (parts[0]) {
+                  addressParts.push(parts[0]);
+                }
+                
+                // City (second part or from address object)
+                if (parts[1]) {
+                  addressParts.push(parts[1]);
+                }
+                
+                // State and ZIP (third part and beyond, or from address object)
+                if (parts[2]) {
+                  addressParts.push(parts[2]);
+                }
+                
+                // If we have more parts (like country), include them too
+                if (parts.length > 3) {
+                  // Add remaining parts but filter out "United States" as it's redundant
+                  for (let i = 3; i < parts.length; i++) {
+                    if (!parts[i].toLowerCase().includes('united states')) {
+                      addressParts.push(parts[i]);
+                    }
+                  }
+                }
+                
+                const fullAddress = addressParts.join(', ');
+                
+                // Calculate distance from user
+                let distance = Infinity;
+                if (userGPSLocation) {
+                  const itemLat = parseFloat(item.lat);
+                  const itemLon = parseFloat(item.lon);
+                  // Haversine distance in miles
+                  const R = 3959;
+                  const dLat = (itemLat - userGPSLocation.lat) * Math.PI / 180;
+                  const dLon = (itemLon - userGPSLocation.lon) * Math.PI / 180;
+                  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                    Math.cos(userGPSLocation.lat * Math.PI / 180) * Math.cos(itemLat * Math.PI / 180) *
+                    Math.sin(dLon/2) * Math.sin(dLon/2);
+                  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+                  distance = R * c;
+                }
+                
+                return {
+                  display_name: fullAddress,
+                  lat: item.lat,
+                  lon: item.lon,
+                  address: addr,
+                  distance,
+                  fullDisplay: item.display_name
+                };
+              })
+              // Sort by distance if GPS available
+              .sort((a: any, b: any) => a.distance - b.distance)
+              .slice(0, 5);
+            
+            console.log('Address suggestions found:', results.length);
+            
+            if (results.length > 0) {
+              setAddressSuggestions(results);
+              setShowAddressSuggestions(true);
+            } else {
+              setShowAddressSuggestions(false);
+              setAddressSuggestions([]);
+            }
+          } else {
+            setShowAddressSuggestions(false);
+            setAddressSuggestions([]);
+          }
         } else {
+          console.warn('Address API returned status:', response.status);
           setShowAddressSuggestions(false);
         }
+      } catch (error) {
+        // Only log errors that aren't abort errors
+        if (error instanceof Error && error.name !== 'AbortError') {
+          console.warn('Unable to fetch address suggestions:', error.message);
+        }
+        setShowAddressSuggestions(false);
+        setAddressSuggestions([]);
+      } finally {
+        setIsSearchingAddress(false);
       }
-    } catch (error) {
-      console.error('Error fetching address suggestions:', error);
-    } finally {
-      setIsSearchingAddress(false);
-    }
-  };
+    };
+
+    fetchAddressSuggestions();
+  }, [debouncedAddressInput, userGPSLocation]);
 
   const handleSelectSuggestion = async (suggestion: { display_name: string; lat: string; lon: string }) => {
     console.log('handleSelectSuggestion called with:', suggestion.display_name);
@@ -791,7 +971,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
   const handleDragStart = (e: React.DragEvent, jobId: string) => {
     e.stopPropagation();
     setDraggedJobId(jobId);
-    setIsDragging(true);
+    // setIsDragging(true); // Removed for mobile performance
     
     // Hide the default drag ghost image
     const img = new Image();
@@ -836,7 +1016,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
   const handleSlotDrop = (e: React.DragEvent, dateStr: string, targetSlot: number) => {
     e.preventDefault();
     e.stopPropagation();
-    setIsDragging(false);
+    // setIsDragging(false); // Removed for mobile performance
     if (draggedJobId) {
       const job = jobs.find(j => j.id === draggedJobId);
       const originalDate = originalJobDates.current.get(draggedJobId);
@@ -879,7 +1059,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
 
   const handleDrop = (e: React.DragEvent, dateStr: string) => {
     e.preventDefault();
-    setIsDragging(false);
+    // setIsDragging(false); // Removed for mobile performance
     if (draggedJobId) {
       // Find the job to check its current date
       const job = jobs.find(j => j.id === draggedJobId);
@@ -931,69 +1111,98 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
     });
   };
 
-  // Touch handlers for mobile drag and drop
-  const handleTouchStart = (e: React.TouchEvent, jobId: string) => {
-    const touch = e.touches[0];
-    touchStartPos.current = { x: touch.clientX, y: touch.clientY };
-    touchStartTime.current = Date.now();
+  // Mobile double-tap to cut/paste - much better UX than drag on mobile
+  const handleJobTap = useCallback((jobId: string) => {
+    const now = Date.now();
+    const timeSinceLastTap = now - lastTapTime.current;
     
-    // Clear any existing timeout
-    if (dragDelayTimeout.current) {
-      clearTimeout(dragDelayTimeout.current);
-    }
-    
-    // Set a delay before allowing drag (200ms)
-    dragDelayTimeout.current = setTimeout(() => {
-      // Check if still touching (not a quick tap/swipe)
-      if (touchStartTime.current) {
-        setTouchDraggedJobId(jobId);
-        setDraggedJobId(jobId);
-        setIsDragging(true);
-        setDragPosition({ x: touch.clientX, y: touch.clientY });
-        // Prevent body scroll while dragging
-        document.body.style.overflow = 'hidden';
+    // Double-tap detection (within 500ms)
+    if (timeSinceLastTap < 500 && lastTapJobId.current === jobId) {
+      // Double-tap detected - toggle cut mode
+      if (cutJobId === jobId) {
+        // Tapping the same cut job again - cancel cut
+        setCutJobId(null);
+        console.log('Canceled cut for job:', jobId);
+      } else {
+        // Cut this job
+        setCutJobId(jobId);
+        console.log('Cut job:', jobId);
       }
-    }, 200) as unknown as number;
-  };
+      lastTapTime.current = 0; // Reset to prevent triple-tap
+      lastTapJobId.current = null;
+    } else {
+      // Single tap - just record it
+      lastTapTime.current = now;
+      lastTapJobId.current = jobId;
+    }
+  }, [cutJobId]);
 
-  const handleTouchMove = (e: React.TouchEvent) => {
-    const touch = e.touches[0];
+  // Handle double-tap on empty slot to paste
+  const handleSlotTap = useCallback((dateStr: string, slotIndex: number) => {
+    if (!cutJobId) return; // Nothing to paste
     
-    // If drag hasn't started yet, check if moved too much (likely scrolling)
-    if (!touchDraggedJobId && touchStartPos.current) {
-      const deltaX = Math.abs(touch.clientX - touchStartPos.current.x);
-      const deltaY = Math.abs(touch.clientY - touchStartPos.current.y);
+    const now = Date.now();
+    const timeSinceLastTap = now - lastTapTime.current;
+    
+    // Double-tap detection
+    if (timeSinceLastTap < 500) {
+      console.log('Pasting job to:', dateStr, 'slot:', slotIndex);
       
-      // If moved more than 10px, cancel the drag delay
-      if (deltaX > 10 || deltaY > 10) {
-        if (dragDelayTimeout.current) {
-          clearTimeout(dragDelayTimeout.current);
-          dragDelayTimeout.current = null;
-        }
-        touchStartTime.current = null;
+      const job = jobs.find(j => j.id === cutJobId);
+      const originalDate = originalJobDates.current.get(cutJobId);
+      
+      if (job) {
+        // Update job assignment for the new date
+        setJobAssignments(prev => {
+          const newMap = new Map(prev);
+          if (originalDate === dateStr) {
+            newMap.delete(cutJobId);
+          } else {
+            newMap.set(cutJobId, dateStr);
+          }
+          return newMap;
+        });
+        
+        // Update time slot assignment
+        setJobTimeSlots(prev => {
+          const newMap = new Map(prev);
+          newMap.set(cutJobId, slotIndex);
+          return newMap;
+        });
+        
+        // Clear cut mode
+        setCutJobId(null);
       }
-      return;
+      
+      lastTapTime.current = 0;
+    } else {
+      lastTapTime.current = now;
     }
+  }, [cutJobId, jobs]);
+
+  // Remove old touch handlers - replaced with tap handlers
+  /*
+  // Touch handlers for mobile drag and drop - works immediately like desktop
+  const handleTouchStart = useCallback((e: React.TouchEvent, jobId: string) => {
+    const touch = e.touches[0];
+    if (!touch) return;
     
+    // Immediately start dragging - no delay
+    setTouchDraggedJobId(jobId);
+    setDraggedJobId(jobId);
+    touchStartPos.current = { x: touch.clientX, y: touch.clientY };
+    console.log('Touch drag started for job:', jobId);
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
     if (!touchDraggedJobId) return;
     
-    setDragPosition({ x: touch.clientX, y: touch.clientY });
+    const touch = e.touches[0];
+    if (!touch) return;
     
-    const scrollThreshold = 100;
-    const scrollSpeed = 10;
-    const viewportHeight = window.innerHeight;
-    const touchY = touch.clientY;
-
-    // Auto-scroll on touch drag
-    if (touchY < scrollThreshold) {
-      window.scrollBy(0, -scrollSpeed);
-    } else if (touchY > viewportHeight - scrollThreshold) {
-      window.scrollBy(0, scrollSpeed);
-    }
-    
+    // Highlight drop zones based on touch position
     const element = document.elementFromPoint(touch.clientX, touch.clientY);
     
-    // Find the time slot first (more specific)
     const timeSlot = element?.closest('[data-time-slot]');
     if (timeSlot) {
       const dayCard = timeSlot.closest('[data-day-card]');
@@ -1006,7 +1215,6 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
       }
     }
     
-    // Fallback to day card
     const dayCard = element?.closest('[data-day-card]');
     if (dayCard) {
       const dateStr = dayCard.getAttribute('data-date');
@@ -1015,21 +1223,28 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
         setDragOverSlot(null);
       }
     }
-  };
+  }, [touchDraggedJobId]);
 
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    // Clear the delay timeout
-    if (dragDelayTimeout.current) {
-      clearTimeout(dragDelayTimeout.current);
-      dragDelayTimeout.current = null;
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    console.log('Touch end - draggedJobId:', touchDraggedJobId);
+    
+    touchStartPos.current = null;
+    
+    if (!touchDraggedJobId) {
+      console.log('Touch end - no drag active');
+      return;
     }
-    touchStartTime.current = null;
     
-    if (!touchDraggedJobId) return;
-    
-    setIsDragging(false);
-    setDragPosition(null);
     const touch = e.changedTouches[0];
+    if (!touch) {
+      setTouchDraggedJobId(null);
+      setDraggedJobId(null);
+      setDragOverDay(null);
+      setDragOverSlot(null);
+      console.log('Touch end - no touch data, cleaning up');
+      return;
+    }
+    
     const element = document.elementFromPoint(touch.clientX, touch.clientY);
     
     // Find the time slot first (more specific)
@@ -1045,6 +1260,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
         const originalDate = originalJobDates.current.get(touchDraggedJobId);
         
         if (job) {
+          console.log('Dropping job on time slot:', dateStr, slotIndex);
           // Update job assignment for the new date
           setJobAssignments(prev => {
             const newMap = new Map(prev);
@@ -1069,7 +1285,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
       setDraggedJobId(null);
       setDragOverDay(null);
       setDragOverSlot(null);
-      document.body.style.overflow = '';
+      console.log('Touch end - dropped on time slot, cleaned up');
       return;
     }
     
@@ -1083,6 +1299,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
         const originalDate = originalJobDates.current.get(touchDraggedJobId);
         
         if (job) {
+          console.log('Dropping job on day card:', dateStr);
           // Check if job has a pending assignment, otherwise use its database date
           const currentEffectiveDate = jobAssignments.has(touchDraggedJobId) 
             ? jobAssignments.get(touchDraggedJobId) 
@@ -1109,15 +1326,19 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
       }
     }
     
+    // Always clean up at the end
     setTouchDraggedJobId(null);
     setDraggedJobId(null);
     setDragOverDay(null);
     setDragOverSlot(null);
-    document.body.style.overflow = '';
-  };
+    console.log('Touch end - completed, state cleaned up');
+  }, [touchDraggedJobId, jobs, jobAssignments]);
+  */
+  
+  // Desktop drag handlers remain unchanged for computer use
 
-  // Get the next 5 days for the forecast view, starting from the offset
-  const getNext5Days = () => {
+  // Get the next 5 days for the forecast view, starting from the offset - memoized for performance
+  const next5Days = useMemo(() => {
     const days = [];
     for (let i = 0; i < 5; i++) {
       const date = new Date();
@@ -1125,14 +1346,14 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
       days.push(date);
     }
     return days;
-  };
+  }, [dayOffset]);
 
   return (
     <div className="space-y-4">
-      {/* Weather Section Header */}
-      <div className="flex items-center gap-3 mt-8 mb-4">
+      {/* Weather Section Header - Mobile optimized */}
+      <div className="flex items-center gap-3 mt-6 md:mt-8 mb-4">
         <div className="h-1 flex-1 bg-linear-to-r from-blue-200 to-blue-400 rounded-full"></div>
-        <h2 className="text-2xl font-bold text-blue-900 uppercase tracking-wide">Weather Forecast</h2>
+        <h2 className="text-lg md:text-2xl font-bold text-blue-900 uppercase tracking-wide">Weather Forecast</h2>
         <div className="h-1 flex-1 bg-linear-to-l from-blue-200 to-blue-400 rounded-full"></div>
       </div>
 
@@ -1145,7 +1366,11 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
               <div className="relative flex-1 min-w-[300px] max-w-[500px]">
                 <Input
                   ref={addressInputRef}
-                  placeholder="Enter full address (e.g., 123 Main St, Homewood, Alabama)"
+                  placeholder={
+                    userGPSLocation 
+                      ? "Search nearby addresses..." 
+                      : "Enter full address (e.g., 123 Main St, Homewood, Alabama)"
+                  }
                   value={addressInput}
                   onChange={(e) => handleAddressInputChange(e.target.value)}
                   onKeyDown={(e) => {
@@ -1159,15 +1384,15 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                     }
                   }}
                   onFocus={() => {
-                    if (addressInput.length >= 3 && addressSuggestions.length > 0) {
-                      setShowAddressSuggestions(true);
-                    }
+                    // Don't show suggestions on focus - wait for user to type
                   }}
                   autoComplete="off"
                   disabled={loading}
                   className={`h-10 pr-10 transition-all ${
                     addressSaved 
                       ? 'border-green-500 focus:border-green-500 focus:ring-green-500' 
+                      : userGPSLocation
+                      ? 'border-green-200 focus:border-green-400 focus:ring-green-400'
                       : 'border-blue-200 focus:border-blue-400 focus:ring-blue-400'
                   }`}
                 />
@@ -1178,6 +1403,11 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                   {isSearchingAddress && !addressSaved && (
                     <Loader2 className="h-4 w-4 text-blue-600 animate-spin" />
                   )}
+                  {!addressSaved && !isSearchingAddress && userGPSLocation && (
+                    <div title="Using GPS for nearby results">
+                      <Navigation className="h-4 w-4 text-green-600" />
+                    </div>
+                  )}
                 </div>
                 
                 {/* Address Suggestions Dropdown */}
@@ -1186,6 +1416,12 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                     ref={dropdownRef}
                     className="absolute top-full left-0 right-0 mt-1 bg-white border border-blue-300 rounded-md shadow-lg max-h-60 overflow-y-auto z-50"
                   >
+                    {userGPSLocation && (
+                      <div className="px-4 py-2 bg-green-50 border-b border-green-200 text-xs text-green-700 flex items-center gap-2">
+                        <Navigation className="h-3 w-3" />
+                        <span>Showing nearby addresses based on your location</span>
+                      </div>
+                    )}
                     {addressSuggestions.map((suggestion, index) => (
                       <button
                         key={index}
@@ -1235,21 +1471,23 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
               </div>
             </div>
           ) : (
-            /* Show clickable location display when location is set and not editing */
-            <div className="flex items-center gap-3 flex-wrap">
+            /* Show clickable location display when location is set and not editing - Mobile optimized */
+            <div className="flex flex-col md:flex-row items-center gap-3">
+              {/* Location display - simplified for mobile */}
               <button
                 onClick={() => setIsEditingAddress(true)}
-                className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:text-blue-600 transition-colors group"
+                className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:text-blue-600 transition-colors group"
               >
-                <MapPin className="h-4 w-4 text-blue-600 group-hover:text-blue-700" />
-                <span className="text-gray-600">Current location:</span>
-                <span className="font-medium">{getShortAddress(locationName)}</span>
-                <span className="text-xs text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
+                <MapPin className="h-4 w-4 text-blue-600 group-hover:text-blue-700 shrink-0" />
+                <span className="hidden md:inline text-gray-600">Current location:</span>
+                <span className="font-medium text-center md:text-left">{getShortAddress(locationName)}</span>
+                <span className="text-xs text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity ml-2 hidden md:inline">
                   (click to change)
                 </span>
               </button>
               
-              <div className="flex items-center gap-3">
+              {/* Buttons - centered on mobile, inline on desktop */}
+              <div className="flex items-center gap-3 justify-center w-full md:w-auto">
                 <Button 
                   onClick={onOptimizeRoute}
                   disabled={isOptimizing || !startingAddress}
@@ -1370,26 +1608,63 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
         <div className="space-y-4">
             {/* Week View Grid - Droppable Days with Navigation */}
             <div className="flex items-center gap-6">
-              {/* Left Arrow */}
-              <button
-                onClick={() => setDayOffset(dayOffset - 1)}
-                className="shrink-0 w-12 h-12 rounded-full bg-blue-600 hover:bg-blue-700 flex items-center justify-center text-white shadow-lg transition-all hover:scale-110"
-                aria-label="Previous day"
-              >
-                <ChevronLeft className="w-6 h-6" />
-              </button>
+              {/* Left Arrow - Desktop Only */}
+              {!isMobile && (
+                <button
+                  onClick={() => setDayOffset(dayOffset - 1)}
+                  className="shrink-0 w-12 h-12 rounded-full bg-blue-600 hover:bg-blue-700 flex items-center justify-center text-white shadow-lg transition-all hover:scale-110"
+                  aria-label="Previous day"
+                >
+                  <ChevronLeft className="w-6 h-6" />
+                </button>
+              )}
 
-              {/* Forecast Grid */}
-              <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 items-start">
-                {getNext5Days().map((day, index) => {
+              {/* Container for instructions and grid */}
+              <div className="flex-1 flex flex-col gap-2">
+                {/* Mobile Instructions - Show when on touch device */}
+                {isTouchDevice.current && cutJobId && (
+                  <div className="p-2 bg-yellow-50 border-2 border-yellow-400 rounded-lg">
+                    <div className="flex items-center gap-2 text-xs text-yellow-800 font-medium">
+                      <span className="text-lg">✂️</span>
+                      <span>Job cut! Double-tap any slot to paste. Swipe to change days.</span>
+                    </div>
+                  </div>
+                )}
+                {isTouchDevice.current && !cutJobId && (
+                  <div className="p-2 bg-blue-50 border border-blue-300 rounded text-xs text-blue-700 text-center">
+                    📱 Double-tap job to cut, then double-tap slot to paste
+                  </div>
+                )}
+
+                {/* Forecast Grid with Touch Support */}
+                <div 
+                  className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 items-start relative"
+                  onTouchStart={isMobile ? onTouchStart : undefined}
+                  onTouchMove={isMobile ? onTouchMove : undefined}
+                  onTouchEnd={isMobile ? onTouchEnd : undefined}
+                >
+                {/* Mobile Swipe Hint - Only show on mobile when viewing today */}
+                {isMobile && dayOffset === 0 && (
+                  <div className="absolute -bottom-8 left-0 right-0 text-center pointer-events-none">
+                    <p className="text-xs text-gray-500 flex items-center justify-center gap-1">
+                      <ChevronLeft className="w-3 h-3" />
+                      Swipe to navigate days
+                      <ChevronRight className="w-3 h-3" />
+                    </p>
+                  </div>
+                )}
+                {next5Days.map((day, index) => {
                   const dateStr = day.toLocaleDateString('en-CA'); // YYYY-MM-DD format
                   const todayStr = new Date().toLocaleDateString('en-CA');
                   const isToday = dateStr === todayStr;
                   const dayName = isToday ? 'Today' : day.toLocaleDateString('en-US', { weekday: 'short' });
                   const dayDate = day.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
                   
-                  // Get weather for this day and previous day - IMPORTANT: index matches the day iteration
-                  const weatherForDay = weatherData?.daily[index];
+                  // Get weather for this day - adjust index by dayOffset to get correct weather data
+                  // When dayOffset is 0, index 0 = today (weatherData.daily[0])
+                  // When dayOffset is 1, index 0 = tomorrow (weatherData.daily[1])
+                  const weatherIndex = index + dayOffset;
+                  const weatherForDay = weatherData?.daily[weatherIndex];
                   
                   // Get jobs scheduled for this day (excluding jobs that are being moved to another day)
                   const scheduledJobsForDay = jobs.filter(j => {
@@ -1470,31 +1745,53 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                               const desc = h.description.toLowerCase();
                               const effectiveRain = Math.max(h.precipitation, rainChance);
                               const amount = h.rainAmount || 0;
-                              // More vibrant background colors for better gradient visibility
-                              let color = 'rgb(254, 249, 195)'; // yellow-100 for clear - More vibrant
-                              // Heavy rain/thunderstorm - BLUE background (Cannot mow)
-                              if (desc.includes('thunder') || desc.includes('storm') || amount > 3 || effectiveRain >= 70) {
-                                color = 'rgb(147, 197, 253)'; // blue-300 - Clearly bad weather - More vibrant
+                              
+                              let color = 'rgb(254, 249, 195)'; // yellow-100 - Sunny/Clear
+                              
+                              // Heavy rain/thunderstorm - DARK BLUE
+                              if (desc.includes('thunder') || desc.includes('storm') || desc.includes('heavy') || amount > 3 || effectiveRain >= 70) {
+                                color = 'rgb(59, 130, 246)'; // blue-500 - Dark blue for storms
                               }
-                              // Moderate to heavy rain - LIGHT BLUE background (Risky)
-                              else if (amount > 1 || effectiveRain >= 60 || desc.includes('rain')) {
-                                color = 'rgb(191, 219, 254)'; // blue-200 - Rainy - More vibrant
+                              // Moderate to heavy rain - LIGHT BLUE
+                              else if (amount > 1 || effectiveRain >= 50 || desc.includes('rain')) {
+                                color = 'rgb(147, 197, 253)'; // blue-300 - Light blue for rain
                               }
-                              // Light drizzle or cloudy - PALE BLUE/GRAY background (Can mow)
-                              else if (amount > 0 || effectiveRain >= 30 || desc.includes('drizzle') || desc.includes('cloud')) {
-                                color = 'rgb(229, 231, 235)'; // gray-200 - Light rain/cloudy - More visible
+                              // Light drizzle - VERY LIGHT BLUE
+                              else if (amount > 0 || effectiveRain >= 30 || desc.includes('drizzle')) {
+                                color = 'rgb(191, 219, 254)'; // blue-200 - Very light blue for drizzle
                               }
+                              // Cloudy/Overcast - GRAY
+                              else if (desc.includes('cloud') || desc.includes('overcast')) {
+                                color = 'rgb(229, 231, 235)'; // gray-200 - Gray for cloudy
+                              }
+                              // Clear/Sunny stays yellow-100
+                              
                               return `${color} ${(idx / (weatherForDay.hourlyForecasts!.length - 1)) * 100}%`;
                             }).join(', ')})`
                           : (() => {
-                              // Fallback: solid color based on daily rain chance
-                              let bgColor = 'rgb(254, 249, 195)'; // yellow-100 for clear
-                              if (rainChance >= 60) {
-                                bgColor = 'rgb(191, 219, 254)'; // blue-200 for rain
-                              } else if (rainChance >= 30) {
-                                bgColor = 'rgb(229, 231, 235)'; // gray-200 for cloudy
+                              // Fallback: solid color based on daily weather description and rain chance
+                              if (!weatherForDay) return 'rgb(254, 249, 195)'; // yellow default
+                              
+                              const desc = (weatherForDay.description || '').toLowerCase();
+                              
+                              // Heavy rain/thunderstorm - DARK BLUE
+                              if (desc.includes('thunder') || desc.includes('storm') || desc.includes('heavy') || rainChance >= 70) {
+                                return 'rgb(59, 130, 246)'; // blue-500
                               }
-                              return bgColor;
+                              // Moderate rain - LIGHT BLUE
+                              if (rainChance >= 50 || desc.includes('rain')) {
+                                return 'rgb(147, 197, 253)'; // blue-300
+                              }
+                              // Light drizzle - VERY LIGHT BLUE
+                              if (rainChance >= 30 || desc.includes('drizzle')) {
+                                return 'rgb(191, 219, 254)'; // blue-200
+                              }
+                              // Cloudy/Overcast - GRAY
+                              if (desc.includes('cloud') || desc.includes('overcast')) {
+                                return 'rgb(229, 231, 235)'; // gray-200
+                              }
+                              // Clear/Sunny - YELLOW
+                              return 'rgb(254, 249, 195)'; // yellow-100
                             })(),
                         border: '3px solid transparent',
                         borderImage: `linear-gradient(to bottom, ${borderGradient}) 1`
@@ -1682,10 +1979,13 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                   };
                                   
                                   // All slots are always visible and active
+                                  const isDropTarget = dragOverSlot?.date === dateStr && dragOverSlot?.slot === slot.slotIndex;
                                   return (
                                     <div 
                                       key={slot.slotIndex}
-                                      className="relative min-h-[38.5px] h-[38.5px] flex items-center"
+                                      className={`relative min-h-[38.5px] h-[38.5px] flex items-center transition-colors ${
+                                        isDropTarget ? 'bg-blue-100 border-l-4 border-blue-500' : ''
+                                      }`}
                                       data-time-slot="true"
                                       data-slot-index={slot.slotIndex}
                                       onDragOver={(e) => handleDragOver(e, dateStr, slot.slotIndex)}
@@ -1704,34 +2004,44 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                           const isAssigned = assignedJobs.some(j => j.id === jobInSlot.id);
                                           const isDraggedItem = jobInSlot.id === draggedJobId;
                                           
+                                          const isCutItem = jobInSlot.id === cutJobId;
+                                          
                                           return (
                                             <div
-                                              draggable={!isDraggedItem}
+                                              draggable={!isDraggedItem && !isTouchDevice.current}
                                               onDragStart={(e) => !isDraggedItem && handleDragStart(e, jobInSlot.id)}
-                                              onTouchStart={isTouchDevice.current ? (e) => !isDraggedItem && handleTouchStart(e, jobInSlot.id) : undefined}
-                                              onTouchMove={isTouchDevice.current ? handleTouchMove : undefined}
-                                              onTouchEnd={isTouchDevice.current ? handleTouchEnd : undefined}
+                                              onClick={isTouchDevice.current ? () => handleJobTap(jobInSlot.id) : undefined}
                                               className={`flex-1 rounded px-3 py-2 transition-all text-xs group min-h-[40px] h-[40px] overflow-hidden flex items-center select-none ${
-                                                isDraggedItem
-                                                  ? 'bg-white border-2 border-blue-600 opacity-50'
+                                                isCutItem
+                                                  ? 'bg-yellow-100 border-2 border-yellow-500 shadow-lg'
+                                                  : isDraggedItem
+                                                  ? 'bg-blue-100 border-2 border-blue-600 shadow-lg scale-105'
                                                   : isAssigned
                                                   ? 'bg-gray-100 border-2 border-gray-400 animate-pulse cursor-move hover:shadow-md'
-                                                  : 'bg-white border border-gray-300 cursor-move hover:shadow-md'
+                                                  : 'bg-white border border-gray-300 cursor-move hover:shadow-md active:bg-blue-50 active:border-blue-400'
                                               }`}
                                             >
                                               <div className="flex items-center justify-between gap-1 w-full overflow-hidden">
                                                 <div className="flex-1 min-w-0">
                                                   <div className="font-semibold text-gray-900 truncate w-full">
                                                     {customer?.name}
+                                                    {isCutItem && isTouchDevice.current && (
+                                                      <span className="ml-1 text-xs text-yellow-700">✂️ Cut</span>
+                                                    )}
                                                   </div>
                                                   {!isDraggedItem && isAssigned && (
                                                     <div className="text-xs text-gray-700 font-medium mt-0.5 italic">
                                                       Moving here...
                                                     </div>
                                                   )}
-                                                  {!isDraggedItem && !isAssigned && (
+                                                  {!isDraggedItem && !isAssigned && !isCutItem && (
                                                     <div className="text-xs text-gray-600 truncate">
                                                       ${customer?.price} • 60 min
+                                                    </div>
+                                                  )}
+                                                  {isCutItem && isTouchDevice.current && (
+                                                    <div className="text-xs text-yellow-700 font-medium mt-0.5">
+                                                      Double-tap slot to paste
                                                     </div>
                                                   )}
                                                 </div>
@@ -1749,13 +2059,16 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                           );
                                         })() : (
                                           <div 
-                                            className={`flex-1 border border-dashed rounded p-2 text-center text-[10px] transition-opacity ${
-                                              isSlotHovered 
+                                            onClick={isTouchDevice.current && cutJobId ? () => handleSlotTap(dateStr, slot.slotIndex) : undefined}
+                                            className={`flex-1 border border-dashed rounded p-2 text-center text-[10px] transition-all ${
+                                              cutJobId && isTouchDevice.current
+                                                ? 'opacity-100 border-green-500 bg-green-50 text-green-700 cursor-pointer active:bg-green-100'
+                                                : isSlotHovered 
                                                 ? 'opacity-100 border-blue-500 text-blue-600' 
                                                 : 'opacity-0 hover:opacity-100 border-gray-300 text-gray-400'
                                             }`}
                                           >
-                                            Drop job here
+                                            {cutJobId && isTouchDevice.current ? '📋 Double-tap to paste' : 'Drop job here'}
                                           </div>
                                         )}
                                       </div>
@@ -1821,15 +2134,18 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                 })}
               </div>
 
-              {/* Right Arrow */}
-              <button
-                onClick={() => setDayOffset(dayOffset + 1)}
-                className="shrink-0 w-12 h-12 rounded-full bg-blue-600 hover:bg-blue-700 flex items-center justify-center text-white shadow-lg transition-all hover:scale-110"
-                aria-label="Next day"
-              >
-                <ChevronRight className="w-6 h-6" />
-              </button>
+              {/* Right Arrow - Desktop Only */}
+              {!isMobile && (
+                <button
+                  onClick={() => setDayOffset(dayOffset + 1)}
+                  className="shrink-0 w-12 h-12 rounded-full bg-blue-600 hover:bg-blue-700 flex items-center justify-center text-white shadow-lg transition-all hover:scale-110"
+                  aria-label="Next day"
+                >
+                  <ChevronRight className="w-6 h-6" />
+                </button>
+              )}
             </div>
+          </div>
         </div>
       )}
 
@@ -1857,38 +2173,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
         </Alert>
       )}
 
-      {/* Drag Preview - Shows the job being dragged */}
-      {draggedJobId && dragPosition && (() => {
-        const draggedJob = jobs.find(j => j.id === draggedJobId);
-        const customer = draggedJob ? customers.find(c => c.id === draggedJob.customerId) : null;
-        if (!draggedJob || !customer) return null;
-        return (
-          <div
-            className="fixed pointer-events-none z-50 opacity-90"
-            style={{
-              left: `${dragPosition.x}px`,
-              top: `${dragPosition.y}px`,
-              transform: 'translate(-50%, -50%)',
-            }}
-          >
-            <div className="rounded-lg px-3 py-2 bg-white border-2 border-blue-600 shadow-2xl min-w-[200px]">
-              <div className="font-semibold text-gray-900 text-sm mb-1">
-                {customer.name}
-              </div>
-              <div className="text-xs text-gray-600">
-                ${customer.price} • {customer.squareFootage.toLocaleString()} sq ft
-              </div>
-              {customer.isHilly || customer.hasFencing || customer.hasObstacles ? (
-                <div className="flex gap-1 mt-1">
-                  {customer.isHilly && <span className="text-[10px] bg-gray-200 px-1.5 py-0.5 rounded">Hilly</span>}
-                  {customer.hasFencing && <span className="text-[10px] bg-gray-200 px-1.5 py-0.5 rounded">Fenced</span>}
-                  {customer.hasObstacles && <span className="text-[10px] bg-gray-200 px-1.5 py-0.5 rounded">Obstacles</span>}
-                </div>
-              ) : null}
-            </div>
-          </div>
-        );
-      })()}
+      {/* Drag preview removed for better mobile performance */}
     </div>
   );
 }

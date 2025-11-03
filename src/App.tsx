@@ -279,9 +279,14 @@ function App() {
   return (
     <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-yellow-50 pb-20 md:pb-0">
       <div className="container mx-auto p-4 md:p-8 max-w-7xl">
+        {/* Header - styled to match Weather Forecast section */}
         <div className="mb-6">
-          <h1 className="text-blue-800 mb-1">Outside AI CRM</h1>
-          <p className="text-blue-600">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="h-1 flex-1 bg-linear-to-r from-blue-200 to-blue-400 rounded-full"></div>
+            <h1 className="text-xl md:text-2xl font-bold text-blue-900 uppercase tracking-wide text-center">Outside AI CRM</h1>
+            <div className="h-1 flex-1 bg-linear-to-l from-blue-200 to-blue-400 rounded-full"></div>
+          </div>
+          <p className="text-xs md:text-sm text-blue-700 text-center font-medium">
             Streamline scheduling and communication for outdoor service businesses
           </p>
         </div>
@@ -336,7 +341,7 @@ function App() {
       </div>
 
       {/* Mobile Bottom Navigation */}
-      <div className={`fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 md:hidden transition-transform duration-300 ${
+      <div className={`fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 md:hidden transition-transform duration-300 z-100 ${
         showBottomNav ? 'translate-y-0' : 'translate-y-full'
       }`}>
         <div className="flex justify-center">
@@ -360,7 +365,7 @@ function App() {
       </div>
 
       {/* Desktop Navigation */}
-      <div className="hidden md:block fixed top-8 right-8">
+      <div className="hidden md:block fixed top-8 right-8 z-100">
         <div className="flex gap-2 bg-white rounded-lg p-2 shadow-lg">
           {navItems.map((item) => (
             <button
