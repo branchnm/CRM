@@ -122,56 +122,6 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // TikTok-style scroll lock for day card on mobile
-  const dayCardRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!isMobile || !dayCardRef.current) return;
-
-    let scrollTimeout: number;
-    let isScrolling = false;
-
-    const handleScrollEnd = () => {
-      if (!dayCardRef.current || !isMobile) return;
-      
-      const rect = dayCardRef.current.getBoundingClientRect();
-      const viewportHeight = window.innerHeight;
-      const cardTop = rect.top;
-      const cardHeight = rect.height;
-      
-      // If card is partially visible (more than 30% in view), snap it into view
-      const visibleHeight = Math.min(viewportHeight - cardTop, cardHeight);
-      const visiblePercentage = visibleHeight / cardHeight;
-      
-      if (visiblePercentage > 0.3 && visiblePercentage < 0.95) {
-        // Scroll card to top of viewport with small offset
-        dayCardRef.current.scrollIntoView({ 
-          behavior: 'smooth', 
-          block: 'start'
-        });
-      }
-    };
-
-    const handleScroll = () => {
-      isScrolling = true;
-      clearTimeout(scrollTimeout);
-      
-      // Set a timeout to detect when scrolling has stopped
-      scrollTimeout = window.setTimeout(() => {
-        isScrolling = false;
-        handleScrollEnd();
-      }, 150); // Wait 150ms after scrolling stops
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    window.addEventListener('touchend', handleScroll, { passive: true });
-
-    return () => {
-      window.removeEventListener('scroll', handleScroll);
-      window.removeEventListener('touchend', handleScroll);
-      clearTimeout(scrollTimeout);
-    };
-  }, [isMobile]);
-
   // Minimum swipe distance (in px)
   const minSwipeDistance = 50;
   const swipeDirectionThreshold = 1.5; // Horizontal movement must be 1.5x vertical movement
@@ -1852,7 +1802,6 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                   
                   return (
                     <div
-                      ref={isMobile ? dayCardRef : null}
                       key={dateStr}
                       data-day-card="true"
                       data-date={dateStr}
@@ -1860,7 +1809,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                       onDragLeave={handleDragLeave}
                       onDrop={(e) => handleDrop(e, dateStr)}
                       className={`transition-all duration-200 relative ${
-                        isMobile ? 'min-h-[50vh] weather-day-card-snap mb-12' : ''
+                        isMobile ? 'min-h-[50vh] mb-12' : ''
                       } ${
                         isBeingDraggedOver
                           ? 'scale-[1.02] shadow-2xl ring-4 ring-blue-400 ring-opacity-50'
