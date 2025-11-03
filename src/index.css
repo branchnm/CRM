@@ -195,4 +195,49 @@
 
 html {
   font-size: var(--font-size);
+  scroll-behavior: smooth;
+}
+
+/* Mobile scroll snap for day cards - TikTok-like behavior */
+@media (max-width: 768px) {
+  body {
+    scroll-snap-type: y mandatory;
+  }
+  
+  /* Ensure snap points work */
+  .weather-day-card-snap {
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+  }
+}
+
+/* Slide animations for day card transitions */
+@keyframes slide-in-right {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slide-in-left {
+  from {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 0.3s ease-out;
+}
+
+.animate-slide-in-left {
+  animation: slide-in-left 0.3s ease-out;
 }

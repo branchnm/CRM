@@ -20,7 +20,8 @@ import {
   CloudRainWind,
   Route,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Undo2
 } from 'lucide-react';
 import { 
   getWeatherData, 
@@ -89,10 +90,24 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
   const [jobTimeSlots, setJobTimeSlots] = useState<Map<string, number>>(new Map()); // jobId -> timeSlot (0-11 for 6am-6pm)
   const [dayOffset, setDayOffset] = useState(0); // 0 = today, -1 = yesterday, 1 = tomorrow, etc.
   
+  // Undo functionality - store last action
+  const [lastAction, setLastAction] = useState<{
+    type: 'move';
+    jobId: string;
+    fromDate: string;
+    toDate: string;
+    timeSlot?: number;
+  } | null>(null);
+  const [showUndo, setShowUndo] = useState(false);
+  
   // Touch swipe detection for mobile
-  const [touchStart, setTouchStart] = useState<number | null>(null);
-  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(null);
+  const [touchEnd, setTouchEnd] = useState<{ x: number; y: number } | null>(null);
   const [isMobile, setIsMobile] = useState(false);
+  const [swipeOffset, setSwipeOffset] = useState(0);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [slideDirection, setSlideDirection] = useState<'left' | 'right' | null>(null);
+  const previousDayOffset = useRef(dayOffset);
 
   // Debounce address input to reduce API calls
   const debouncedAddressInput = useDebounce(addressInput, 500); // 500ms delay
@@ -107,33 +122,123 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
+  // TikTok-style scroll lock for day card on mobile
+  const dayCardRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!isMobile || !dayCardRef.current) return;
+
+    let scrollTimeout: number;
+    let isScrolling = false;
+
+    const handleScrollEnd = () => {
+      if (!dayCardRef.current || !isMobile) return;
+      
+      const rect = dayCardRef.current.getBoundingClientRect();
+      const viewportHeight = window.innerHeight;
+      const cardTop = rect.top;
+      const cardHeight = rect.height;
+      
+      // If card is partially visible (more than 30% in view), snap it into view
+      const visibleHeight = Math.min(viewportHeight - cardTop, cardHeight);
+      const visiblePercentage = visibleHeight / cardHeight;
+      
+      if (visiblePercentage > 0.3 && visiblePercentage < 0.95) {
+        // Scroll card to top of viewport with small offset
+        dayCardRef.current.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'start'
+        });
+      }
+    };
+
+    const handleScroll = () => {
+      isScrolling = true;
+      clearTimeout(scrollTimeout);
+      
+      // Set a timeout to detect when scrolling has stopped
+      scrollTimeout = window.setTimeout(() => {
+        isScrolling = false;
+        handleScrollEnd();
+      }, 150); // Wait 150ms after scrolling stops
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('touchend', handleScroll, { passive: true });
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('touchend', handleScroll);
+      clearTimeout(scrollTimeout);
+    };
+  }, [isMobile]);
+
   // Minimum swipe distance (in px)
   const minSwipeDistance = 50;
+  const swipeDirectionThreshold = 1.5; // Horizontal movement must be 1.5x vertical movement
 
   const onTouchStart = (e: React.TouchEvent) => {
     setTouchEnd(null);
-    setTouchStart(e.targetTouches[0].clientX);
+    setTouchStart({
+      x: e.targetTouches[0].clientX,
+      y: e.targetTouches[0].clientY
+    });
+    setSwipeOffset(0);
+    setIsTransitioning(false);
   };
 
   const onTouchMove = (e: React.TouchEvent) => {
-    setTouchEnd(e.targetTouches[0].clientX);
+    const currentTouch = {
+      x: e.targetTouches[0].clientX,
+      y: e.targetTouches[0].clientY
+    };
+    setTouchEnd(currentTouch);
+    
+    if (touchStart !== null) {
+      const deltaX = currentTouch.x - touchStart.x;
+      const deltaY = currentTouch.y - touchStart.y;
+      
+      // Only update offset if movement is primarily horizontal
+      if (Math.abs(deltaX) > Math.abs(deltaY) * swipeDirectionThreshold) {
+        setSwipeOffset(deltaX);
+        // Prevent vertical scrolling when swiping horizontally
+        e.preventDefault();
+      } else {
+        // Movement is primarily vertical, reset offset to allow normal scrolling
+        setSwipeOffset(0);
+      }
+    }
   };
 
   const onTouchEnd = () => {
     if (!touchStart || !touchEnd) return;
     
-    const distance = touchStart - touchEnd;
-    const isLeftSwipe = distance > minSwipeDistance;
-    const isRightSwipe = distance < -minSwipeDistance;
+    const deltaX = touchStart.x - touchEnd.x;
+    const deltaY = touchStart.y - touchEnd.y;
+    
+    // Only trigger day change if swipe was primarily horizontal
+    const isHorizontalSwipe = Math.abs(deltaX) > Math.abs(deltaY) * swipeDirectionThreshold;
+    
+    if (isHorizontalSwipe) {
+      const isLeftSwipe = deltaX > minSwipeDistance;
+      const isRightSwipe = deltaX < -minSwipeDistance;
 
-    if (isLeftSwipe) {
-      // Swipe left = next day
-      setDayOffset(prev => prev + 1);
+      if (isLeftSwipe) {
+        // Swipe left = next day (day slides in from right)
+        setSlideDirection('left');
+        setDayOffset(prev => prev + 1);
+        setTimeout(() => setSlideDirection(null), 300);
+      } else if (isRightSwipe) {
+        // Swipe right = previous day (day slides in from left)
+        setSlideDirection('right');
+        setDayOffset(prev => prev - 1);
+        setTimeout(() => setSlideDirection(null), 300);
+      }
     }
-    if (isRightSwipe) {
-      // Swipe right = previous day
-      setDayOffset(prev => prev - 1);
-    }
+    
+    // Reset swipe offset with transition
+    setSwipeOffset(0);
+    setIsTransitioning(true);
+    setTimeout(() => setIsTransitioning(false), 300);
   };
 
   // Close suggestions when clicking outside
@@ -248,6 +353,8 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
   const [cutJobId, setCutJobId] = useState<string | null>(null);
   const lastTapTime = useRef<number>(0);
   const lastTapJobId = useRef<string | null>(null);
+  const longPressTimer = useRef<number | null>(null);
+  const longPressStartPos = useRef<{ x: number; y: number } | null>(null);
   
   // Detect if device supports touch
   const isTouchDevice = useRef(
@@ -1013,86 +1120,67 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
     setDragOverSlot(null);
   };
 
-  const handleSlotDrop = (e: React.DragEvent, dateStr: string, targetSlot: number) => {
+  const handleSlotDrop = async (e: React.DragEvent, dateStr: string, targetSlot: number) => {
     e.preventDefault();
     e.stopPropagation();
-    // setIsDragging(false); // Removed for mobile performance
-    if (draggedJobId) {
+    
+    if (draggedJobId && onRescheduleJob) {
       const job = jobs.find(j => j.id === draggedJobId);
-      const originalDate = originalJobDates.current.get(draggedJobId);
-      if (job) {
-        // Update job assignment for the new date
-        setJobAssignments(prev => {
-          const newMap = new Map(prev);
-          if (originalDate === dateStr) {
-            newMap.delete(draggedJobId);
-          } else {
-            newMap.set(draggedJobId, dateStr);
-          }
-          return newMap;
+      
+      if (job && job.date !== dateStr) {
+        // Save last action for undo
+        setLastAction({
+          type: 'move',
+          jobId: draggedJobId,
+          fromDate: job.date,
+          toDate: dateStr,
+          timeSlot: targetSlot
         });
-        // Recalculate all job slots for this day to match the previewed order
-        setJobTimeSlots(prev => {
-          // Get all jobs for this day (including the dragged job)
-          const assignedJobs = Array.from(jobAssignments.entries())
-            .filter(([_, d]) => d === dateStr)
-            .map(([id]) => jobs.find(j => j.id === id))
-            .filter(Boolean);
-          const scheduledJobsForDay = jobs.filter(j => j.date === dateStr && j.status === 'scheduled' && (!jobAssignments.has(j.id) || jobAssignments.get(j.id) === dateStr));
-          // Remove the dragged job from both lists (will insert at new slot)
-          const filteredJobs = [...scheduledJobsForDay, ...assignedJobs].filter(j => j && j.id !== draggedJobId);
-          // Insert the dragged job at the target slot
-          filteredJobs.splice(targetSlot, 0, job);
-          // Build new slot map for this day
-          const newMap = new Map(prev);
-          filteredJobs.forEach((j, idx) => {
-            newMap.set(j.id, idx);
-          });
-          return newMap;
-        });
+        
+        // Immediately save the change
+        await onRescheduleJob(draggedJobId, dateStr, targetSlot);
+        
+        // Show undo button
+        setShowUndo(true);
+        setTimeout(() => setShowUndo(false), 5000);
+        
+        toast.success('Job moved');
       }
+      
       setDraggedJobId(null);
     }
-    setDragOverDay(null);
     setDragOverSlot(null);
   };
 
-  const handleDrop = (e: React.DragEvent, dateStr: string) => {
+  const handleDrop = async (e: React.DragEvent, dateStr: string) => {
     e.preventDefault();
-    // setIsDragging(false); // Removed for mobile performance
     if (draggedJobId) {
-      // Find the job to check its current date
       const job = jobs.find(j => j.id === draggedJobId);
-      const originalDate = originalJobDates.current.get(draggedJobId);
       
-      if (job) {
-        // Check if job has a pending assignment, otherwise use its database date
-        const currentEffectiveDate = jobAssignments.has(draggedJobId) 
-          ? jobAssignments.get(draggedJobId) 
-          : job.date;
+      if (job && job.date !== dateStr && onRescheduleJob) {
+        const timeSlot = jobTimeSlots.get(draggedJobId);
         
-        // If dropping on the same day it's currently on (effective), do nothing
-        if (currentEffectiveDate === dateStr) {
-          setDraggedJobId(null);
-          setDragOverDay(null);
-          return;
-        }
-        
-        // Always update or add the assignment
-        setJobAssignments(prev => {
-          const newMap = new Map(prev);
-          
-          // If dropping back to original day, remove from assignments
-          if (originalDate === dateStr) {
-            newMap.delete(draggedJobId);
-          } else {
-            // Dropping to a new day (not original), add/update assignment
-            newMap.set(draggedJobId, dateStr);
-          }
-          
-          return newMap;
+        // Save last action for undo
+        setLastAction({
+          type: 'move',
+          jobId: draggedJobId,
+          fromDate: job.date,
+          toDate: dateStr,
+          timeSlot
         });
+        
+        // Immediately save the change
+        await onRescheduleJob(draggedJobId, dateStr, timeSlot);
+        
+        // Show undo button
+        setShowUndo(true);
+        
+        // Auto-hide undo after 5 seconds
+        setTimeout(() => setShowUndo(false), 5000);
+        
+        toast.success('Job moved');
       }
+      
       setDraggedJobId(null);
     }
     setDragOverDay(null);
@@ -1137,48 +1225,90 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
     }
   }, [cutJobId]);
 
+  // Long-press handlers for cutting jobs on mobile
+  const handleJobTouchStart = (e: React.TouchEvent, jobId: string) => {
+    // Record start position to detect movement
+    longPressStartPos.current = {
+      x: e.touches[0].clientX,
+      y: e.touches[0].clientY
+    };
+    
+    // Prevent text selection during long press
+    e.preventDefault();
+    
+    // Start long-press timer (500ms)
+    longPressTimer.current = window.setTimeout(() => {
+      // Cut the job after 500ms
+      setCutJobId(jobId);
+      // Haptic feedback if available
+      if (navigator.vibrate) {
+        navigator.vibrate(50);
+      }
+    }, 500);
+  };
+
+  const handleJobTouchMove = (e: React.TouchEvent) => {
+    // Cancel long-press if user moves finger (likely scrolling)
+    if (longPressStartPos.current && longPressTimer.current) {
+      const moveX = Math.abs(e.touches[0].clientX - longPressStartPos.current.x);
+      const moveY = Math.abs(e.touches[0].clientY - longPressStartPos.current.y);
+      
+      // Cancel if moved more than 10px
+      if (moveX > 10 || moveY > 10) {
+        clearTimeout(longPressTimer.current);
+        longPressTimer.current = null;
+      }
+    }
+  };
+
+  const handleJobTouchEnd = () => {
+    // Clear long-press timer if touch ended before 500ms
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+    longPressStartPos.current = null;
+  };
+
   // Handle double-tap on empty slot to paste
-  const handleSlotTap = useCallback((dateStr: string, slotIndex: number) => {
-    if (!cutJobId) return; // Nothing to paste
+  const handleSlotTap = useCallback(async (dateStr: string, slotIndex: number) => {
+    if (!cutJobId || !onRescheduleJob) return; // Nothing to paste
     
     const now = Date.now();
     const timeSinceLastTap = now - lastTapTime.current;
     
     // Double-tap detection
     if (timeSinceLastTap < 500) {
-      console.log('Pasting job to:', dateStr, 'slot:', slotIndex);
-      
       const job = jobs.find(j => j.id === cutJobId);
-      const originalDate = originalJobDates.current.get(cutJobId);
       
-      if (job) {
-        // Update job assignment for the new date
-        setJobAssignments(prev => {
-          const newMap = new Map(prev);
-          if (originalDate === dateStr) {
-            newMap.delete(cutJobId);
-          } else {
-            newMap.set(cutJobId, dateStr);
-          }
-          return newMap;
+      if (job && job.date !== dateStr) {
+        // Save last action for undo
+        setLastAction({
+          type: 'move',
+          jobId: cutJobId,
+          fromDate: job.date,
+          toDate: dateStr,
+          timeSlot: slotIndex
         });
         
-        // Update time slot assignment
-        setJobTimeSlots(prev => {
-          const newMap = new Map(prev);
-          newMap.set(cutJobId, slotIndex);
-          return newMap;
-        });
+        // Immediately save the change
+        await onRescheduleJob(cutJobId, dateStr, slotIndex);
         
         // Clear cut mode
         setCutJobId(null);
+        
+        // Show undo button
+        setShowUndo(true);
+        setTimeout(() => setShowUndo(false), 5000);
+        
+        toast.success('Job moved');
       }
       
       lastTapTime.current = 0;
     } else {
       lastTapTime.current = now;
     }
-  }, [cutJobId, jobs]);
+  }, [cutJobId, jobs, onRescheduleJob]);
 
   // Remove old touch handlers - replaced with tap handlers
   /*
@@ -1515,51 +1645,27 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
         </div>
       </div>
 
-      {/* Floating Action Buttons - Bottom Right - Only visible when there are changes - Blue theme */}
-      {jobAssignments.size > 0 && (
-        <div className="fixed bottom-4 right-4 md:bottom-6 md:right-6 z-50 flex flex-col gap-2 animate-in slide-in-from-bottom-4">
-          <div className="bg-white border-2 border-blue-300 rounded-lg shadow-lg p-3">
-            <div className="flex items-center gap-2 mb-3">
-              <CheckCircle className="h-4 w-4 text-blue-600 shrink-0" />
-              <span className="font-medium text-sm text-blue-900">
-                {jobAssignments.size} ready to move
-              </span>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setJobAssignments(new Map())}
-                className="flex-1"
-              >
-                Reset
-              </Button>
-              <Button
-                size="sm"
-                className="bg-blue-600 hover:bg-blue-700 flex-1"
-                onClick={async () => {
-                  if (jobAssignments.size === 0 || !onRescheduleJob) return;
-                  
-                  const count = jobAssignments.size;
-                  
-                  for (const [jobId, newDateStr] of jobAssignments.entries()) {
-                    const job = jobs.find(j => j.id === jobId);
-                    const timeSlot = jobTimeSlots.get(jobId);
-                    if (job) {
-                      await onRescheduleJob(jobId, newDateStr, timeSlot);
-                      originalJobDates.current.set(jobId, newDateStr);
-                    }
-                  }
-                  
-                  setJobAssignments(new Map());
-                  setJobTimeSlots(new Map());
-                  toast.success(`${count} job(s) rescheduled successfully!`);
-                }}
-              >
-                Confirm ({jobAssignments.size})
-              </Button>
-            </div>
-          </div>
+      {/* Undo Button - Bottom Right - Shows briefly after moving a job */}
+      {showUndo && lastAction && (
+        <div className="fixed bottom-20 md:bottom-6 right-4 md:right-6 z-50 animate-in slide-in-from-bottom-4">
+          <Button
+            size="sm"
+            variant="outline"
+            className="bg-white border-2 border-blue-600 text-blue-600 hover:bg-blue-50 shadow-lg"
+            onClick={async () => {
+              if (!onRescheduleJob) return;
+              
+              // Undo the last action
+              await onRescheduleJob(lastAction.jobId, lastAction.fromDate, lastAction.timeSlot);
+              
+              setShowUndo(false);
+              setLastAction(null);
+              toast.success('Undone');
+            }}
+          >
+            <Undo2 className="h-4 w-4 mr-1" />
+            Undo
+          </Button>
         </div>
       )}
 
@@ -1606,6 +1712,21 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
       {/* Combined Weather Forecast & Job Planning Card */}
       {weatherData && (
         <div className="space-y-4">
+            {/* Mobile Instructions - Show at top, outside everything */}
+            {isMobile && isTouchDevice.current && cutJobId && (
+              <div className="p-2 bg-yellow-50 border-2 border-yellow-400 rounded-lg">
+                <div className="flex items-center gap-2 text-xs text-yellow-800 font-medium">
+                  <span className="text-lg">✂️</span>
+                  <span>Job cut! Double-tap any slot to paste. Swipe to change days.</span>
+                </div>
+              </div>
+            )}
+            {isMobile && isTouchDevice.current && !cutJobId && (
+              <div className="p-2 bg-blue-50 border border-blue-300 rounded text-xs text-blue-700 text-center">
+                📱 Hold a job to cut it, then double-tap a slot to paste
+              </div>
+            )}
+
             {/* Week View Grid - Droppable Days with Navigation */}
             <div className="flex items-center gap-6">
               {/* Left Arrow - Desktop Only */}
@@ -1619,41 +1740,44 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                 </button>
               )}
 
-              {/* Container for instructions and grid */}
-              <div className="flex-1 flex flex-col gap-2">
-                {/* Mobile Instructions - Show when on touch device */}
-                {isTouchDevice.current && cutJobId && (
-                  <div className="p-2 bg-yellow-50 border-2 border-yellow-400 rounded-lg">
+              {/* Flex wrapper - no special mobile treatment */}
+              <div className="flex-1 overflow-x-hidden">
+                {/* Desktop Instructions */}
+                {!isMobile && isTouchDevice.current && cutJobId && (
+                  <div className="p-2 bg-yellow-50 border-2 border-yellow-400 rounded-lg mb-2">
                     <div className="flex items-center gap-2 text-xs text-yellow-800 font-medium">
                       <span className="text-lg">✂️</span>
                       <span>Job cut! Double-tap any slot to paste. Swipe to change days.</span>
                     </div>
                   </div>
                 )}
-                {isTouchDevice.current && !cutJobId && (
-                  <div className="p-2 bg-blue-50 border border-blue-300 rounded text-xs text-blue-700 text-center">
-                    📱 Double-tap job to cut, then double-tap slot to paste
+                {!isMobile && isTouchDevice.current && !cutJobId && (
+                  <div className="p-2 bg-blue-50 border border-blue-300 rounded text-xs text-blue-700 text-center mb-2">
+                    📱 Hold a job to cut it, then double-tap a slot to paste
                   </div>
                 )}
 
                 {/* Forecast Grid with Touch Support */}
                 <div 
-                  className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 items-start relative"
+                  key={dayOffset} // Force re-render with animation when day changes
+                  className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'} gap-3 items-start relative ${
+                    slideDirection === 'left' ? 'animate-slide-in-right' : 
+                    slideDirection === 'right' ? 'animate-slide-in-left' : ''
+                  }`}
                   onTouchStart={isMobile ? onTouchStart : undefined}
                   onTouchMove={isMobile ? onTouchMove : undefined}
                   onTouchEnd={isMobile ? onTouchEnd : undefined}
+                  style={{
+                    transform: isMobile && !slideDirection ? `translateX(${swipeOffset}px)` : undefined,
+                    transition: isTransitioning && !slideDirection ? 'transform 0.3s ease-out' : 'none',
+                  }}
                 >
-                {/* Mobile Swipe Hint - Only show on mobile when viewing today */}
-                {isMobile && dayOffset === 0 && (
-                  <div className="absolute -bottom-8 left-0 right-0 text-center pointer-events-none">
-                    <p className="text-xs text-gray-500 flex items-center justify-center gap-1">
-                      <ChevronLeft className="w-3 h-3" />
-                      Swipe to navigate days
-                      <ChevronRight className="w-3 h-3" />
-                    </p>
-                  </div>
-                )}
-                {next5Days.map((day, index) => {
+                {next5Days
+                  .filter((_, index) => isMobile ? index === 0 : true) // On mobile, only show the first day (offset by dayOffset)
+                  .map((day, index) => {
+                  // For mobile, index is always 0 (showing only current offset day)
+                  // For desktop, index matches the day in the array
+                  const actualIndex = isMobile ? 0 : index;
                   const dateStr = day.toLocaleDateString('en-CA'); // YYYY-MM-DD format
                   const todayStr = new Date().toLocaleDateString('en-CA');
                   const isToday = dateStr === todayStr;
@@ -1663,7 +1787,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                   // Get weather for this day - adjust index by dayOffset to get correct weather data
                   // When dayOffset is 0, index 0 = today (weatherData.daily[0])
                   // When dayOffset is 1, index 0 = tomorrow (weatherData.daily[1])
-                  const weatherIndex = index + dayOffset;
+                  const weatherIndex = actualIndex + dayOffset;
                   const weatherForDay = weatherData?.daily[weatherIndex];
                   
                   // Get jobs scheduled for this day (excluding jobs that are being moved to another day)
@@ -1728,6 +1852,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                   
                   return (
                     <div
+                      ref={isMobile ? dayCardRef : null}
                       key={dateStr}
                       data-day-card="true"
                       data-date={dateStr}
@@ -1735,6 +1860,8 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                       onDragLeave={handleDragLeave}
                       onDrop={(e) => handleDrop(e, dateStr)}
                       className={`transition-all duration-200 relative ${
+                        isMobile ? 'min-h-[50vh] weather-day-card-snap mb-12' : ''
+                      } ${
                         isBeingDraggedOver
                           ? 'scale-[1.02] shadow-2xl ring-4 ring-blue-400 ring-opacity-50'
                           : 'shadow-sm'
@@ -1941,7 +2068,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                               }
                               
                               return (
-                                <div className="space-y-1 relative h-[468px] flex flex-col justify-between">
+                                <div className="space-y-1 relative flex flex-col">
                                 {timeSlots.map((slot) => {
                                   const jobInSlot = jobsBySlot[slot.slotIndex];
                                   const isSlotHovered = dragOverSlot?.date === dateStr && dragOverSlot?.slot === slot.slotIndex;
@@ -2011,6 +2138,9 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                               draggable={!isDraggedItem && !isTouchDevice.current}
                                               onDragStart={(e) => !isDraggedItem && handleDragStart(e, jobInSlot.id)}
                                               onClick={isTouchDevice.current ? () => handleJobTap(jobInSlot.id) : undefined}
+                                              onTouchStart={isTouchDevice.current ? (e) => handleJobTouchStart(e, jobInSlot.id) : undefined}
+                                              onTouchMove={isTouchDevice.current ? handleJobTouchMove : undefined}
+                                              onTouchEnd={isTouchDevice.current ? handleJobTouchEnd : undefined}
                                               className={`flex-1 rounded px-3 py-2 transition-all text-xs group min-h-[40px] h-[40px] overflow-hidden flex items-center select-none ${
                                                 isCutItem
                                                   ? 'bg-yellow-100 border-2 border-yellow-500 shadow-lg'
@@ -2020,6 +2150,11 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                                   ? 'bg-gray-100 border-2 border-gray-400 animate-pulse cursor-move hover:shadow-md'
                                                   : 'bg-white border border-gray-300 cursor-move hover:shadow-md active:bg-blue-50 active:border-blue-400'
                                               }`}
+                                              style={{
+                                                userSelect: 'none',
+                                                WebkitUserSelect: 'none',
+                                                WebkitTouchCallout: 'none',
+                                              }}
                                             >
                                               <div className="flex items-center justify-between gap-1 w-full overflow-hidden">
                                                 <div className="flex-1 min-w-0">
@@ -2041,7 +2176,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                                   )}
                                                   {isCutItem && isTouchDevice.current && (
                                                     <div className="text-xs text-yellow-700 font-medium mt-0.5">
-                                                      Double-tap slot to paste
+                                                      Double-tap slot to paste or hold to cancel
                                                     </div>
                                                   )}
                                                 </div>
