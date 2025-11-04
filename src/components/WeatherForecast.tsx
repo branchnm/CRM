@@ -332,6 +332,24 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
   // Desktop drag auto-scroll disabled for mobile performance
   // Touch scrolling works naturally on mobile devices
   
+  // Helper function to calculate scheduled time for a job based on its slot
+  const getScheduledTimeForJob = (jobId: string, dateStr: string): string => {
+    const slot = jobTimeSlots.get(jobId);
+    if (slot === undefined) return '';
+    
+    const dayStartHour = dayStartTimes.get(dateStr) || 4;
+    const slotOffset = Math.max(0, dayStartHour - 5);
+    const adjustedSlot = slot + slotOffset;
+    
+    // Calculate hour from slot (slot 0 = 5am)
+    const hour = 5 + adjustedSlot;
+    
+    // Format time
+    if (hour > 12) return `${hour - 12} PM`;
+    if (hour === 12) return '12 PM';
+    return `${hour} AM`;
+  };
+  
   // Helper function to get weather icon based on description, precipitation, and time of day
   const getWeatherIcon = (description: string, rainChance: number, rainAmount?: number, hour24?: number) => {
     const desc = description.toLowerCase();
@@ -2491,9 +2509,11 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                   const weatherIndex = actualIndex + dayOffset;
                   const weatherForDay = weatherData?.daily[weatherIndex];
                   
-                  // Get jobs scheduled for this day (excluding jobs that are being moved to another day)
+                  // Get jobs scheduled for this day (including completed jobs to show greyed out)
                   const scheduledJobsForDay = jobs.filter(j => {
-                    if (j.date !== dateStr || j.status !== 'scheduled') return false;
+                    if (j.date !== dateStr) return false;
+                    // Include both scheduled and completed jobs
+                    if (j.status !== 'scheduled' && j.status !== 'completed') return false;
                     // Exclude jobs that have been reassigned to a different day
                     if (jobAssignments.has(j.id) && jobAssignments.get(j.id) !== dateStr) return false;
                     return true;
@@ -2901,19 +2921,23 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                           const isScheduled = scheduledJobsForDay.some(j => j.id === jobInSlot.id);
                                           const isAssigned = assignedJobs.some(j => j.id === jobInSlot.id);
                                           const isDraggedItem = jobInSlot.id === draggedJobId;
+                                          const isCompleted = jobInSlot.status === 'completed';
+                                          const scheduledTime = getScheduledTimeForJob(jobInSlot.id, dateStr);
                                           
                                           const isCutItem = jobInSlot.id === cutJobId;
                                           
                                           return (
                                             <div
-                                              draggable={!isDraggedItem && !isTouchDevice.current}
-                                              onDragStart={(e) => !isDraggedItem && handleDragStart(e, jobInSlot.id)}
-                                              onClick={isTouchDevice.current ? () => handleJobTap(jobInSlot.id) : undefined}
-                                              onTouchStart={isTouchDevice.current ? (e) => handleJobTouchStart(e, jobInSlot.id) : undefined}
-                                              onTouchMove={isTouchDevice.current ? handleJobTouchMove : undefined}
-                                              onTouchEnd={isTouchDevice.current ? handleJobTouchEnd : undefined}
+                                              draggable={!isDraggedItem && !isTouchDevice.current && !isCompleted}
+                                              onDragStart={(e) => !isDraggedItem && !isCompleted && handleDragStart(e, jobInSlot.id)}
+                                              onClick={isTouchDevice.current && !isCompleted ? () => handleJobTap(jobInSlot.id) : undefined}
+                                              onTouchStart={isTouchDevice.current && !isCompleted ? (e) => handleJobTouchStart(e, jobInSlot.id) : undefined}
+                                              onTouchMove={isTouchDevice.current && !isCompleted ? handleJobTouchMove : undefined}
+                                              onTouchEnd={isTouchDevice.current && !isCompleted ? handleJobTouchEnd : undefined}
                                               className={`flex-1 rounded px-3 py-2 transition-all text-xs group min-h-[40px] h-[40px] overflow-hidden flex items-center select-none ${
-                                                isCutItem
+                                                isCompleted
+                                                  ? 'bg-gray-100 border border-gray-300 opacity-60 cursor-default'
+                                                  : isCutItem
                                                   ? 'bg-yellow-100 border-2 border-yellow-500 shadow-lg'
                                                   : isDraggedItem
                                                   ? 'bg-blue-100 border-2 border-blue-600 shadow-lg scale-105'
@@ -2929,10 +2953,13 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                             >
                                               <div className="flex items-center justify-between gap-1 w-full overflow-hidden">
                                                 <div className="flex-1 min-w-0">
-                                                  <div className="font-semibold text-gray-900 truncate w-full">
+                                                  <div className={`font-semibold truncate w-full ${isCompleted ? 'text-gray-500 line-through' : 'text-gray-900'}`}>
                                                     {customer?.name}
                                                     {isCutItem && isTouchDevice.current && (
                                                       <span className="ml-1 text-xs text-yellow-700">✂️ Cut</span>
+                                                    )}
+                                                    {isCompleted && (
+                                                      <span className="ml-1 text-xs text-green-600">✓</span>
                                                     )}
                                                   </div>
                                                   {!isDraggedItem && isAssigned && (
@@ -2941,7 +2968,8 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                                     </div>
                                                   )}
                                                   {!isDraggedItem && !isAssigned && !isCutItem && (
-                                                    <div className="text-xs text-gray-600 truncate">
+                                                    <div className={`text-xs truncate ${isCompleted ? 'text-gray-400' : 'text-gray-600'}`}>
+                                                      {scheduledTime && <span className="font-medium">{scheduledTime} • </span>}
                                                       ${customer?.price} • 60 min
                                                     </div>
                                                   )}
@@ -2951,7 +2979,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                                     </div>
                                                   )}
                                                 </div>
-                                                {isScheduled && !isDraggedItem && (
+                                                {isScheduled && !isDraggedItem && !isCompleted && (
                                                   <button
                                                     onClick={() => unassignJob(jobInSlot.id)}
                                                     className="opacity-0 group-hover:opacity-100 text-red-600 hover:text-red-800 transition-opacity shrink-0 w-4 h-4 flex items-center justify-center"

@@ -694,8 +694,12 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
     if (!job) return;
 
     try {
-      // Calculate scheduled time from time slot (6am + slot hours, since slots now start at 6am)
-      const scheduledTime = timeSlot !== undefined ? `${6 + timeSlot}:00` : undefined;
+      // Calculate scheduled time from time slot
+      // Time slots start at 5am, but may be offset by day start time
+      const dayStartHour = dayStartTimes.get(newDate) || 4;
+      const slotOffset = Math.max(0, dayStartHour - 5);
+      const actualHour = 5 + (timeSlot || 0) + slotOffset;
+      const scheduledTime = timeSlot !== undefined ? `${actualHour}:00` : undefined;
       
       await updateJob({ ...job, date: newDate, scheduledTime });
       
