@@ -289,6 +289,15 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
     const saved = localStorage.getItem('dayStartTimes');
     return saved ? new Map(JSON.parse(saved)) : new Map();
   }); // date -> start hour (6-17 for 6am-5pm)
+  
+  const [dayEndTimes, setDayEndTimes] = useState<Map<string, number>>(() => {
+    const saved = localStorage.getItem('dayEndTimes');
+    return saved ? new Map(JSON.parse(saved)) : new Map();
+  }); // date -> end hour (8-18 for 8am-6pm)
+  
+  // Track days with overnight rain from previous night (for visual "wet grass" indicator)
+  const [daysWithOvernightRain, setDaysWithOvernightRain] = useState<Set<string>>(new Set());
+  
   const [draggedJobId, setDraggedJobId] = useState<string | null>(null);
   const [dragOverDay, setDragOverDay] = useState<string | null>(null);
   const [dragOverSlot, setDragOverSlot] = useState<{ date: string; slot: number } | null>(null);
@@ -496,8 +505,11 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
     }
 
     const moveSuggestions: Array<{
-      jobId: string;
-      jobName: string;
+      jobId?: string;
+      jobIds?: string[];
+      jobName?: string;
+      jobNames?: string[];
+      jobCount?: number;
       currentDate: string;
       suggestedDate: string;
       reason: string;
@@ -508,8 +520,11 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
       date: string;
       currentStartTime: number;
       suggestedStartTime: number;
+      suggestedEndTime?: number;
       reason: string;
       jobCount: number;
+      type?: 'delay' | 'start-early';
+      lastGoodHour?: number;
     }> = [];
 
     // Analyze each day in the 5-day forecast
@@ -534,7 +549,15 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
     // Identify bad and good weather days
     const badWeatherDays: string[] = [];
     const goodWeatherDays: string[] = [];
-    const partialBadWeatherDays: Map<string, { clearsByHour: number; morningRain: boolean }> = new Map();
+    const partialBadWeatherDays: Map<string, { 
+      clearsByHour: number; 
+      morningRain: boolean;
+      eveningRain?: boolean;
+      previousNightRain?: boolean;
+      suggestion?: 'delay' | 'start-early';
+      lastGoodHour?: number;
+    }> = new Map();
+    const overnightRainDays = new Set<string>(); // Track days with previous night rain
 
     forecast.forEach((day, index) => {
       const dateStr = forecastDates[index];
@@ -627,28 +650,41 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
       if (index > 0) {
         const prevDay = forecast[index - 1];
         if (prevDay?.hourlyForecasts && prevDay.hourlyForecasts.length > 0) {
-          const lateNightRain = prevDay.hourlyForecasts.slice(-2).some((f: any) => {
+          // Only check actual late night hours (after 5 PM / 17:00)
+          const lateNightForecasts = prevDay.hourlyForecasts.filter((f: any) => {
+            const hour = f.hour24 || 0;
+            return hour >= 17; // 5 PM or later
+          });
+          
+          // Check if there was ACTUAL heavy rain in late night hours
+          const lateNightRain = lateNightForecasts.length > 0 && lateNightForecasts.some((f: any) => {
             const amount = f.rainAmount || 0;
             const desc = f.description.toLowerCase();
-            return amount > 2 || desc.includes('heavy') || desc.includes('thunder');
+            return amount > 3 || desc.includes('heavy') || desc.includes('thunder');
           });
 
           if (lateNightRain && !partialBadWeatherDays.has(dateStr) && !badWeatherDays.includes(dateStr)) {
-            // Moderate/heavy rain the night before - grass will be wet in morning
+            // Heavy rain the night before - grass will be wet in morning
+            // Find when it's safe to start (give grass time to dry)
+            const dryingHour = 10; // Wait until 10 AM for grass to dry after overnight rain
+            
+            // Track this day as having overnight rain for visual indicator
+            overnightRainDays.add(dateStr);
+            
             partialBadWeatherDays.set(dateStr, {
-              clearsByHour: 10, // Wait until 10 AM for grass to dry
+              clearsByHour: dryingHour,
               morningRain: false,
               eveningRain: false,
               previousNightRain: true,
               suggestion: 'delay'
             });
-            console.log(`🌙 PREVIOUS NIGHT RAIN: ${dateStr} - grass wet in morning, suggest starting at 10:00 AM`);
+            console.log(`🌙 PREVIOUS NIGHT RAIN: ${dateStr} - heavy rain overnight (${lateNightForecasts.map(f => f.rainAmount).join(', ')}mm), grass wet in morning, suggest starting at ${dryingHour}:00 AM`);
           }
         }
       }
     });
 
-    // Find jobs on bad weather days and suggest moving them
+    // Find jobs on bad weather days and suggest moving them (combine by day)
     badWeatherDays.forEach(badDate => {
       const jobsOnBadDay = jobs.filter(j => j.date === badDate && j.status === 'scheduled');
       
@@ -666,57 +702,56 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
         // Calculate workload for each good weather day
         const workloadByDay = new Map<string, number>();
         goodWeatherDays.forEach(goodDay => {
-          const jobsOnDay = jobs.filter(j => j.date === goodDay && j.status === 'scheduled').length;
-          workloadByDay.set(goodDay, jobsOnDay);
+          const jobsOnGoodDay = jobs.filter(j => j.date === goodDay && j.status === 'scheduled').length;
+          workloadByDay.set(goodDay, jobsOnGoodDay);
         });
 
-        // For each job, suggest the least busy good weather day (prefer future days)
-        jobsOnBadDay.forEach(job => {
-          const customer = customers.find(c => c.id === job.customerId);
-          const jobName = customer ? customer.name : 'Unknown Customer';
+        // Find good weather days after the bad date
+        const futureDays = goodWeatherDays.filter(d => d > badDate);
+        
+        // If no future days, use any good day
+        const candidateDays = futureDays.length > 0 ? futureDays : goodWeatherDays;
 
-          // Find good weather days after the bad date
-          const futureDays = goodWeatherDays.filter(d => d > badDate);
-          
-          // If no future days, use any good day
-          const candidateDays = futureDays.length > 0 ? futureDays : goodWeatherDays;
+        // Find the least busy day among candidates
+        let suggestedDate = candidateDays[0];
+        let minWorkload = workloadByDay.get(suggestedDate) || 0;
 
-          // Find the least busy day among candidates
-          let suggestedDate = candidateDays[0];
-          let minWorkload = workloadByDay.get(suggestedDate) || 0;
-
-          candidateDays.forEach(day => {
-            const workload = workloadByDay.get(day) || 0;
-            if (workload < minWorkload) {
-              minWorkload = workload;
-              suggestedDate = day;
-            }
-          });
-
-          if (suggestedDate) {
-            const suggestionObj = {
-              jobId: job.id,
-              jobName,
-              currentDate: badDate,
-              suggestedDate,
-              reason: hasHeavyRain 
-                ? 'Heavy rain/thunderstorm expected all day'
-                : 'Moderate rain expected throughout the day',
-              weatherSeverity: hasHeavyRain ? 'heavy' : 'moderate'
-            };
-            
-            console.log(`📌 CREATING SUGGESTION for ${jobName}:`, {
-              currentDate: badDate,
-              suggestedDate: suggestedDate,
-              jobOriginalDate: job.date
-            });
-            
-            moveSuggestions.push(suggestionObj as any);
-            
-            // Update workload for suggested day
-            workloadByDay.set(suggestedDate, (workloadByDay.get(suggestedDate) || 0) + 1);
+        candidateDays.forEach(day => {
+          const workload = workloadByDay.get(day) || 0;
+          if (workload < minWorkload) {
+            minWorkload = workload;
+            suggestedDate = day;
           }
         });
+
+        if (suggestedDate) {
+          // Create a SINGLE combined suggestion for all jobs on this bad weather day
+          const suggestionObj = {
+            jobIds: jobsOnBadDay.map(j => j.id), // Array of all job IDs
+            jobNames: jobsOnBadDay.map(j => {
+              const customer = customers.find(c => c.id === j.customerId);
+              return customer ? customer.name : 'Unknown Customer';
+            }),
+            currentDate: badDate,
+            suggestedDate,
+            reason: hasHeavyRain 
+              ? 'Heavy rain/thunderstorm expected all day'
+              : 'Moderate rain expected throughout the day',
+            weatherSeverity: hasHeavyRain ? 'heavy' : 'moderate',
+            jobCount: jobsOnBadDay.length
+          };
+          
+          console.log(`📌 CREATING COMBINED SUGGESTION for ${jobsOnBadDay.length} jobs on ${badDate}:`, {
+            currentDate: badDate,
+            suggestedDate: suggestedDate,
+            jobCount: jobsOnBadDay.length
+          });
+          
+          moveSuggestions.push(suggestionObj as any);
+          
+          // Update workload for suggested day
+          workloadByDay.set(suggestedDate, (workloadByDay.get(suggestedDate) || 0) + jobsOnBadDay.length);
+        }
       }
     });
 
@@ -785,18 +820,25 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
               });
             }
 
-            startTimeSuggestions.push({
-              date: dateStr,
-              currentStartTime,
-              suggestedStartTime: weatherInfo.clearsByHour,
-              reason,
-              jobCount: Math.min(jobsOnDay.length, maxJobsAfterDelay), // Only jobs that will fit
-              type: 'delay'
-            });
+            // Only suggest start time adjustment if user hasn't already adjusted it
+            // (If currentStartTime >= clearsByHour, they've already accepted the delay)
+            if (currentStartTime < weatherInfo.clearsByHour) {
+              startTimeSuggestions.push({
+                date: dateStr,
+                currentStartTime,
+                suggestedStartTime: weatherInfo.clearsByHour,
+                reason,
+                jobCount: Math.min(jobsOnDay.length, maxJobsAfterDelay), // Only jobs that will fit
+                type: 'delay'
+              });
+            }
           }
         } else if (weatherInfo.suggestion === 'start-early') {
           // Evening rain - suggest starting earlier OR moving jobs
           const lastGoodHour = weatherInfo.lastGoodHour || 14;
+          
+          // Check if user already set a custom end time for this day
+          const hasCustomEndTime = dayEndTimes.has(dateStr);
           
           // Calculate how many jobs can fit before rain starts
           // From 6 AM to lastGoodHour
@@ -846,15 +888,19 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
             });
           }
           
-          startTimeSuggestions.push({
-            date: dateStr,
-            currentStartTime,
-            suggestedStartTime: 6, // Start at 6 AM
-            reason: `Rain expected later in the day (around ${lastGoodHour}:00). Start early to finish before rain`,
-            jobCount: Math.min(jobsOnDay.length, maxJobsBeforeRain), // Only jobs that will fit
-            lastGoodHour,
-            type: 'start-early'
-          });
+          // Only suggest end time adjustment if user hasn't already set one
+          if (!hasCustomEndTime) {
+            startTimeSuggestions.push({
+              date: dateStr,
+              currentStartTime,
+              suggestedStartTime: 6, // Start at 6 AM
+              suggestedEndTime: lastGoodHour, // End before rain
+              reason: `Rain expected at ${lastGoodHour}:00. Limit work to ${availableHours} hours (6 AM - ${lastGoodHour}:00)`,
+              jobCount: Math.min(jobsOnDay.length, maxJobsBeforeRain), // Only jobs that will fit
+              lastGoodHour,
+              type: 'start-early'
+            });
+          }
         }
       }
     });
@@ -867,13 +913,14 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
       startTimeSuggestions
     });
 
-    return { moveSuggestions, startTimeSuggestions };
-  }, [weatherData, jobs, customers, dayStartTimes]);
+    return { moveSuggestions, startTimeSuggestions, overnightRainDays };
+  }, [weatherData, jobs, customers, dayStartTimes, dayEndTimes]);
 
   // State for weather suggestions
   const [weatherSuggestions, setWeatherSuggestions] = useState<ReturnType<typeof getWeatherBasedSuggestions>>({
     moveSuggestions: [],
-    startTimeSuggestions: []
+    startTimeSuggestions: [],
+    overnightRainDays: new Set()
   });
   const [showSuggestions, setShowSuggestions] = useState(true);
 
@@ -881,25 +928,48 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
   useEffect(() => {
     const suggestions = getWeatherBasedSuggestions();
     setWeatherSuggestions(suggestions);
+    setDaysWithOvernightRain(suggestions.overnightRainDays || new Set());
     setShowSuggestions(suggestions.moveSuggestions.length > 0 || suggestions.startTimeSuggestions.length > 0);
   }, [getWeatherBasedSuggestions]);
 
-  // Accept individual move suggestion
-  const acceptMoveSuggestion = useCallback((jobId: string, newDate: string) => {
+  // Accept individual move suggestion (handles both single job and multiple jobs)
+  const acceptMoveSuggestion = useCallback((suggestion: any, newDate: string) => {
     if (!onRescheduleJob) return;
-    onRescheduleJob(jobId, newDate);
+    
+    // Handle both single job (jobId) and multiple jobs (jobIds)
+    const jobIds = suggestion.jobIds || [suggestion.jobId];
+    
+    jobIds.forEach((jobId: string) => {
+      onRescheduleJob(jobId, newDate);
+    });
     
     // Remove this suggestion from the list
-    setWeatherSuggestions(prev => ({
-      ...prev,
-      moveSuggestions: prev.moveSuggestions.filter(s => s.jobId !== jobId)
-    }));
+    setWeatherSuggestions(prev => {
+      const updated = {
+        ...prev,
+        moveSuggestions: prev.moveSuggestions.filter(s => {
+          // For single job suggestions
+          if (s.jobId) return s.jobId !== suggestion.jobId;
+          // For combined suggestions
+          if (s.jobIds) return s.currentDate !== suggestion.currentDate;
+          return true;
+        })
+      };
+      
+      // Hide suggestions panel if no suggestions left
+      if (updated.moveSuggestions.length === 0 && updated.startTimeSuggestions.length === 0) {
+        setShowSuggestions(false);
+      }
+      
+      return updated;
+    });
     
-    toast.success('Job rescheduled to better weather day');
+    const jobCount = jobIds.length;
+    toast.success(`${jobCount} job${jobCount !== 1 ? 's' : ''} rescheduled to better weather day`);
   }, [onRescheduleJob]);
 
   // Accept individual start time suggestion
-  const acceptStartTimeSuggestion = useCallback((date: string, newStartTime: number) => {
+  const acceptStartTimeSuggestion = useCallback((date: string, newStartTime: number, newEndTime?: number) => {
     // Update the local dayStartTimes state
     setDayStartTimes(prev => {
       const newMap = new Map(prev);
@@ -907,19 +977,43 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
       return newMap;
     });
     
+    // Update end time if provided (for "End Early" suggestions)
+    if (newEndTime !== undefined) {
+      setDayEndTimes(prev => {
+        const newMap = new Map(prev);
+        newMap.set(date, newEndTime);
+        return newMap;
+      });
+    }
+    
     // Notify parent component of start time change
     if (onStartTimeChange) {
       onStartTimeChange(date, newStartTime);
     }
     
     // Remove this suggestion from the list
-    setWeatherSuggestions(prev => ({
-      ...prev,
-      startTimeSuggestions: prev.startTimeSuggestions.filter(s => s.date !== date)
-    }));
+    setWeatherSuggestions(prev => {
+      const updated = {
+        ...prev,
+        startTimeSuggestions: prev.startTimeSuggestions.filter(s => s.date !== date)
+      };
+      
+      // Hide suggestions panel if no suggestions left
+      if (updated.moveSuggestions.length === 0 && updated.startTimeSuggestions.length === 0) {
+        setShowSuggestions(false);
+      }
+      
+      return updated;
+    });
     
-    const timeLabel = newStartTime > 12 ? `${newStartTime - 12} PM` : newStartTime === 12 ? '12 PM' : `${newStartTime} AM`;
-    toast.success(`Start time adjusted to ${timeLabel}`);
+    const startLabel = newStartTime > 12 ? `${newStartTime - 12} PM` : newStartTime === 12 ? '12 PM' : `${newStartTime} AM`;
+    const endLabel = newEndTime ? (newEndTime > 12 ? `${newEndTime - 12} PM` : newEndTime === 12 ? '12 PM' : `${newEndTime} AM`) : null;
+    
+    if (endLabel) {
+      toast.success(`Schedule adjusted: ${startLabel} - ${endLabel}`);
+    } else {
+      toast.success(`Start time adjusted to ${startLabel}`);
+    }
   }, [onStartTimeChange]);
 
   // Accept all move suggestions and move jobs
@@ -927,18 +1021,31 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
     // Move jobs to different days
     weatherSuggestions.moveSuggestions.forEach(suggestion => {
       if (onRescheduleJob) {
-        onRescheduleJob(suggestion.jobId, suggestion.suggestedDate);
+        // Handle both single job (jobId) and multiple jobs (jobIds)
+        const jobIds = suggestion.jobIds || [suggestion.jobId];
+        jobIds.forEach((jobId: string) => {
+          onRescheduleJob(jobId, suggestion.suggestedDate);
+        });
       }
     });
 
     // Adjust start times for partial bad weather days
     weatherSuggestions.startTimeSuggestions.forEach(suggestion => {
-      // Update local state
+      // Update local start time state
       setDayStartTimes(prev => {
         const newMap = new Map(prev);
         newMap.set(suggestion.date, suggestion.suggestedStartTime);
         return newMap;
       });
+      
+      // Update end time if provided
+      if (suggestion.suggestedEndTime !== undefined) {
+        setDayEndTimes(prev => {
+          const newMap = new Map(prev);
+          newMap.set(suggestion.date, suggestion.suggestedEndTime);
+          return newMap;
+        });
+      }
       
       // Notify parent
       if (onStartTimeChange) {
@@ -969,6 +1076,11 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
   useEffect(() => {
     localStorage.setItem('dayStartTimes', JSON.stringify(Array.from(dayStartTimes.entries())));
   }, [dayStartTimes]);
+  
+  // Save day end times to localStorage
+  useEffect(() => {
+    localStorage.setItem('dayEndTimes', JSON.stringify(Array.from(dayEndTimes.entries())));
+  }, [dayEndTimes]);
 
   // Load weather based on customer job locations (not starting address)
   useEffect(() => {
@@ -2007,12 +2119,22 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                       {/* Job Info */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="font-medium text-slate-900 text-sm truncate">{suggestion.jobName}</span>
+                          {/* Show job count if multiple jobs, or job name if single */}
+                          <span className="font-medium text-slate-900 text-sm truncate">
+                            {suggestion.jobCount ? `${suggestion.jobCount} Jobs` : suggestion.jobName}
+                          </span>
                           {suggestion.weatherSeverity === 'heavy' && (
                             <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full">Heavy Rain</span>
                           )}
                         </div>
                         <p className="text-xs text-slate-500 mb-2">{suggestion.reason}</p>
+                        
+                        {/* Show list of job names if multiple */}
+                        {suggestion.jobNames && suggestion.jobNames.length > 1 && (
+                          <p className="text-xs text-slate-600 mb-2">
+                            {suggestion.jobNames.join(', ')}
+                          </p>
+                        )}
                         
                         {/* Current Day Card Reference */}
                         <div className="flex items-center gap-2 text-xs">
@@ -2030,7 +2152,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
 
                       {/* Action Button */}
                       <Button
-                        onClick={() => acceptMoveSuggestion(suggestion.jobId, suggestion.suggestedDate)}
+                        onClick={() => acceptMoveSuggestion(suggestion, suggestion.suggestedDate)}
                         size="sm"
                         className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 h-8 whitespace-nowrap"
                       >
@@ -2071,7 +2193,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                             <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">Delay Start</span>
                           )}
                           {suggestion.type === 'start-early' && (
-                            <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">Start Early</span>
+                            <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">End Early</span>
                           )}
                         </div>
                         <p className="text-xs text-slate-500 mb-2">{suggestion.reason}</p>
@@ -2089,9 +2211,9 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                         </div>
 
                         {/* Time Change */}
-                        <div className="flex items-center gap-2 text-xs">
+                        <div className="flex items-center gap-2 text-xs flex-wrap">
                           <span className="text-slate-600">
-                            {suggestion.type === 'delay' ? 'Delay from:' : 'Change from:'}
+                            {suggestion.type === 'delay' ? 'Delay from:' : 'Adjust to:'}
                           </span>
                           <span className="px-2 py-1 bg-slate-100 text-slate-700 rounded font-medium">
                             {suggestion.currentStartTime}:00 {suggestion.currentStartTime < 12 ? 'AM' : 'PM'}
@@ -2099,17 +2221,24 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                           <span className="text-slate-400">→</span>
                           <span className="px-2 py-1 bg-green-50 text-green-700 rounded border border-green-200 font-medium">
                             {suggestion.suggestedStartTime}:00 {suggestion.suggestedStartTime < 12 ? 'AM' : 'PM'}
+                            {suggestion.suggestedEndTime && (
+                              <> - {suggestion.suggestedEndTime}:00 {suggestion.suggestedEndTime < 12 ? 'AM' : 'PM'}</>
+                            )}
                           </span>
                         </div>
                       </div>
 
                       {/* Action Button */}
                       <Button
-                        onClick={() => acceptStartTimeSuggestion(suggestion.date, suggestion.suggestedStartTime)}
+                        onClick={() => acceptStartTimeSuggestion(
+                          suggestion.date, 
+                          suggestion.suggestedStartTime,
+                          suggestion.suggestedEndTime
+                        )}
                         size="sm"
                         className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 h-8 whitespace-nowrap"
                       >
-                        {suggestion.type === 'delay' ? 'Delay Start' : 'Start Early'}
+                        {suggestion.type === 'delay' ? 'Delay Start' : 'End Early'}
                       </Button>
                     </div>
                   </div>
@@ -2558,6 +2687,9 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                             {/* 5am Weather Symbol with Start Time Selector */}
                             <div className="flex items-center gap-1 mb-1">
                               {weatherForDay && (() => {
+                                // Check if this day has overnight rain from previous night
+                                const hasOvernightRain = daysWithOvernightRain.has(dateStr);
+                                
                                 // Find the forecast closest to 5 AM (or 6 AM start time)
                                 let forecast = null;
                                 if (weatherForDay.hourlyForecasts && weatherForDay.hourlyForecasts.length > 0) {
@@ -2589,9 +2721,23 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                 );
                                 
                                 return (
-                                  <div className="flex flex-col items-center gap-0.5 w-10 shrink-0">
-                                    <HourIcon className={`w-6 h-6 ${hourColor} stroke-[1.5]`} />
-                                    <span className="text-[10px] text-gray-500 font-medium whitespace-nowrap">5 AM</span>
+                                  <div className="flex items-center gap-1">
+                                    <div className="flex flex-col items-center gap-0.5 w-10 shrink-0">
+                                      <HourIcon className={`w-6 h-6 ${hourColor} stroke-[1.5]`} />
+                                      <span className="text-[10px] text-gray-500 font-medium whitespace-nowrap">5 AM</span>
+                                    </div>
+                                    {/* Wet Grass Indicator for Overnight Rain */}
+                                    {hasOvernightRain && (
+                                      <div className="flex flex-col items-center gap-0.5 ml-0.5">
+                                        <div className="relative w-6 h-6 flex items-center justify-center bg-blue-50 rounded-full border border-blue-200">
+                                          {/* Droplet icon to indicate wet conditions */}
+                                          <svg className="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fillRule="evenodd" d="M10 2a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0110 2zM10 15a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0110 15zM10 7a3 3 0 100 6 3 3 0 000-6zM15.657 5.404a.75.75 0 10-1.06-1.06l-1.061 1.06a.75.75 0 001.06 1.06l1.06-1.06zM6.464 14.596a.75.75 0 10-1.06-1.06l-1.06 1.06a.75.75 0 001.06 1.06l1.06-1.06zM18 10a.75.75 0 01-.75.75h-1.5a.75.75 0 010-1.5h1.5A.75.75 0 0118 10zM5 10a.75.75 0 01-.75.75h-1.5a.75.75 0 010-1.5h1.5A.75.75 0 015 10zM14.596 15.657a.75.75 0 001.06-1.06l-1.06-1.061a.75.75 0 10-1.06 1.06l1.06 1.06zM5.404 6.464a.75.75 0 001.06-1.06l-1.06-1.06a.75.75 0 10-1.061 1.06l1.06 1.06z" clipRule="evenodd" />
+                                          </svg>
+                                        </div>
+                                        <span className="text-[9px] text-blue-700 font-bold whitespace-nowrap tracking-tight">WET</span>
+                                      </div>
+                                    )}
                                   </div>
                                 );
                               })()}
