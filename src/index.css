@@ -249,7 +249,19 @@ html, body {
     min-width: 44px;
   }
   
-  /* TikTok-style snap scrolling for day cards on mobile - DISABLED per user request */
-  /* Removed fixed height scroll container to let cards flow naturally */
+  /* Scroll-snap for day cards when multiple are visible (tablet/desktop) */
+  @media (min-width: 640px) {
+    .forecast-grid-container {
+      scroll-snap-type: y mandatory;
+      scroll-padding: 1rem;
+      overflow-y: auto;
+      max-height: calc(100vh - 200px);
+    }
+    
+    .forecast-day-card {
+      scroll-snap-align: start;
+      scroll-snap-stop: normal;
+    }
+  }
 }
 

@@ -2529,7 +2529,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
               )}
 
               {/* Flex wrapper - no special mobile treatment */}
-              <div className="flex-1 overflow-x-hidden">
+              <div className="flex-1 overflow-x-hidden forecast-grid-container">
                 {/* Desktop Instructions */}
                 {!isMobile && isTouchDevice.current && cutJobId && (
                   <div className="p-2 bg-yellow-50 border-2 border-yellow-400 rounded-lg mb-2">
@@ -2607,7 +2607,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                       onDragOver={(e) => handleDayCardDragOver(e, dateStr)}
                       onDragLeave={handleDragLeave}
                       onDrop={(e) => handleDrop(e, dateStr)}
-                      className={`relative ${
+                      className={`forecast-day-card relative ${
                         isMobile ? 'mb-8' : ''
                       } shadow-sm`}
                       style={{
@@ -2669,12 +2669,11 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                     >
                       {/* Day Header - Improved with work/drive time stats */}
                       <div className="px-4 py-3 bg-white border-b border-gray-200">
+                        {/* Day and Date on same line with rain badge */}
                         <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-3">
-                            <div className="flex flex-col items-start">
-                              <div className="font-bold text-xl text-gray-900">{dayName}</div>
-                              <div className="text-sm text-gray-500">{dayDate}</div>
-                            </div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-xl text-gray-900">{dayName}</span>
+                            <span className="text-base text-gray-500">{dayDate}</span>
                           </div>
                           
                           {/* Rain Chance Badge */}
@@ -2686,9 +2685,9 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                           )}
                         </div>
                         
-                        {/* Work Stats Row */}
+                        {/* Work Stats Row - Centered */}
                         {totalJobs > 0 && (
-                          <div className="flex items-center gap-4 text-sm">
+                          <div className="flex items-center justify-center gap-4 text-sm">
                             <div className="flex items-center gap-2 text-gray-700">
                               <span className="font-bold text-lg text-blue-600">{totalJobs}</span>
                               <span className="text-gray-600 font-medium">job{totalJobs !== 1 ? 's' : ''}</span>
