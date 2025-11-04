@@ -1185,14 +1185,14 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
                         <>
                           <Button
                             onClick={() => handleStartJobClick(job)}
-                            className="bg-blue-600 hover:bg-blue-700 flex-1 h-8 text-xs"
+                            className="bg-blue-600 hover:bg-blue-700 flex-1 h-9 text-xs px-2"
                           >
                             <Play className="h-3 w-3 mr-1" />
                             Start
                           </Button>
                           <Button
                             variant="outline"
-                            className="flex-1 h-8 text-xs"
+                            className="flex-1 h-9 text-xs px-2 border-blue-300 text-blue-700 hover:bg-blue-50 hover:border-blue-400"
                             onClick={() => window.open(`https://maps.google.com/?q=${encodeURIComponent(customer.address)}`, '_blank')}
                           >
                             <Navigation className="h-3 w-3 mr-1" />
@@ -1203,10 +1203,10 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
                       {job.status === 'in-progress' && (
                         <>
                           {/* Live Timer Display */}
-                          <div className="flex-1 bg-blue-50 border border-blue-200 rounded px-2 py-1.5 text-center">
+                          <div className="flex-1 bg-blue-50 border border-blue-200 rounded px-2 py-2 text-center min-w-0">
                             <div className="flex items-center justify-center gap-1.5">
-                              <StopCircle className="h-3 w-3 text-blue-600 animate-pulse" />
-                              <span className="text-xs text-blue-800">Running</span>
+                              <StopCircle className="h-3 w-3 text-blue-600 animate-pulse shrink-0" />
+                              <span className="text-xs text-blue-800 whitespace-nowrap">Running</span>
                               <span className="text-xs text-blue-600 font-semibold ml-1">
                                 {formatElapsedTime(elapsedTime[job.id] || 0)}
                               </span>
@@ -1221,49 +1221,49 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
                                   setCompletionMessage(null);
                                   setSelectedTime(null);
                                 }}
-                                className="bg-blue-600 hover:bg-blue-700 flex-1 h-8 text-xs"
+                                className="bg-blue-600 hover:bg-blue-700 h-9 text-xs px-3 shrink-0"
                               >
                                 <CheckCircle className="h-3 w-3 mr-1" />
                                 Complete
                               </Button>
                             </DialogTrigger>
-                            <DialogContent>
+                            <DialogContent className="max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto">
                               <DialogHeader>
-                                <DialogTitle>Complete Job - {customer.name}</DialogTitle>
-                                <DialogDescription>
+                                <DialogTitle className="text-blue-900">Complete Job - {customer.name}</DialogTitle>
+                                <DialogDescription className="text-blue-700">
                                   Timer: {formatElapsedTime(elapsedTime[job.id] || 0)}
                                 </DialogDescription>
                               </DialogHeader>
                               <div className="space-y-4 mt-4">
                                 {/* Auto-filled time from timer */}
-                                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                                <div className="p-3 sm:p-4 bg-blue-50 border border-blue-200 rounded-lg">
                                   <div className="flex items-center justify-between mb-2">
-                                    <Label>Tracked Time</Label>
-                                    <Badge className="bg-blue-600">Auto-tracked</Badge>
+                                    <Label className="text-blue-900">Tracked Time</Label>
+                                    <Badge className="bg-blue-600 text-white">Auto-tracked</Badge>
                                   </div>
                                   <div className="flex items-center gap-2">
                                     <Clock className="h-5 w-5 text-blue-600" />
-                                    <span className="text-blue-800">{formatElapsedTime(elapsedTime[job.id] || 0)}</span>
+                                    <span className="text-blue-800 font-medium">{formatElapsedTime(elapsedTime[job.id] || 0)}</span>
                                   </div>
                                 </div>
 
                                 {/* Time selection */}
                                 <div>
-                                  <Label className="text-gray-700 mb-3 block">Select time:</Label>
-                                  <div className="grid grid-cols-3 gap-2">
+                                  <Label className="text-blue-900 mb-3 block">Select time:</Label>
+                                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                                     <Button
                                       variant={selectedTime === null ? 'default' : 'outline'}
                                       onClick={() => setSelectedTime(null)}
-                                      className={`h-12 ${selectedTime === null ? 'bg-blue-600 text-white' : 'hover:bg-blue-100 hover:border-blue-300'}`}
+                                      className={`h-12 text-xs sm:text-sm ${selectedTime === null ? 'bg-blue-600 text-white hover:bg-blue-700' : 'border-blue-300 text-blue-700 hover:bg-blue-50 hover:border-blue-400'}`}
                                     >
-                                      Auto: {formatElapsedTime(elapsedTime[job.id] || 0)}
+                                      Auto
                                     </Button>
-                                    {[15, 30, 45, 60, 90, 120].map(min => (
+                                    {[30, 60].map(min => (
                                       <Button
                                         key={min}
                                         variant={selectedTime === min ? 'default' : 'outline'}
                                         onClick={() => setSelectedTime(min)}
-                                        className={`h-12 ${selectedTime === min ? 'bg-blue-600 text-white' : 'hover:bg-blue-100 hover:border-blue-300'}`}
+                                        className={`h-12 text-xs sm:text-sm ${selectedTime === min ? 'bg-blue-600 text-white hover:bg-blue-700' : 'border-blue-300 text-blue-700 hover:bg-blue-50 hover:border-blue-400'}`}
                                       >
                                         {min} min
                                       </Button>
@@ -1273,13 +1273,14 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
 
                                 {/* Notes section */}
                                 <div className="space-y-2">
-                                  <Label htmlFor="notes">Notes (optional)</Label>
+                                  <Label htmlFor="notes" className="text-blue-900">Notes (optional)</Label>
                                   <Textarea
                                     id="notes"
                                     value={jobNotes}
                                     onChange={(e) => setJobNotes(e.target.value)}
                                     placeholder="Any issues or observations..."
                                     rows={3}
+                                    className="border-blue-200 focus:border-blue-400 focus:ring-blue-400"
                                   />
                                 </div>
 
@@ -1287,25 +1288,25 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
                                 <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
                                   <div className="flex items-center gap-2 mb-2">
                                     <MessageSquare className="h-4 w-4 text-blue-600" />
-                                    <span className="text-blue-800">Send completion message?</span>
+                                    <span className="text-sm text-blue-900 font-medium">Send completion message?</span>
                                   </div>
-                                  <div className="flex gap-2">
+                                  <div className="grid grid-cols-2 gap-2">
                                     <Button
                                       onClick={() => setCompletionMessage(true)}
-                                      className={`flex-1 ${completionMessage === true ? 'bg-blue-600 text-white hover:bg-blue-700' : 'hover:bg-blue-100 hover:border-blue-300'}`}
+                                      className={`${completionMessage === true ? 'bg-blue-600 text-white hover:bg-blue-700' : 'border-blue-300 text-blue-700 hover:bg-blue-50 hover:border-blue-400'}`}
                                       variant={completionMessage === true ? 'default' : 'outline'}
-                                      size="lg"
+                                      size="default"
                                     >
                                       <Send className="h-4 w-4 mr-2" />
-                                      Send Message
+                                      Send
                                     </Button>
                                     <Button
                                       onClick={() => setCompletionMessage(false)}
-                                      className={`flex-1 ${completionMessage === false ? 'bg-blue-600 text-white hover:bg-blue-700' : 'hover:bg-blue-100 hover:border-blue-300'}`}
+                                      className={`${completionMessage === false ? 'bg-blue-600 text-white hover:bg-blue-700' : 'border-blue-300 text-blue-700 hover:bg-blue-50 hover:border-blue-400'}`}
                                       variant={completionMessage === false ? 'default' : 'outline'}
-                                      size="lg"
+                                      size="default"
                                     >
-                                      Skip Message
+                                      Skip
                                     </Button>
                                   </div>
                                 </div>
@@ -1321,7 +1322,7 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
                                         setCompletionMessage(null);
                                         setSelectedTime(null);
                                       }}
-                                      className="w-full bg-blue-600 hover:bg-blue-700"
+                                      className="w-full bg-blue-600 hover:bg-blue-700 text-white h-11"
                                       size="lg"
                                     >
                                       <CheckCircle className="h-5 w-5 mr-2" />
@@ -1370,7 +1371,7 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
                               toast.error('Failed to revert job status');
                             }
                           }}
-                          className="flex-1 text-center text-blue-600 hover:bg-blue-50 rounded-lg p-1.5 transition-colors border border-blue-300"
+                          className="flex-1 text-center text-blue-700 hover:bg-blue-50 rounded-lg p-1.5 transition-colors border border-blue-300 hover:border-blue-400"
                           title="Click to undo completion"
                         >
                           <CheckCircle className="h-4 w-4 mx-auto" />
@@ -1380,7 +1381,7 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
                       {customer.phone && (
                         <Button
                           variant="outline"
-                          className="flex-1 h-8 text-xs"
+                          className="flex-1 h-9 text-xs border-blue-300 text-blue-700 hover:bg-blue-50 hover:border-blue-400"
                           onClick={() => window.open(`tel:${customer.phone}`, '_self')}
                         >
                           <Phone className="h-3 w-3 mr-1" />
