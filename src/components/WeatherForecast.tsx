@@ -171,23 +171,23 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
         const dayCards = document.querySelectorAll('.forecast-day-card');
         if (dayCards.length === 0) return;
 
-        const viewportTop = window.scrollY;
-        const headerOffset = 120; // Space from top for header
-        const snapThreshold = 200; // How far from ideal position to trigger snap
+        const viewportHeight = window.innerHeight;
+        const viewportCenter = window.scrollY + (viewportHeight / 2);
+        const snapThreshold = viewportHeight * 0.8; // Snap if card is within 80% of viewport
 
         let closestCard: HTMLElement | null = null;
         let closestDistance = Infinity;
 
-        // Find the card closest to the ideal snap position (headerOffset from top)
+        // Find the card whose center is closest to viewport center
         dayCards.forEach((card) => {
           const cardElement = card as HTMLElement;
           const rect = cardElement.getBoundingClientRect();
-          const cardTop = rect.top + viewportTop;
-          const idealPosition = viewportTop + headerOffset;
-          const distance = Math.abs(cardTop - idealPosition);
+          const cardTop = rect.top + window.scrollY;
+          const cardCenter = cardTop + (rect.height / 2);
+          const distance = Math.abs(cardCenter - viewportCenter);
 
-          // Only consider cards that are somewhat visible
-          if (rect.top < window.innerHeight && rect.bottom > 0) {
+          // Only consider cards that are at least partially visible
+          if (rect.top < viewportHeight && rect.bottom > 0) {
             if (distance < closestDistance) {
               closestDistance = distance;
               closestCard = cardElement;
@@ -195,12 +195,15 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
           }
         });
 
-        // Snap to the closest card if it's within threshold
+        // Snap to center the closest card if it's within threshold
         if (closestCard !== null && closestDistance < snapThreshold) {
           const cardElement = closestCard as HTMLElement;
           const rect = cardElement.getBoundingClientRect();
-          const cardTop = rect.top + viewportTop;
-          const targetScrollY = cardTop - headerOffset;
+          const cardTop = rect.top + window.scrollY;
+          const cardHeight = rect.height;
+          
+          // Calculate scroll position to center the card in viewport
+          const targetScrollY = cardTop - (viewportHeight / 2) + (cardHeight / 2);
 
           // Smooth scroll to position
           window.scrollTo({
