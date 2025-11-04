@@ -283,7 +283,7 @@ function App() {
         <div className="mb-6">
           <div className="flex items-center gap-3 mb-4">
             <div className="h-1 flex-1 bg-linear-to-r from-blue-200 to-blue-400 rounded-full"></div>
-            <h1 className="text-xl md:text-2xl font-bold text-blue-900 uppercase tracking-wide text-center">Outside AI CRM</h1>
+            <h1 className="text-xl md:text-2xl font-bold text-blue-900 uppercase tracking-wide text-center">Job Flow</h1>
             <div className="h-1 flex-1 bg-linear-to-l from-blue-200 to-blue-400 rounded-full"></div>
           </div>
           <p className="text-xs md:text-sm text-blue-700 text-center font-medium">

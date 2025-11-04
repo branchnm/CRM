@@ -16,7 +16,7 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['vite.svg', 'icon-192.svg', 'icon-512.svg'],
       manifest: {
-        name: 'Outside AI CRM',
+        name: 'Job Flow',
         short_name: 'CRM',
         description: 'Lawn care CRM with weather forecasting and route optimization',
         theme_color: '#2563eb',

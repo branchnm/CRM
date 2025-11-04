@@ -34,6 +34,7 @@ import {
   type WeatherData,
   type Coordinates 
 } from '../services/weather';
+import { getAddressSuggestions, type AddressSuggestion } from '../services/placesAutocomplete';
 import { toast } from 'sonner';
 
 // Debounce helper function
@@ -82,7 +83,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
   const [streetAddress, setStreetAddress] = useState(() => localStorage.getItem('routeStreetAddress') || '');
   const [addressSaved, setAddressSaved] = useState(false);
   const [showAddressSuggestions, setShowAddressSuggestions] = useState(false);
-  const [addressSuggestions, setAddressSuggestions] = useState<Array<{ display_name: string; lat: string; lon: string }>>([]);
+  const [addressSuggestions, setAddressSuggestions] = useState<AddressSuggestion[]>([]);
   const [isSearchingAddress, setIsSearchingAddress] = useState(false);
   const [isEditingAddress, setIsEditingAddress] = useState(false);
   const addressInputRef = useRef<HTMLInputElement>(null);
@@ -1330,127 +1331,25 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
       setIsSearchingAddress(true);
 
       try {
-        let searchQuery = debouncedAddressInput;
+        console.log('Fetching address suggestions for:', debouncedAddressInput);
         
-        // Add state to search query if we have GPS location
-        if (userGPSLocation) {
-          console.log('Using GPS location for search:', userGPSLocation);
-          // We'll append ", Alabama" or detected state to improve results
-        }
+        // Use the new service which handles Nominatim + fallback
+        const results = await getAddressSuggestions(
+          debouncedAddressInput,
+          userGPSLocation || undefined
+        );
         
-        // Use geocode.maps.co - more reliable, no rate limiting issues
-        const url = `https://geocode.maps.co/search?q=${encodeURIComponent(searchQuery)}&limit=10`;
-
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 8000);
-
-        const response = await fetch(url, {
-          signal: controller.signal
-        });
-
-        clearTimeout(timeoutId);
-
-        if (response.ok) {
-          const data = await response.json();
-          if (data && data.length > 0) {
-            // Format and filter results
-            const results = data
-              .filter((item: any) => {
-                // Must have location data and be in US
-                if (!item.display_name || !item.lat || !item.lon) return false;
-                const displayLower = item.display_name.toLowerCase();
-                // Filter for US addresses only
-                return displayLower.includes('united states') || 
-                       displayLower.includes(', us') ||
-                       displayLower.includes('usa') ||
-                       /\b(alabama|alaska|arizona|arkansas|california|colorado|connecticut|delaware|florida|georgia|hawaii|idaho|illinois|indiana|iowa|kansas|kentucky|louisiana|maine|maryland|massachusetts|michigan|minnesota|mississippi|missouri|montana|nebraska|nevada|new hampshire|new jersey|new mexico|new york|north carolina|north dakota|ohio|oklahoma|oregon|pennsylvania|rhode island|south carolina|south dakota|tennessee|texas|utah|vermont|virginia|washington|west virginia|wisconsin|wyoming)\b/i.test(displayLower);
-              })
-              .map((item: any) => {
-                // Parse display_name for cleaner format
-                const parts = item.display_name.split(',').map((p: string) => p.trim());
-                const addr = item.address || {};
-                
-                // Build comprehensive address with all components
-                const addressParts = [];
-                
-                // Street address (first part usually)
-                if (parts[0]) {
-                  addressParts.push(parts[0]);
-                }
-                
-                // City (second part or from address object)
-                if (parts[1]) {
-                  addressParts.push(parts[1]);
-                }
-                
-                // State and ZIP (third part and beyond, or from address object)
-                if (parts[2]) {
-                  addressParts.push(parts[2]);
-                }
-                
-                // If we have more parts (like country), include them too
-                if (parts.length > 3) {
-                  // Add remaining parts but filter out "United States" as it's redundant
-                  for (let i = 3; i < parts.length; i++) {
-                    if (!parts[i].toLowerCase().includes('united states')) {
-                      addressParts.push(parts[i]);
-                    }
-                  }
-                }
-                
-                const fullAddress = addressParts.join(', ');
-                
-                // Calculate distance from user
-                let distance = Infinity;
-                if (userGPSLocation) {
-                  const itemLat = parseFloat(item.lat);
-                  const itemLon = parseFloat(item.lon);
-                  // Haversine distance in miles
-                  const R = 3959;
-                  const dLat = (itemLat - userGPSLocation.lat) * Math.PI / 180;
-                  const dLon = (itemLon - userGPSLocation.lon) * Math.PI / 180;
-                  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                    Math.cos(userGPSLocation.lat * Math.PI / 180) * Math.cos(itemLat * Math.PI / 180) *
-                    Math.sin(dLon/2) * Math.sin(dLon/2);
-                  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-                  distance = R * c;
-                }
-                
-                return {
-                  display_name: fullAddress,
-                  lat: item.lat,
-                  lon: item.lon,
-                  address: addr,
-                  distance,
-                  fullDisplay: item.display_name
-                };
-              })
-              // Sort by distance if GPS available
-              .sort((a: any, b: any) => a.distance - b.distance)
-              .slice(0, 5);
-            
-            console.log('Address suggestions found:', results.length);
-            
-            if (results.length > 0) {
-              setAddressSuggestions(results);
-              setShowAddressSuggestions(true);
-            } else {
-              setShowAddressSuggestions(false);
-              setAddressSuggestions([]);
-            }
-          } else {
-            setShowAddressSuggestions(false);
-            setAddressSuggestions([]);
-          }
+        console.log('Address suggestions received:', results.length);
+        
+        if (results.length > 0) {
+          setAddressSuggestions(results);
+          setShowAddressSuggestions(true);
         } else {
-          console.warn('Address API returned status:', response.status);
           setShowAddressSuggestions(false);
+          setAddressSuggestions([]);
         }
       } catch (error) {
-        // Only log errors that aren't abort errors
-        if (error instanceof Error && error.name !== 'AbortError') {
-          console.warn('Unable to fetch address suggestions:', error.message);
-        }
+        console.error('Error fetching address suggestions:', error);
         setShowAddressSuggestions(false);
         setAddressSuggestions([]);
       } finally {
@@ -1461,7 +1360,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
     fetchAddressSuggestions();
   }, [debouncedAddressInput, userGPSLocation]);
 
-  const handleSelectSuggestion = async (suggestion: { display_name: string; lat: string; lon: string }) => {
+  const handleSelectSuggestion = async (suggestion: AddressSuggestion) => {
     console.log('handleSelectSuggestion called with:', suggestion.display_name);
     
     // First, fill in the address and close dropdown

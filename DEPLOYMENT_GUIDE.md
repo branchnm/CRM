@@ -1,6 +1,6 @@
 # CRM Deployment Guide
 
-This guide will help you deploy your Outside AI CRM to a real domain for Twilio verification and production use.
+This guide will help you deploy your Job Flow to a real domain for Twilio verification and production use.
 
 ## Prerequisites
 
@@ -157,7 +157,7 @@ Once deployed, you'll need:
    - Or: `https://your-app.vercel.app`
 
 2. **Business Information for Twilio:**
-   - Business name: "Outside AI CRM" (or your business name)
+   - Business name: "Job Flow" (or your business name)
    - Website: Your deployed URL
    - Business type: Technology/Software
    - Use case: "Customer relationship management for outdoor service businesses"

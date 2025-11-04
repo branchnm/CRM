@@ -1027,7 +1027,7 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
     return (
       <Card className="bg-white/80 backdrop-blur">
         <CardHeader>
-          <CardTitle>Welcome to Outside AI CRM</CardTitle>
+          <CardTitle>Welcome to Job Flow</CardTitle>
           <CardDescription>Add customers to start scheduling jobs</CardDescription>
         </CardHeader>
         <CardContent>

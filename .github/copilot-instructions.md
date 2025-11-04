@@ -1,4 +1,4 @@
-# Copilot Instructions for Outside AI CRM
+# Copilot Instructions for Job Flow 
 
 ## Project Overview
 React + TypeScript (Vite) frontend with Supabase backend. CRM for outdoor service businesses with weather-aware scheduling, route optimization, and automated customer communications.
