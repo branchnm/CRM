@@ -278,15 +278,15 @@ function App() {
 
   return (
     <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-yellow-50 pb-20 md:pb-0">
-      <div className="container mx-auto p-4 md:p-8 max-w-7xl">
+      <div className="container mx-auto p-2 sm:p-4 md:p-8 max-w-7xl">
         {/* Header - styled to match Weather Forecast section */}
-        <div className="mb-6">
-          <div className="flex items-center gap-3 mb-4">
+        <div className="mb-4 md:mb-6">
+          <div className="flex items-center gap-2 md:gap-3 mb-2 md:mb-4">
             <div className="h-1 flex-1 bg-linear-to-r from-blue-200 to-blue-400 rounded-full"></div>
-            <h1 className="text-xl md:text-2xl font-bold text-blue-900 uppercase tracking-wide text-center">Job Flow</h1>
+            <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-blue-900 uppercase tracking-wide text-center whitespace-nowrap">Job Flow</h1>
             <div className="h-1 flex-1 bg-linear-to-l from-blue-200 to-blue-400 rounded-full"></div>
           </div>
-          <p className="text-xs md:text-sm text-blue-700 text-center font-medium">
+          <p className="text-[10px] sm:text-xs md:text-sm text-blue-700 text-center font-medium px-2">
             Streamline scheduling and communication for outdoor service businesses
           </p>
         </div>
@@ -341,26 +341,24 @@ function App() {
       </div>
 
       {/* Mobile Bottom Navigation */}
-      <div className={`fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 md:hidden transition-transform duration-300 z-100 ${
+      <div className={`fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 md:hidden transition-transform duration-300 z-50 safe-area-inset ${
         showBottomNav ? 'translate-y-0' : 'translate-y-full'
       }`}>
-        <div className="flex justify-center">
-          <div className="flex gap-1 max-w-2xl">
-            {navItems.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => setActiveTab(item.id)}
-                className={`flex flex-col items-center justify-center py-3 px-4 ${
-                  activeTab === item.id
-                    ? "text-blue-600"
-                    : "text-gray-500"
-                }`}
-              >
-                <item.icon className="h-5 w-5 mb-1" />
-                <span className="text-xs">{item.label}</span>
-              </button>
-            ))}
-          </div>
+        <div className="flex justify-around items-center px-2 py-1 max-w-full overflow-x-auto">
+          {navItems.map((item) => (
+            <button
+              key={item.id}
+              onClick={() => setActiveTab(item.id)}
+              className={`flex flex-col items-center justify-center py-2 px-3 min-w-[60px] shrink-0 ${
+                activeTab === item.id
+                  ? "text-blue-600"
+                  : "text-gray-500"
+              }`}
+            >
+              <item.icon className="h-5 w-5 mb-0.5" />
+              <span className="text-[10px] leading-tight">{item.label}</span>
+            </button>
+          ))}
         </div>
       </div>
 

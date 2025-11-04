@@ -2501,7 +2501,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                       onDragLeave={handleDragLeave}
                       onDrop={(e) => handleDrop(e, dateStr)}
                       className={`transition-all duration-200 relative ${
-                        isMobile ? 'min-h-[50vh] mb-12' : ''
+                        isMobile ? 'min-h-[400px] max-h-[70vh] mb-8' : ''
                       } ${
                         isBeingDraggedOver
                           ? 'scale-[1.02] shadow-2xl ring-4 ring-blue-400 ring-opacity-50'
