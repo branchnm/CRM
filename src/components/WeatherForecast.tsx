@@ -172,22 +172,32 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
         if (dayCards.length === 0) return;
 
         const viewportHeight = window.innerHeight;
-        const viewportCenter = window.scrollY + (viewportHeight / 2);
-        const snapThreshold = viewportHeight * 0.8; // Snap if card is within 80% of viewport
+        const viewportTop = window.scrollY;
+        const viewportBottom = viewportTop + viewportHeight;
+        const snapThreshold = viewportHeight * 0.7; // Snap if card is within 70% of viewport
 
         let closestCard: HTMLElement | null = null;
         let closestDistance = Infinity;
 
-        // Find the card whose center is closest to viewport center
+        // Find the card that has 75%+ visible and is closest to center
         dayCards.forEach((card) => {
           const cardElement = card as HTMLElement;
           const rect = cardElement.getBoundingClientRect();
           const cardTop = rect.top + window.scrollY;
-          const cardCenter = cardTop + (rect.height / 2);
-          const distance = Math.abs(cardCenter - viewportCenter);
+          const cardBottom = cardTop + rect.height;
+          
+          // Calculate how much of the card is visible
+          const visibleTop = Math.max(cardTop, viewportTop);
+          const visibleBottom = Math.min(cardBottom, viewportBottom);
+          const visibleHeight = Math.max(0, visibleBottom - visibleTop);
+          const visibilityPercent = (visibleHeight / rect.height) * 100;
 
-          // Only consider cards that are at least partially visible
-          if (rect.top < viewportHeight && rect.bottom > 0) {
+          // Only consider cards with 75% or more visible
+          if (visibilityPercent >= 75) {
+            const cardCenter = cardTop + (rect.height / 2);
+            const viewportCenter = window.scrollY + (viewportHeight / 2);
+            const distance = Math.abs(cardCenter - viewportCenter);
+
             if (distance < closestDistance) {
               closestDistance = distance;
               closestCard = cardElement;

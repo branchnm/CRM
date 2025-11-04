@@ -1066,33 +1066,6 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
         </div>
       )}
 
-      {/* Daily Summary Card - Below Header, Above Jobs */}
-      {todayJobs.length > 0 && (
-        <Card className="bg-white/80 backdrop-blur border-gray-200 mb-4">
-          <CardContent className="py-4">
-            <div className="grid grid-cols-3 divide-x divide-gray-200">
-              {/* Completed Houses */}
-              <div className="flex items-center justify-center gap-2 px-4">
-                <CheckCircle className="h-5 w-5 text-blue-600" />
-                <span className="text-2xl font-semibold text-gray-800">{completedToday}/{totalDueToday}</span>
-              </div>
-              
-              {/* Work Time */}
-              <div className="flex items-center justify-center gap-2 px-4">
-                <Clock className="h-5 w-5 text-blue-600" />
-                <span className="text-2xl font-semibold text-gray-800">{totalWorkTime} min</span>
-              </div>
-              
-              {/* Drive Time */}
-              <div className="flex items-center justify-center gap-2 px-4">
-                <Navigation className="h-5 w-5 text-blue-600" />
-                <span className="text-2xl font-semibold text-gray-800">{totalDriveTime} min</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
       {/* Job List */}
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
         {customersDueToday.length === 0 && todayJobs.length === 0 && tomorrowJobs.length === 0 ? (
@@ -1147,29 +1120,29 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
                 onDragEnd={handleDragEnd}
                 onDrop={(e) => handleDrop(e, index)}
               >
-                <CardContent className="p-4">
+                <CardContent className="p-2">
                   {/* Centered layout */}
-                  <div className="flex flex-col items-center text-center gap-4">
+                  <div className="flex flex-col items-center text-center gap-2">
                     <div className="w-full">
                       <h3 className="text-blue-800 text-sm font-semibold">{customer.name}</h3>
-                      <div className="flex items-center justify-center gap-1.5 text-gray-600 text-xs mt-1">
+                      <div className="flex items-center justify-center gap-1.5 text-gray-600 text-xs mt-0.5">
                         <MapPin className="h-3 w-3 shrink-0 pointer-events-none" />
                         <span>{customer.address}</span>
                       </div>
                       {job.scheduledTime && (
-                        <div className="flex items-center justify-center gap-1.5 text-blue-600 text-xs font-medium mt-1">
+                        <div className="flex items-center justify-center gap-1.5 text-blue-600 text-xs font-medium mt-0.5">
                           <Clock className="h-3 w-3 pointer-events-none" />
                           <span>Scheduled: {formatScheduledTime(job.scheduledTime)}</span>
                         </div>
                       )}
-                      <div className="flex items-center justify-center gap-1.5 text-blue-600 text-xs mt-1">
+                      <div className="flex items-center justify-center gap-1.5 text-blue-600 text-xs mt-0.5">
                         <Clock className="h-3 w-3 pointer-events-none" />
                         <span>{driveTime}</span>
                       </div>
                     </div>
 
                   {/* Badges row */}
-                  <div className="flex flex-wrap gap-1 justify-center mb-3">
+                  <div className="flex flex-wrap gap-1 justify-center mb-1">
                     {customer.isHilly && <Badge variant="secondary" className="text-[10px] py-0 px-1.5">Hilly</Badge>}
                     {customer.hasFencing && <Badge variant="secondary" className="text-[10px] py-0 px-1.5">Fenced</Badge>}
                     {customer.hasObstacles && <Badge variant="secondary" className="text-[10px] py-0 px-1.5">Obstacles</Badge>}
@@ -1420,33 +1393,33 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
 
                 return (
                   <Card key={`tomorrow-${job.id}`} className="bg-yellow-50/80 backdrop-blur border-yellow-300">
-                    <CardContent className="pt-3 pb-3 flex flex-col">
+                    <CardContent className="p-2 flex flex-col">
                       <div className="flex flex-col items-center text-center gap-2">
                         <div className="w-full">
-                          <h3 className="text-orange-800 mb-1.5 text-base font-medium">{customer.name}</h3>
-                          <div className="flex items-center justify-center gap-2 text-gray-600 mb-0.5 text-sm">
-                            <MapPin className="h-3.5 w-3.5" />
+                          <h3 className="text-orange-800 text-sm font-medium">{customer.name}</h3>
+                          <div className="flex items-center justify-center gap-2 text-gray-600 text-xs mt-0.5">
+                            <MapPin className="h-3 w-3" />
                             <span>{customer.address}</span>
                           </div>
-                          <div className="flex items-center justify-center gap-2 text-yellow-600 text-xs mb-2">
-                            <Clock className="h-3.5 w-3.5" />
+                          <div className="flex items-center justify-center gap-2 text-yellow-600 text-xs mt-0.5">
+                            <Clock className="h-3 w-3" />
                             <span>{driveTime} drive</span>
                           </div>
                         </div>
                         
-                        <div className="flex flex-wrap gap-1 justify-center">
-                          {customer.isHilly && <Badge variant="secondary" className="text-xs py-0">Hilly</Badge>}
-                          {customer.hasFencing && <Badge variant="secondary" className="text-xs py-0">Fenced</Badge>}
-                          {customer.hasObstacles && <Badge variant="secondary" className="text-xs py-0">Obstacles</Badge>}
-                          <Badge variant="outline" className="text-xs py-0">{customer.squareFootage.toLocaleString()} sq ft</Badge>
-                          <Badge variant="outline" className="text-xs py-0">${customer.price}</Badge>
-                          <Badge variant="outline" className="text-xs py-0">{customer.frequency}</Badge>
+                        <div className="flex flex-wrap gap-1 justify-center mb-1">
+                          {customer.isHilly && <Badge variant="secondary" className="text-[10px] py-0 px-1.5">Hilly</Badge>}
+                          {customer.hasFencing && <Badge variant="secondary" className="text-[10px] py-0 px-1.5">Fenced</Badge>}
+                          {customer.hasObstacles && <Badge variant="secondary" className="text-[10px] py-0 px-1.5">Obstacles</Badge>}
+                          <Badge variant="outline" className="text-[10px] py-0 px-1.5">{customer.squareFootage.toLocaleString()} sq ft</Badge>
+                          <Badge variant="outline" className="text-[10px] py-0 px-1.5">${customer.price}</Badge>
+                          <Badge variant="outline" className="text-[10px] py-0 px-1.5">{customer.frequency}</Badge>
                         </div>
 
                         {customer.phone && (
                           <Button
                             variant="outline"
-                            className="w-full h-8 mt-1"
+                            className="w-full h-8"
                             onClick={() => window.open(`tel:${customer.phone}`, '_self')}
                           >
                             <Phone className="h-4 w-4 mr-2" />
