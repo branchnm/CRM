@@ -253,13 +253,16 @@ html, body {
   .forecast-grid-mobile {
     scroll-snap-type: y mandatory;
     scroll-padding-top: 1rem;
-    overflow-y: scroll;
+    overflow-y: auto;
     -webkit-overflow-scrolling: touch;
+    height: calc(100vh - 280px); /* Account for header and bottom nav */
+    max-height: calc(100vh - 280px);
   }
   
   .day-card-snap {
     scroll-snap-align: start;
     scroll-snap-stop: always;
+    min-height: 400px; /* Ensure cards are tall enough for snapping */
   }
 }
 

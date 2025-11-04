@@ -118,6 +118,10 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
     return cutCount < 2;
   });
 
+  // Track job changes to show/hide optimize button
+  const [lastOptimizedJobState, setLastOptimizedJobState] = useState<string>('');
+  const [hasJobChanges, setHasJobChanges] = useState(false);
+
   // Debounce address input to reduce API calls
   const debouncedAddressInput = useDebounce(addressInput, 500); // 500ms delay
 
@@ -291,6 +295,36 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
       return newMap;
     });
   }, [jobs]);
+
+  // Track job changes to conditionally show optimize button
+  useEffect(() => {
+    // Create a snapshot of current job state (order and dates)
+    const currentJobState = JSON.stringify(
+      jobs.map(j => ({ id: j.id, date: j.date, order: j.order, status: j.status }))
+        .sort((a, b) => a.id.localeCompare(b.id))
+    );
+    
+    // If we have a last optimized state, compare it
+    if (lastOptimizedJobState) {
+      setHasJobChanges(currentJobState !== lastOptimizedJobState);
+    } else {
+      // No optimization yet, show button if there are jobs
+      setHasJobChanges(jobs.length > 0);
+    }
+  }, [jobs, lastOptimizedJobState]);
+
+  // When optimize is triggered, save the current job state
+  useEffect(() => {
+    if (isOptimizing) {
+      const currentJobState = JSON.stringify(
+        jobs.map(j => ({ id: j.id, date: j.date, order: j.order, status: j.status }))
+          .sort((a, b) => a.id.localeCompare(b.id))
+      );
+      setLastOptimizedJobState(currentJobState);
+      setHasJobChanges(false);
+    }
+  }, [isOptimizing, jobs]);
+
   const [dayStartTimes, setDayStartTimes] = useState<Map<string, number>>(() => {
     const saved = localStorage.getItem('dayStartTimes');
     return saved ? new Map(JSON.parse(saved)) : new Map();
@@ -1467,6 +1501,12 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
     return fullAddress; // Fallback to full address if parsing fails
   };
 
+  // Helper function to extract just zipcode from address
+  const getZipCode = (fullAddress: string) => {
+    const zipMatch = fullAddress.match(/\b\d{5}(?:-\d{4})?\b/);
+    return zipMatch ? zipMatch[0] : '';
+  };
+
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const getRainAlerts = () => {
     if (!weatherData) return [];
@@ -2025,7 +2065,19 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
   }, [dayOffset]);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 relative">
+      {/* Address Indicator - Top Right Corner - Mobile Only */}
+      {locationName && isMobile && !isEditingAddress && (
+        <button
+          onClick={() => setIsEditingAddress(true)}
+          className="fixed top-4 right-4 z-40 flex items-center gap-2 px-3 py-2 bg-white rounded-full shadow-lg border border-blue-200 text-sm hover:bg-blue-50 transition-colors"
+          title="Change location"
+        >
+          <MapPin className="h-4 w-4 text-blue-600" />
+          <span className="font-medium text-blue-900">{getZipCode(locationName) || 'Location Set'}</span>
+        </button>
+      )}
+
       {/* Weather Section Header - Hidden on mobile, shown on desktop */}
       <div className="hidden md:flex items-center gap-3 mt-6 md:mt-8 mb-4">
         <div className="h-1 flex-1 bg-linear-to-r from-blue-200 to-blue-400 rounded-full"></div>
@@ -2322,16 +2374,16 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
           ) : (
             /* Show clickable location display when location is set and not editing - Icon-only on mobile */
             <div className="flex flex-col md:flex-row items-center gap-3">
-              {/* Location display - icon-only on mobile, full display on desktop */}
+              {/* Location display - hidden on mobile (shown in top-right instead), full display on desktop */}
               <button
                 onClick={() => setIsEditingAddress(true)}
-                className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:text-blue-600 transition-colors group"
+                className="hidden md:flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:text-blue-600 transition-colors group"
                 title={locationName}
               >
-                <MapPin className="h-5 w-5 md:h-4 md:w-4 text-blue-600 group-hover:text-blue-700 shrink-0" />
-                <span className="hidden md:inline text-gray-600">Current location:</span>
-                <span className="hidden md:inline font-medium">{getShortAddress(locationName)}</span>
-                <span className="text-xs text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity ml-2 hidden md:inline">
+                <MapPin className="h-4 w-4 text-blue-600 group-hover:text-blue-700 shrink-0" />
+                <span className="text-gray-600">Current location:</span>
+                <span className="font-medium">{getShortAddress(locationName)}</span>
+                <span className="text-xs text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
                   (click to change)
                 </span>
               </button>
@@ -2391,7 +2443,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
       )}
 
       {/* Mobile Optimize Routes Button - Shows when jobs modified, positioned near undo */}
-      {isMobile && locationName && !showUndo && (
+      {isMobile && locationName && !showUndo && hasJobChanges && (
         <div className="fixed bottom-20 right-4 z-50">
           <Button
             onClick={onOptimizeRoute}
@@ -2619,23 +2671,64 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                         border: '3px solid rgb(209, 213, 219)' // gray-300 neutral border
                       }}
                     >
-                      {/* Day Header - Compact single line */}
-                      <div className="px-3 py-2 flex items-center justify-between bg-white overflow-hidden">
-                        <div className="flex items-center gap-3">
-                          <div className="flex flex-col items-start">
-                            <div className="font-semibold text-sm text-gray-900">{dayName}</div>
-                            <div className="text-xs text-gray-600">{dayDate}</div>
+                      {/* Day Header - Improved with work/drive time stats */}
+                      <div className="px-3 py-2.5 bg-white border-b border-gray-200">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <div className="flex items-center gap-2">
+                            <div className="flex flex-col items-start">
+                              <div className="font-bold text-base text-gray-900">{dayName}</div>
+                              <div className="text-xs text-gray-500">{dayDate}</div>
+                            </div>
                           </div>
-                          {/* Job Count */}
-                          <div className="text-[11px] font-semibold text-gray-700">
-                            {totalJobs} job{totalJobs !== 1 ? 's' : ''}
-                          </div>
+                          
+                          {/* Rain Chance Badge */}
+                          {weatherForDay && rainChance > 0 && (
+                            <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
+                              <CloudRain className="h-3 w-3" />
+                              {rainChance}%
+                            </div>
+                          )}
                         </div>
                         
-                        {/* Rain Chance Badge - Top right corner */}
-                        {weatherForDay && rainChance > 0 && (
-                          <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                            {rainChance}%
+                        {/* Work Stats Row */}
+                        {totalJobs > 0 && (
+                          <div className="flex items-center gap-3 text-xs">
+                            <div className="flex items-center gap-1.5 text-gray-700">
+                              <span className="font-semibold text-blue-600">{totalJobs}</span>
+                              <span className="text-gray-600">job{totalJobs !== 1 ? 's' : ''}</span>
+                            </div>
+                            {(() => {
+                              const totalWorkMinutes = [...scheduledJobsForDay, ...assignedJobs].reduce((sum, job) => sum + (job.totalTime || 30), 0);
+                              const totalDriveMinutes = [...scheduledJobsForDay, ...assignedJobs].reduce((sum, job) => sum + (job.driveTime || 0), 0);
+                              const workHours = Math.floor(totalWorkMinutes / 60);
+                              const workMins = totalWorkMinutes % 60;
+                              const driveHours = Math.floor(totalDriveMinutes / 60);
+                              const driveMins = totalDriveMinutes % 60;
+                              
+                              return (
+                                <>
+                                  <div className="h-3 w-px bg-gray-300"></div>
+                                  <div className="flex items-center gap-1 text-gray-700">
+                                    <span className="text-gray-500">⏱</span>
+                                    <span className="font-medium">
+                                      {workHours > 0 && `${workHours}h `}{workMins > 0 && `${workMins}m`}
+                                      {!workHours && !workMins && '30m'}
+                                    </span>
+                                  </div>
+                                  {totalDriveMinutes > 0 && (
+                                    <>
+                                      <div className="h-3 w-px bg-gray-300"></div>
+                                      <div className="flex items-center gap-1 text-gray-700">
+                                        <span className="text-gray-500">🚗</span>
+                                        <span className="font-medium">
+                                          {driveHours > 0 && `${driveHours}h `}{driveMins}m
+                                        </span>
+                                      </div>
+                                    </>
+                                  )}
+                                </>
+                              );
+                            })()}
                           </div>
                         )}
                       </div>
@@ -2734,11 +2827,17 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                 return { hour, timeLabel, slotIndex: i };
                               });
                               
-                              // Get all jobs for this day and sort by order (for optimized routes) or scheduledTime
+                              // Get all jobs for this day and sort by status (incomplete first), then by order/scheduledTime
                               const allJobs = [...scheduledJobsForDay, ...assignedJobs].sort((a, b) => {
-                                // Primary sort: by order field if both have it
+                                // First priority: Sort by status - incomplete jobs (scheduled/in-progress) before completed
+                                const aIncomplete = a.status !== 'completed';
+                                const bIncomplete = b.status !== 'completed';
+                                if (aIncomplete && !bIncomplete) return -1; // a is incomplete, b is complete - a comes first
+                                if (!aIncomplete && bIncomplete) return 1;  // b is incomplete, a is complete - b comes first
+                                
+                                // Secondary sort: by order field if both have it (for optimized routes)
                                 if (a.order && b.order) return a.order - b.order;
-                                // Secondary sort: by scheduledTime if available
+                                // Tertiary sort: by scheduledTime if available
                                 if (a.scheduledTime && b.scheduledTime) {
                                   return a.scheduledTime.localeCompare(b.scheduledTime);
                                 }
