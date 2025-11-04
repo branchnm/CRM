@@ -242,35 +242,11 @@ html, body {
   max-width: 100vw;
 }
 
-/* TikTok-style vertical snap for day cards - cards lock into view when scrolling the main page */
-/* Apply to mobile for better card-by-card navigation */
+/* Improve touch targets on mobile */
 @media (max-width: 768px) {
   button, a {
     min-height: 44px;
     min-width: 44px;
-  }
-  
-  body {
-    scroll-snap-type: y proximity;
-  }
-  
-  .forecast-day-card {
-    scroll-snap-align: center;
-    scroll-snap-stop: normal;
-    scroll-margin-top: 100px; /* Account for header */
-    scroll-margin-bottom: 100px; /* Account for bottom nav */
-  }
-}
-
-/* On desktop, apply to the forecast container for multi-card scrolling */
-@media (min-width: 769px) {
-  .forecast-grid-container {
-    scroll-snap-type: y proximity;
-  }
-  
-  .forecast-day-card {
-    scroll-snap-align: start;
-    scroll-margin-top: 20px;
   }
 }
 

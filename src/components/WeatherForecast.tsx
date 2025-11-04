@@ -135,6 +135,92 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
+  // Custom scroll snap for day cards on mobile
+  useEffect(() => {
+    if (!isMobile) return;
+
+    let scrollTimeout: number;
+    let isScrolling = false;
+    let scrollStartY = 0;
+    let lastScrollY = window.scrollY;
+
+    const handleTouchStartCapture = (e: TouchEvent) => {
+      scrollStartY = window.scrollY;
+      isScrolling = false;
+    };
+
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      const scrollDelta = currentScrollY - lastScrollY;
+      lastScrollY = currentScrollY;
+
+      // User is actively scrolling
+      if (Math.abs(scrollDelta) > 1) {
+        isScrolling = true;
+      }
+
+      // Clear any pending snap
+      clearTimeout(scrollTimeout);
+
+      // Wait for scrolling to stop
+      scrollTimeout = window.setTimeout(() => {
+        if (!isScrolling) return;
+        isScrolling = false;
+
+        // Find all day cards
+        const dayCards = document.querySelectorAll('.forecast-day-card');
+        if (dayCards.length === 0) return;
+
+        const viewportTop = window.scrollY;
+        const headerOffset = 120; // Space from top for header
+        const snapThreshold = 200; // How far from ideal position to trigger snap
+
+        let closestCard: HTMLElement | null = null;
+        let closestDistance = Infinity;
+
+        // Find the card closest to the ideal snap position (headerOffset from top)
+        dayCards.forEach((card) => {
+          const cardElement = card as HTMLElement;
+          const rect = cardElement.getBoundingClientRect();
+          const cardTop = rect.top + viewportTop;
+          const idealPosition = viewportTop + headerOffset;
+          const distance = Math.abs(cardTop - idealPosition);
+
+          // Only consider cards that are somewhat visible
+          if (rect.top < window.innerHeight && rect.bottom > 0) {
+            if (distance < closestDistance) {
+              closestDistance = distance;
+              closestCard = cardElement;
+            }
+          }
+        });
+
+        // Snap to the closest card if it's within threshold
+        if (closestCard !== null && closestDistance < snapThreshold) {
+          const cardElement = closestCard as HTMLElement;
+          const rect = cardElement.getBoundingClientRect();
+          const cardTop = rect.top + viewportTop;
+          const targetScrollY = cardTop - headerOffset;
+
+          // Smooth scroll to position
+          window.scrollTo({
+            top: targetScrollY,
+            behavior: 'smooth'
+          });
+        }
+      }, 150); // Wait 150ms after scrolling stops
+    };
+
+    document.addEventListener('touchstart', handleTouchStartCapture, { passive: true });
+    window.addEventListener('scroll', handleScroll, { passive: true });
+
+    return () => {
+      document.removeEventListener('touchstart', handleTouchStartCapture);
+      window.removeEventListener('scroll', handleScroll);
+      clearTimeout(scrollTimeout);
+    };
+  }, [isMobile]);
+
   // Minimum swipe distance (in px)
   const minSwipeDistance = 50;
   const swipeDirectionThreshold = 1.5; // Horizontal movement must be 1.5x vertical movement
