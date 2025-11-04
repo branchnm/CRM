@@ -279,16 +279,13 @@ function App() {
   return (
     <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-yellow-50 pb-20 md:pb-0">
       <div className="container mx-auto p-2 sm:p-4 md:p-8 max-w-7xl">
-        {/* Header - styled to match Weather Forecast section */}
+        {/* Header - Logo style */}
         <div className="mb-4 md:mb-6">
-          <div className="flex items-center gap-2 md:gap-3 mb-2 md:mb-4">
-            <div className="h-1 flex-1 bg-linear-to-r from-blue-200 to-blue-400 rounded-full"></div>
-            <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-blue-900 uppercase tracking-wide text-center whitespace-nowrap">Job Flow</h1>
-            <div className="h-1 flex-1 bg-linear-to-l from-blue-200 to-blue-400 rounded-full"></div>
+          <div className="flex items-center justify-center mb-2 md:mb-4">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-black text-transparent bg-clip-text bg-linear-to-r from-blue-600 via-blue-700 to-blue-800 uppercase tracking-wider drop-shadow-sm">
+              Job Flow
+            </h1>
           </div>
-          <p className="text-[10px] sm:text-xs md:text-sm text-blue-700 text-center font-medium px-2">
-            Streamline scheduling and communication for outdoor service businesses
-          </p>
         </div>
 
         {/* Main Content */}

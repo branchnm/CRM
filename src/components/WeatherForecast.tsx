@@ -111,6 +111,12 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [slideDirection, setSlideDirection] = useState<'left' | 'right' | null>(null);
   const previousDayOffset = useRef(dayOffset);
+  
+  // Track instruction dismissal - hide after 2 uses
+  const [showCutInstruction, setShowCutInstruction] = useState(() => {
+    const cutCount = parseInt(localStorage.getItem('jobCutCount') || '0', 10);
+    return cutCount < 2;
+  });
 
   // Debounce address input to reduce API calls
   const debouncedAddressInput = useDebounce(addressInput, 500); // 500ms delay
@@ -1724,6 +1730,12 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
       } else {
         // Cut this job
         setCutJobId(jobId);
+        // Increment cut counter and hide instruction after 2 uses
+        const cutCount = parseInt(localStorage.getItem('jobCutCount') || '0', 10);
+        localStorage.setItem('jobCutCount', (cutCount + 1).toString());
+        if (cutCount + 1 >= 2) {
+          setShowCutInstruction(false);
+        }
         console.log('Cut job:', jobId);
       }
       lastTapTime.current = 0; // Reset to prevent triple-tap
@@ -1750,6 +1762,12 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
     longPressTimer.current = window.setTimeout(() => {
       // Cut the job after 500ms
       setCutJobId(jobId);
+      // Increment cut counter and hide instruction after 2 uses
+      const cutCount = parseInt(localStorage.getItem('jobCutCount') || '0', 10);
+      localStorage.setItem('jobCutCount', (cutCount + 1).toString());
+      if (cutCount + 1 >= 2) {
+        setShowCutInstruction(false);
+      }
       // Haptic feedback if available
       if (navigator.vibrate) {
         navigator.vibrate(50);
@@ -2404,7 +2422,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                 </div>
               </div>
             )}
-            {isMobile && isTouchDevice.current && !cutJobId && (
+            {isMobile && isTouchDevice.current && !cutJobId && showCutInstruction && (
               <div className="p-2 bg-blue-50 border border-blue-300 rounded text-xs text-blue-700 text-center">
                 📱 Hold a job to cut it, then double-tap a slot to paste
               </div>
@@ -2434,7 +2452,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                     </div>
                   </div>
                 )}
-                {!isMobile && isTouchDevice.current && !cutJobId && (
+                {!isMobile && isTouchDevice.current && !cutJobId && showCutInstruction && (
                   <div className="p-2 bg-blue-50 border border-blue-300 rounded text-xs text-blue-700 text-center mb-2">
                     📱 Hold a job to cut it, then double-tap a slot to paste
                   </div>
@@ -2501,7 +2519,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                       onDragLeave={handleDragLeave}
                       onDrop={(e) => handleDrop(e, dateStr)}
                       className={`transition-all duration-200 relative ${
-                        isMobile ? 'min-h-[400px] max-h-[70vh] mb-8' : ''
+                        isMobile ? 'mb-8' : ''
                       } ${
                         isBeingDraggedOver
                           ? 'scale-[1.02] shadow-2xl ring-4 ring-blue-400 ring-opacity-50'
