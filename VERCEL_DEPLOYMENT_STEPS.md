@@ -14,8 +14,8 @@
 You mentioned you're in the environment variables section. Add these **TWO** variables:
 
 ```
-VITE_OPENWEATHER_API_KEY = cb3316dda1a3c7495f729edb0a004d12
-VITE_GOOGLE_MAPS_API_KEY = AIzaSyDQQIvzSONz_cW_9tYwRHgo-0REr-FlIpk
+VITE_OPENWEATHER_API_KEY = your_openweather_key_here
+VITE_GOOGLE_MAPS_API_KEY = your_google_maps_key_here
 ```
 
 **Important:** 
