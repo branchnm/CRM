@@ -248,5 +248,18 @@ html, body {
     min-height: 44px;
     min-width: 44px;
   }
+  
+  /* TikTok-style snap scrolling for day cards on mobile */
+  .forecast-grid-mobile {
+    scroll-snap-type: y mandatory;
+    scroll-padding-top: 1rem;
+    overflow-y: scroll;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .day-card-snap {
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+  }
 }
 

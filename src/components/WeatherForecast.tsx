@@ -2026,8 +2026,8 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
 
   return (
     <div className="space-y-4">
-      {/* Weather Section Header - Mobile optimized */}
-      <div className="flex items-center gap-3 mt-6 md:mt-8 mb-4">
+      {/* Weather Section Header - Hidden on mobile, shown on desktop */}
+      <div className="hidden md:flex items-center gap-3 mt-6 md:mt-8 mb-4">
         <div className="h-1 flex-1 bg-linear-to-r from-blue-200 to-blue-400 rounded-full"></div>
         <h2 className="text-lg md:text-2xl font-bold text-blue-900 uppercase tracking-wide">Weather Forecast</h2>
         <div className="h-1 flex-1 bg-linear-to-l from-blue-200 to-blue-400 rounded-full"></div>
@@ -2320,23 +2320,25 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
               </div>
             </div>
           ) : (
-            /* Show clickable location display when location is set and not editing - Mobile optimized */
+            /* Show clickable location display when location is set and not editing - Icon-only on mobile */
             <div className="flex flex-col md:flex-row items-center gap-3">
-              {/* Location display - simplified for mobile */}
+              {/* Location display - icon-only on mobile, full display on desktop */}
               <button
                 onClick={() => setIsEditingAddress(true)}
                 className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:text-blue-600 transition-colors group"
+                title={locationName}
               >
-                <MapPin className="h-4 w-4 text-blue-600 group-hover:text-blue-700 shrink-0" />
+                <MapPin className="h-5 w-5 md:h-4 md:w-4 text-blue-600 group-hover:text-blue-700 shrink-0" />
                 <span className="hidden md:inline text-gray-600">Current location:</span>
-                <span className="font-medium text-center md:text-left">{getShortAddress(locationName)}</span>
+                <span className="hidden md:inline font-medium">{getShortAddress(locationName)}</span>
                 <span className="text-xs text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity ml-2 hidden md:inline">
                   (click to change)
                 </span>
               </button>
               
-              {/* Buttons - centered on mobile, inline on desktop */}
-              <div className="flex items-center gap-3 justify-center w-full md:w-auto">
+              {/* Optimize Routes Button - Only show on desktop or when there are changes */}
+              {/* On mobile, shown as floating button when jobs have been moved/modified */}
+              <div className="hidden md:flex items-center gap-3">
                 <Button 
                   onClick={onOptimizeRoute}
                   disabled={isOptimizing || !startingAddress}
@@ -2384,6 +2386,21 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
           >
             <Undo2 className="h-4 w-4 mr-1" />
             Undo
+          </Button>
+        </div>
+      )}
+
+      {/* Mobile Optimize Routes Button - Shows when jobs modified, positioned near undo */}
+      {isMobile && locationName && !showUndo && (
+        <div className="fixed bottom-20 right-4 z-50">
+          <Button
+            onClick={onOptimizeRoute}
+            disabled={isOptimizing || !startingAddress}
+            size="sm"
+            className="bg-blue-600 hover:bg-blue-700 shadow-lg"
+          >
+            <Route className="h-4 w-4 mr-1" />
+            {isOptimizing ? 'Optimizing...' : 'Optimize'}
           </Button>
         </div>
       )}
@@ -2476,10 +2493,10 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                   </div>
                 )}
 
-                {/* Forecast Grid with Touch Support */}
+                {/* Forecast Grid with Touch Support and Snap Scrolling */}
                 <div 
                   key={dayOffset} // Force re-render with animation when day changes
-                  className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'} gap-3 items-start relative ${
+                  className={`grid ${isMobile ? 'grid-cols-1 forecast-grid-mobile' : 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'} gap-3 items-start relative ${
                     slideDirection === 'left' ? 'animate-slide-in-right' : 
                     slideDirection === 'right' ? 'animate-slide-in-left' : ''
                   }`}
@@ -2539,7 +2556,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                       onDragLeave={handleDragLeave}
                       onDrop={(e) => handleDrop(e, dateStr)}
                       className={`transition-all duration-200 relative ${
-                        isMobile ? 'mb-8' : ''
+                        isMobile ? 'mb-8 day-card-snap' : ''
                       } ${
                         isBeingDraggedOver
                           ? 'scale-[1.02] shadow-2xl ring-4 ring-blue-400 ring-opacity-50'

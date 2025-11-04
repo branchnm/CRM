@@ -10,6 +10,7 @@ import {
   Users,
   Settings as SettingsIcon,
   CalendarDays,
+  CloudSun,
 } from "lucide-react";
 import { fetchCustomers } from "./services/customers";
 import { fetchJobs } from "./services/jobs";
@@ -261,7 +262,7 @@ function App() {
   };
 
   const navItems = [
-    { id: "schedule", label: "Today", icon: Calendar },
+    { id: "schedule", label: "Today", icon: CloudSun },
     { id: "calendar", label: "Calendar", icon: CalendarDays },
     { id: "customers", label: "Customers", icon: Users },
     { id: "insights", label: "Insights", icon: TrendingUp },
