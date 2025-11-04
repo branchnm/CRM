@@ -31,7 +31,6 @@ import {
   getCoordinatesFromAddress, 
   getCurrentLocation, 
   getLocationName,
-  getWeatherIconUrl,
   type WeatherData,
   type Coordinates 
 } from '../services/weather';
@@ -66,7 +65,7 @@ interface WeatherForecastProps {
   onStartingAddressChange?: (address: string) => void;
 }
 
-export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, onUpdateJobTimeSlot, onStartTimeChange, onOptimizeRoute, isOptimizing = false, startingAddress = '', onStartingAddressChange }: WeatherForecastProps) {
+export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, onStartTimeChange, onOptimizeRoute, isOptimizing = false, startingAddress = '', onStartingAddressChange }: WeatherForecastProps) {
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -381,6 +380,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
   };
 
   // Helper to check if there was heavy overnight rain (11pm-5am) that would affect morning jobs
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const hasHeavyOvernightRain = (weatherForDay: any, previousDayWeather?: any): boolean => {
     if (!weatherForDay?.hourlyForecasts) return false;
 
@@ -415,6 +415,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
   };
 
   // Helper to create gradient based on weather progression throughout the day
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const getWeatherGradient = (hourlyForecasts: any[] | undefined) => {
     if (!hourlyForecasts || hourlyForecasts.length === 0) {
       return 'bg-yellow-50'; // Default sunny
@@ -630,7 +631,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
 
             if (lastGoodIndex >= 0) {
               const actualIndex = day.hourlyForecasts.length - 1 - lastGoodIndex;
-              const lastGoodHour = day.hourlyForecasts[actualIndex].hour24 || 14;
+              const lastGoodHour = day.hourlyForecasts[actualIndex]?.hour24 || 14;
               // Suggest ending by this hour (or starting earlier to finish before rain)
               
               partialBadWeatherDays.set(dateStr, {
@@ -946,14 +947,15 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
     // Remove this suggestion from the list
     setWeatherSuggestions(prev => {
       const updated = {
-        ...prev,
         moveSuggestions: prev.moveSuggestions.filter(s => {
           // For single job suggestions
           if (s.jobId) return s.jobId !== suggestion.jobId;
           // For combined suggestions
           if (s.jobIds) return s.currentDate !== suggestion.currentDate;
           return true;
-        })
+        }),
+        startTimeSuggestions: prev.startTimeSuggestions,
+        overnightRainDays: prev.overnightRainDays || new Set<string>()
       };
       
       // Hide suggestions panel if no suggestions left
@@ -994,8 +996,9 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
     // Remove this suggestion from the list
     setWeatherSuggestions(prev => {
       const updated = {
-        ...prev,
-        startTimeSuggestions: prev.startTimeSuggestions.filter(s => s.date !== date)
+        moveSuggestions: prev.moveSuggestions,
+        startTimeSuggestions: prev.startTimeSuggestions.filter(s => s.date !== date),
+        overnightRainDays: prev.overnightRainDays || new Set<string>()
       };
       
       // Hide suggestions panel if no suggestions left
@@ -1022,9 +1025,11 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
     weatherSuggestions.moveSuggestions.forEach(suggestion => {
       if (onRescheduleJob) {
         // Handle both single job (jobId) and multiple jobs (jobIds)
-        const jobIds = suggestion.jobIds || [suggestion.jobId];
-        jobIds.forEach((jobId: string) => {
-          onRescheduleJob(jobId, suggestion.suggestedDate);
+        const jobIds = suggestion.jobIds || (suggestion.jobId ? [suggestion.jobId] : []);
+        jobIds.forEach((jobId) => {
+          if (jobId) {
+            onRescheduleJob(jobId, suggestion.suggestedDate);
+          }
         });
       }
     });
@@ -1042,7 +1047,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
       if (suggestion.suggestedEndTime !== undefined) {
         setDayEndTimes(prev => {
           const newMap = new Map(prev);
-          newMap.set(suggestion.date, suggestion.suggestedEndTime);
+          newMap.set(suggestion.date, suggestion.suggestedEndTime!);
           return newMap;
         });
       }
@@ -1539,6 +1544,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
     return fullAddress; // Fallback to full address if parsing fails
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const getRainAlerts = () => {
     if (!weatherData) return [];
     
@@ -1675,6 +1681,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
     };
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const recommendations = getWeatherRecommendations();
 
   // Drag and drop handlers
@@ -1789,6 +1796,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
     setDragOverDay(null);
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const unassignJob = (jobId: string) => {
     setJobAssignments(prev => {
       const newMap = new Map(prev);
@@ -2972,6 +2980,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                         {/* Job card or empty drop zone */}
                                         {jobInSlot ? (() => {
                                           const customer = customers.find(c => c.id === jobInSlot.customerId);
+                                          // eslint-disable-next-line @typescript-eslint/no-unused-vars
                                           const isScheduled = scheduledJobsForDay.some(j => j.id === jobInSlot.id);
                                           const isAssigned = assignedJobs.some(j => j.id === jobInSlot.id);
                                           const isDraggedItem = jobInSlot.id === draggedJobId;

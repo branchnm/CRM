@@ -26,6 +26,7 @@ interface DailyScheduleProps {
   onRefreshJobs?: () => Promise<void> | void;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messageTemplates, onRefreshCustomers, onRefreshJobs }: DailyScheduleProps) {
   const [jobNotes, setJobNotes] = useState('');
   const [elapsedTime, setElapsedTime] = useState<{ [jobId: string]: number }>({});
