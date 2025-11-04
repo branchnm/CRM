@@ -2607,13 +2607,9 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                       onDragOver={(e) => handleDayCardDragOver(e, dateStr)}
                       onDragLeave={handleDragLeave}
                       onDrop={(e) => handleDrop(e, dateStr)}
-                      className={`transition-all duration-200 relative ${
-                        isMobile ? 'mb-8 day-card-snap' : ''
-                      } ${
-                        isBeingDraggedOver
-                          ? 'scale-[1.02] shadow-2xl ring-4 ring-blue-400 ring-opacity-50'
-                          : 'shadow-sm'
-                      }`}
+                      className={`relative ${
+                        isMobile ? 'mb-8' : ''
+                      } shadow-sm`}
                       style={{
                         background: weatherForDay?.hourlyForecasts && weatherForDay.hourlyForecasts.length > 0
                           ? `linear-gradient(to bottom, ${weatherForDay.hourlyForecasts.map((h, idx) => {
@@ -2672,19 +2668,19 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                       }}
                     >
                       {/* Day Header - Improved with work/drive time stats */}
-                      <div className="px-3 py-2.5 bg-white border-b border-gray-200">
-                        <div className="flex items-center justify-between mb-1.5">
-                          <div className="flex items-center gap-2">
+                      <div className="px-4 py-3 bg-white border-b border-gray-200">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-3">
                             <div className="flex flex-col items-start">
-                              <div className="font-bold text-base text-gray-900">{dayName}</div>
-                              <div className="text-xs text-gray-500">{dayDate}</div>
+                              <div className="font-bold text-xl text-gray-900">{dayName}</div>
+                              <div className="text-sm text-gray-500">{dayDate}</div>
                             </div>
                           </div>
                           
                           {/* Rain Chance Badge */}
                           {weatherForDay && rainChance > 0 && (
-                            <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
-                              <CloudRain className="h-3 w-3" />
+                            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold bg-blue-100 text-blue-800">
+                              <CloudRain className="h-4 w-4" />
                               {rainChance}%
                             </div>
                           )}
@@ -2692,10 +2688,10 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                         
                         {/* Work Stats Row */}
                         {totalJobs > 0 && (
-                          <div className="flex items-center gap-3 text-xs">
-                            <div className="flex items-center gap-1.5 text-gray-700">
-                              <span className="font-semibold text-blue-600">{totalJobs}</span>
-                              <span className="text-gray-600">job{totalJobs !== 1 ? 's' : ''}</span>
+                          <div className="flex items-center gap-4 text-sm">
+                            <div className="flex items-center gap-2 text-gray-700">
+                              <span className="font-bold text-lg text-blue-600">{totalJobs}</span>
+                              <span className="text-gray-600 font-medium">job{totalJobs !== 1 ? 's' : ''}</span>
                             </div>
                             {(() => {
                               const totalWorkMinutes = [...scheduledJobsForDay, ...assignedJobs].reduce((sum, job) => sum + (job.totalTime || 30), 0);
@@ -2707,20 +2703,20 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                               
                               return (
                                 <>
-                                  <div className="h-3 w-px bg-gray-300"></div>
-                                  <div className="flex items-center gap-1 text-gray-700">
-                                    <span className="text-gray-500">⏱</span>
-                                    <span className="font-medium">
+                                  <div className="h-4 w-px bg-gray-300"></div>
+                                  <div className="flex items-center gap-1.5 text-gray-700">
+                                    <span className="text-base">⏱</span>
+                                    <span className="font-semibold text-base">
                                       {workHours > 0 && `${workHours}h `}{workMins > 0 && `${workMins}m`}
                                       {!workHours && !workMins && '30m'}
                                     </span>
                                   </div>
                                   {totalDriveMinutes > 0 && (
                                     <>
-                                      <div className="h-3 w-px bg-gray-300"></div>
-                                      <div className="flex items-center gap-1 text-gray-700">
-                                        <span className="text-gray-500">🚗</span>
-                                        <span className="font-medium">
+                                      <div className="h-4 w-px bg-gray-300"></div>
+                                      <div className="flex items-center gap-1.5 text-gray-700">
+                                        <span className="text-base">🚗</span>
+                                        <span className="font-semibold text-base">
                                           {driveHours > 0 && `${driveHours}h `}{driveMins}m
                                         </span>
                                       </div>
