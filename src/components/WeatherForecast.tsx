@@ -2684,102 +2684,90 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                         <div className="px-1 py-2 bg-gray-50/50 relative border-r border-gray-200 overflow-hidden">
                           
                           <div className="relative z-10">
-                            {/* 5am Weather Symbol with Start Time Selector */}
-                            <div className="flex items-center gap-1 mb-1">
-                              {weatherForDay && (() => {
-                                // Check if this day has overnight rain from previous night
-                                const hasOvernightRain = daysWithOvernightRain.has(dateStr);
-                                
-                                // Find the forecast closest to 5 AM (or 6 AM start time)
-                                let forecast = null;
-                                if (weatherForDay.hourlyForecasts && weatherForDay.hourlyForecasts.length > 0) {
-                                  // Try to find forecast for 5 AM or 6 AM
-                                  forecast = weatherForDay.hourlyForecasts.find((f: any) => f.hour24 === 5 || f.hour24 === 6);
-                                  
-                                  // If no match, use the earliest forecast
-                                  if (!forecast) {
-                                    forecast = weatherForDay.hourlyForecasts[0];
-                                  }
+                            {/* Draggable START Time Bar - At very top before 5am icon */}
+                            {(() => {
+                              const currentStartTime = dayStartTimes.get(dateStr) || 4;
+                              const hasOvernightRain = daysWithOvernightRain.has(dateStr);
+                              
+                              // Determine reason for delayed start
+                              let startReason = "Adjust start time";
+                              if (hasOvernightRain && currentStartTime > 4) {
+                                startReason = "🌙 Overnight rain - Grass still wet";
+                              } else if (weatherForDay && currentStartTime > 4) {
+                                const morningForecasts = weatherForDay.hourlyForecasts?.slice(0, 3) || [];
+                                const hasMorningRain = morningForecasts.some((f: any) => (f.rainAmount || 0) > 0.5);
+                                if (hasMorningRain) {
+                                  startReason = "🌧️ Morning rain - Wait for clearing";
                                 }
-                                
-                                // Fallback to daily weather
-                                if (!forecast) {
-                                  forecast = { 
-                                    description: weatherForDay.description, 
-                                    precipitation: rainChance, 
-                                    rainAmount: weatherForDay.precipitation || 0, 
-                                    hour24: 5 
-                                  };
-                                }
-                                
-                                const effectivePrecipitation = Math.max(forecast.precipitation || 0, rainChance);
-                                const { Icon: HourIcon, color: hourColor } = getWeatherIcon(
-                                  forecast.description, 
-                                  effectivePrecipitation,
-                                  forecast.rainAmount,
-                                  5  // Always 5 AM for this slot
-                                );
-                                
-                                return (
-                                  <div className="flex items-center gap-1">
-                                    <div className="flex flex-col items-center gap-0.5 w-10 shrink-0">
-                                      <HourIcon className={`w-6 h-6 ${hourColor} stroke-[1.5]`} />
-                                      <span className="text-[10px] text-gray-500 font-medium whitespace-nowrap">5 AM</span>
+                              }
+                              
+                              return (
+                                <div className="mb-1">
+                                  {/* Draggable start time handle - ALWAYS visible at top */}
+                                  <div
+                                    className="relative h-1 bg-blue-600 cursor-ns-resize hover:h-2 transition-all group shadow-md rounded"
+                                    draggable
+                                    onDragStart={(e) => {
+                                      e.dataTransfer.effectAllowed = 'move';
+                                      e.dataTransfer.setData('timeAdjust', 'start');
+                                    }}
+                                    onDrag={(e) => {
+                                      if (e.clientY === 0) return;
+                                      
+                                      const container = document.querySelector(`[data-date="${dateStr}"] .time-slots-container`);
+                                      if (!container) return;
+                                      
+                                      const rect = container.getBoundingClientRect();
+                                      const y = e.clientY - rect.top;
+                                      
+                                      const slotIndex = Math.round(y / 39.5);
+                                      const newHour = 4 + slotIndex;
+                                      const clampedHour = Math.max(4, Math.min(17, newHour));
+                                      
+                                      if (clampedHour !== currentStartTime) {
+                                        setDayStartTimes(prev => {
+                                          const newMap = new Map(prev);
+                                          newMap.set(dateStr, clampedHour);
+                                          localStorage.setItem('dayStartTimes', JSON.stringify(Array.from(newMap.entries())));
+                                          return newMap;
+                                        });
+                                        onStartTimeChange?.(dateStr, clampedHour);
+                                      }
+                                    }}
+                                  >
+                                    {/* Drag handle indicator */}
+                                    <div className="absolute left-1/2 -translate-x-1/2 -top-2 w-8 h-4 bg-blue-600 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-md z-10">
+                                      <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                                      </svg>
                                     </div>
-                                    {/* Wet Grass Indicator for Overnight Rain */}
-                                    {hasOvernightRain && (
-                                      <div className="flex flex-col items-center gap-0.5 ml-0.5">
-                                        <div className="relative w-6 h-6 flex items-center justify-center bg-blue-50 rounded-full border border-blue-200">
-                                          {/* Droplet icon to indicate wet conditions */}
-                                          <svg className="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                                            <path fillRule="evenodd" d="M10 2a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0110 2zM10 15a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0110 15zM10 7a3 3 0 100 6 3 3 0 000-6zM15.657 5.404a.75.75 0 10-1.06-1.06l-1.061 1.06a.75.75 0 001.06 1.06l1.06-1.06zM6.464 14.596a.75.75 0 10-1.06-1.06l-1.06 1.06a.75.75 0 001.06 1.06l1.06-1.06zM18 10a.75.75 0 01-.75.75h-1.5a.75.75 0 010-1.5h1.5A.75.75 0 0118 10zM5 10a.75.75 0 01-.75.75h-1.5a.75.75 0 010-1.5h1.5A.75.75 0 015 10zM14.596 15.657a.75.75 0 001.06-1.06l-1.06-1.061a.75.75 0 10-1.06 1.06l1.06 1.06zM5.404 6.464a.75.75 0 001.06-1.06l-1.06-1.06a.75.75 0 10-1.061 1.06l1.06 1.06z" clipRule="evenodd" />
-                                          </svg>
-                                        </div>
-                                        <span className="text-[9px] text-blue-700 font-bold whitespace-nowrap tracking-tight">WET</span>
+                                    
+                                    {/* Time label - Always visible */}
+                                    <div className="absolute -left-12 top-1/2 -translate-y-1/2 bg-blue-600 text-white text-[10px] px-2 py-0.5 rounded font-semibold whitespace-nowrap shadow-md">
+                                      {currentStartTime > 12 ? `${currentStartTime - 12}PM` : currentStartTime === 12 ? '12PM' : `${currentStartTime}AM`}
+                                    </div>
+                                    
+                                    {/* Reason label - appears on right */}
+                                    {currentStartTime > 4 && (
+                                      <div className="absolute -right-2 top-1/2 -translate-y-1/2 translate-x-full bg-white/95 text-blue-700 text-[9px] px-2 py-1 rounded shadow-sm font-medium whitespace-nowrap">
+                                        {startReason}
                                       </div>
                                     )}
                                   </div>
-                                );
-                              })()}
-                              <div className="flex-1 flex items-center justify-center gap-1">
-                                <span className="text-[10px] text-gray-500">Start:</span>
-                                <select
-                                  value={dayStartTimes.get(dateStr) || 6}
-                                  onChange={(e) => {
-                                    const newStartTime = parseInt(e.target.value);
-                                    
-                                    setDayStartTimes(prev => {
-                                      const newMap = new Map(prev);
-                                      newMap.set(dateStr, newStartTime);
-                                      return newMap;
-                                    });
-                                    
-                                    // Notify parent component of start time change
-                                    onStartTimeChange?.(dateStr, newStartTime);
-                                  }}
-                                  className="text-[11px] border border-gray-300 rounded px-1 py-0.5 bg-white"
-                                >
-                                  {Array.from({ length: 13 }, (_, i) => {
-                                    const hour = 6 + i;
-                                    const label = hour > 12 ? `${hour - 12} PM` : hour === 12 ? '12 PM' : `${hour} AM`;
-                                    return (
-                                      <option key={hour} value={hour}>
-                                        {label}
-                                      </option>
-                                    );
-                                  })}
-                                </select>
-                              </div>
-                            </div>
-
-                            {/* Time Slot Schedule: 6am-6pm with drag-and-drop */}
+                                </div>
+                              );
+                            })()}
+                            
+                            {/* Time Slot Schedule: 4am-6pm with drag-and-drop (includes 5am icon as first slot) */}
                             {(() => {
-                              // Get start time for this day (default to 6am)
-                              const dayStartHour = dayStartTimes.get(dateStr) || 6;
+                              // Get start time for this day (default to 4am - earliest possible)
+                              const dayStartHour = dayStartTimes.get(dateStr) || 4;
+                              const dayEndHour = dayEndTimes.get(dateStr) || 18;
                               
-                              // Always generate hourly time slots from 6am to 6pm (13 hours) for consistent display
-                              const timeSlots = Array.from({ length: 13 }, (_, i) => {
-                                const hour = 6 + i;
+                              // Generate hourly time slots from 5am to 6pm (14 hours total)
+                              // We'll handle 4am separately as the blue bar position
+                              const timeSlots = Array.from({ length: 14 }, (_, i) => {
+                                const hour = 5 + i; // Start from 5am
                                 const timeLabel = hour > 12 ? `${hour - 12} PM` : hour === 12 ? '12 PM' : `${hour} AM`;
                                 return { hour, timeLabel, slotIndex: i };
                               });
@@ -2795,8 +2783,8 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                 return 0;
                               });
                               
-                              // Calculate offset based on start time (e.g., if start is 8am, offset is 2)
-                              const slotOffset = dayStartHour - 6;
+                              // Calculate offset based on start time (e.g., if start is 8am, offset is 3 from 5am)
+                              const slotOffset = Math.max(0, dayStartHour - 5); // Offset from 5am
                               const isDraggingOverThisDay = dragOverSlot?.date === dateStr && draggedJobId;
                               const dragTargetSlot = isDraggingOverThisDay ? dragOverSlot.slot : -1;
                               
@@ -2813,16 +2801,16 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                   // Apply the slot offset to shift jobs based on day start time
                                   let targetSlot = assignedSlot + slotOffset;
                                   
-                                  // Ensure slot is within valid range (0-12)
+                                  // Ensure slot is within valid range (0-13 now for 5am-6pm)
                                   if (targetSlot < 0) targetSlot = 0;
-                                  if (targetSlot >= 13) targetSlot = 12;
+                                  if (targetSlot >= 14) targetSlot = 13;
                                   
                                   // If dragging over this day, shift jobs to make space
                                   if (isDraggingOverThisDay && targetSlot >= dragTargetSlot) {
                                     targetSlot = targetSlot + 1;
                                   }
                                   
-                                  if (targetSlot < 13) {
+                                  if (targetSlot < 14) {
                                     jobsBySlot[targetSlot] = job;
                                   }
                                 }
@@ -2837,13 +2825,58 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                               }
                               
                               return (
-                                <div className="space-y-1 relative flex flex-col">
+                                <div className="space-y-1 relative flex flex-col time-slots-container" data-date={dateStr}>
+                                {/* Blocked time overlays */}
+                                {(() => {
+                                  const currentStartTime = dayStartTimes.get(dateStr) || 4;
+                                  const currentEndTime = dayEndTimes.get(dateStr) || 18;
+                                  
+                                  // Calculate blocked area - starting from 5am (first visible slot)
+                                  const blockedStartSlots = Math.max(0, currentStartTime - 5); // e.g., if start is 10am, block slots 0-4 (5am-9am)
+                                  const blockedStartHeight = blockedStartSlots * 39.5;
+                                  
+                                  const blockedEndSlots = 18 - currentEndTime;
+                                  const blockedEndHeight = blockedEndSlots * 39.5;
+                                  const blockedEndTop = (currentEndTime - 5) * 39.5; // Position from 5am
+                                  
+                                  return (
+                                    <>
+                                      {/* Blocked time overlay (before start time) - Blue rain pattern */}
+                                      {currentStartTime > 5 && (
+                                        <div 
+                                          className="absolute top-0 left-0 right-0 bg-blue-50/60 pointer-events-none z-20"
+                                          style={{ 
+                                            height: `${blockedStartHeight}px`,
+                                            backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(59, 130, 246, 0.2) 4px, rgba(59, 130, 246, 0.2) 8px)'
+                                          }}
+                                        />
+                                      )}
+                                      
+                                      {/* Blocked time overlay (after end time) - Purple rain pattern */}
+                                      {currentEndTime < 18 && (
+                                        <div 
+                                          className="absolute left-0 right-0 bg-blue-50/60 pointer-events-none z-20"
+                                          style={{ 
+                                            top: `${blockedEndTop}px`,
+                                            height: `${blockedEndHeight}px`,
+                                            backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(147, 51, 234, 0.2) 4px, rgba(147, 51, 234, 0.2) 8px)'
+                                          }}
+                                        />
+                                      )}
+                                    </>
+                                  );
+                                })()}
+                                
                                 {timeSlots.map((slot) => {
                                   const jobInSlot = jobsBySlot[slot.slotIndex];
                                   const isSlotHovered = dragOverSlot?.date === dateStr && dragOverSlot?.slot === slot.slotIndex;
                                   
-                                  // Show weather icon at 8am, 11am, 2pm, 5pm (every 3 hours, excluding 6pm)
-                                  const shouldShowWeatherIcon = weatherForDay && [8, 11, 14, 17].includes(slot.hour);
+                                  // First slot (5 AM) always shows weather icon + wet indicator
+                                  const isFirstSlot = slot.slotIndex === 0;
+                                  const hasOvernightRain = daysWithOvernightRain.has(dateStr);
+                                  
+                                  // Show weather icon at 5am (first slot), 8am, 11am, 2pm, 5pm (every 3 hours, excluding 6pm)
+                                  const shouldShowWeatherIcon = weatherForDay && (isFirstSlot || [8, 11, 14, 17].includes(slot.hour));
                                   
                                   // Get weather icon component for this hour
                                   const getWeatherForHour = () => {
@@ -2911,7 +2944,28 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                     >
                                       <div className="flex items-center gap-1 w-full h-full">
                                         {/* Show weather icon with time, or just empty space for alignment */}
-                                        {shouldShowWeatherIcon ? getWeatherForHour() : (
+                                        {shouldShowWeatherIcon ? (() => {
+                                          const weatherIcon = getWeatherForHour();
+                                          
+                                          // For first slot (5 AM), add wet grass indicator if overnight rain
+                                          if (isFirstSlot && hasOvernightRain) {
+                                            return (
+                                              <div className="flex items-center gap-1">
+                                                {weatherIcon}
+                                                <div className="flex flex-col items-center gap-0.5">
+                                                  <div className="relative w-6 h-6 flex items-center justify-center bg-blue-50 rounded-full border border-blue-200">
+                                                    <svg className="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                                                      <path fillRule="evenodd" d="M10 2a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0110 2zM10 15a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0110 15zM10 7a3 3 0 100 6 3 3 0 000-6zM15.657 5.404a.75.75 0 10-1.06-1.06l-1.061 1.06a.75.75 0 001.06 1.06l1.06-1.06zM6.464 14.596a.75.75 0 10-1.06-1.06l-1.06 1.06a.75.75 0 001.06 1.06l1.06-1.06zM18 10a.75.75 0 01-.75.75h-1.5a.75.75 0 010-1.5h1.5A.75.75 0 0118 10zM5 10a.75.75 0 01-.75.75h-1.5a.75.75 0 010-1.5h1.5A.75.75 0 015 10zM14.596 15.657a.75.75 0 001.06-1.06l-1.06-1.061a.75.75 0 10-1.06 1.06l1.06 1.06zM5.404 6.464a.75.75 0 001.06-1.06l-1.06-1.06a.75.75 0 10-1.061 1.06l1.06 1.06z" clipRule="evenodd" />
+                                                    </svg>
+                                                  </div>
+                                                  <span className="text-[9px] text-blue-700 font-bold whitespace-nowrap tracking-tight">WET</span>
+                                                </div>
+                                              </div>
+                                            );
+                                          }
+                                          
+                                          return weatherIcon;
+                                        })() : (
                                           <div className="w-10 shrink-0"></div>
                                         )}
                                         
@@ -3001,6 +3055,88 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                     </div>
                                   );
                                 })}
+                              </div>
+                            );
+                          })()}
+                          
+                          {/* Draggable END Time Bar - At very bottom after all time slots */}
+                          {(() => {
+                            const currentEndTime = dayEndTimes.get(dateStr) || 18;
+                            
+                            // Determine reason for early end
+                            let endReason = "Adjust end time";
+                            
+                            if (weatherForDay && currentEndTime < 18) {
+                              const afternoonForecasts = weatherForDay.hourlyForecasts?.slice(3) || [];
+                              const hasAfternoonRain = afternoonForecasts.some((f: any) => {
+                                const amount = f.rainAmount || 0;
+                                const desc = (f.description || '').toLowerCase();
+                                return amount > 2 || desc.includes('thunder') || desc.includes('storm');
+                              });
+                              
+                              if (hasAfternoonRain) {
+                                const hasThunder = afternoonForecasts.some((f: any) => 
+                                  (f.description || '').toLowerCase().includes('thunder') || 
+                                  (f.description || '').toLowerCase().includes('storm')
+                                );
+                                endReason = hasThunder 
+                                  ? "⛈️ Afternoon storms - End work early"
+                                  : "🌧️ Afternoon rain - End early";
+                              }
+                            }
+                            
+                            return (
+                              <div className="mt-1">
+                                {/* Draggable end time handle - ALWAYS visible at bottom */}
+                                <div
+                                  className="relative h-1 bg-purple-600 cursor-ns-resize hover:h-2 transition-all group shadow-md rounded"
+                                  draggable
+                                  onDragStart={(e) => {
+                                    e.dataTransfer.effectAllowed = 'move';
+                                    e.dataTransfer.setData('timeAdjust', 'end');
+                                  }}
+                                  onDrag={(e) => {
+                                    if (e.clientY === 0) return;
+                                    
+                                    const container = document.querySelector(`[data-date="${dateStr}"] .time-slots-container`);
+                                    if (!container) return;
+                                    
+                                    const rect = container.getBoundingClientRect();
+                                    const y = e.clientY - rect.top;
+                                    
+                                    const slotIndex = Math.round(y / 39.5);
+                                    const newHour = 4 + slotIndex;
+                                    const clampedHour = Math.max(5, Math.min(18, newHour));
+                                    
+                                    if (clampedHour !== currentEndTime) {
+                                      setDayEndTimes(prev => {
+                                        const newMap = new Map(prev);
+                                        newMap.set(dateStr, clampedHour);
+                                        localStorage.setItem('dayEndTimes', JSON.stringify(Array.from(newMap.entries())));
+                                        return newMap;
+                                      });
+                                    }
+                                  }}
+                                >
+                                  {/* Drag handle indicator */}
+                                  <div className="absolute left-1/2 -translate-x-1/2 -bottom-2 w-8 h-4 bg-purple-600 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-md z-10">
+                                    <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                                    </svg>
+                                  </div>
+                                  
+                                  {/* Time label - Always visible */}
+                                  <div className="absolute -left-12 top-1/2 -translate-y-1/2 bg-purple-600 text-white text-[10px] px-2 py-0.5 rounded font-semibold whitespace-nowrap shadow-md">
+                                    {currentEndTime > 12 ? `${currentEndTime - 12}PM` : currentEndTime === 12 ? '12PM' : `${currentEndTime}AM`}
+                                  </div>
+                                  
+                                  {/* Reason label - appears on right */}
+                                  {currentEndTime < 18 && (
+                                    <div className="absolute -right-2 top-1/2 -translate-y-1/2 translate-x-full bg-white/95 text-purple-700 text-[9px] px-2 py-1 rounded shadow-sm font-medium whitespace-nowrap">
+                                      {endReason}
+                                    </div>
+                                  )}
+                                </div>
                               </div>
                             );
                           })()}
