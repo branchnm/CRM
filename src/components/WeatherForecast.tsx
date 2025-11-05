@@ -2830,16 +2830,16 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                       {/* Day Header - Improved with work/drive time stats */}
                       <div className={`bg-white border-b border-gray-200 ${isMobile ? 'px-2 py-1' : 'px-4 py-3'}`}>
                         {/* Day and Date on same line with rain badge */}
-                        <div className={`flex items-center justify-between ${isMobile ? 'mb-1' : 'mb-2'}`}>
+                        <div className={`flex items-center ${isMobile ? 'justify-center mb-1' : 'justify-between mb-2'}`}>
                           <div className="flex items-center gap-2">
                             <span className={`font-bold text-gray-900 ${isMobile ? 'text-base' : 'text-xl'}`}>{dayName}</span>
                             <span className={`text-gray-500 ${isMobile ? 'text-sm' : 'text-base'}`}>{dayDate}</span>
                           </div>
                           
                           {/* Rain Chance Badge */}
-                          {weatherForDay && rainChance > 0 && (
-                            <div className={`inline-flex items-center gap-1.5 rounded-full font-semibold bg-blue-100 text-blue-800 ${isMobile ? 'px-2 py-0.5 text-xs' : 'px-3 py-1.5 text-sm'}`}>
-                              <CloudRain className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
+                          {weatherForDay && rainChance > 0 && !isMobile && (
+                            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold bg-blue-100 text-blue-800">
+                              <CloudRain className="h-4 w-4" />
                               {rainChance}%
                             </div>
                           )}
@@ -2892,7 +2892,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                       <div className="grid grid-cols-[1fr_auto] gap-0 min-h-[280px] overflow-visible">
                         {/* Left: Job Count & Jobs List with day weather icons (5am-6pm) */}
                         <div className={`bg-gray-50/50 relative border-r border-gray-200 overflow-hidden ${
-                          isMobile ? 'px-1 py-0' : 'px-1 py-2'
+                          isMobile ? 'px-1 py-3' : 'px-1 py-2'
                         }`}>
                           
                           <div className="relative z-10">
@@ -3088,11 +3088,8 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                               
                               return (
                                 <div className={`relative flex flex-col time-slots-container ${
-                                  isMobile ? 'space-y-0 flex-1 min-h-0 overflow-y-auto scrollbar-hide' : 'space-y-1'
-                                }`} data-date={dateStr} style={isMobile ? {
-                                  scrollbarWidth: 'none',
-                                  msOverflowStyle: 'none'
-                                } : undefined}>
+                                  isMobile ? 'space-y-0 flex-1 min-h-0' : 'space-y-1'
+                                }`} data-date={dateStr}>
                                 {/* Blocked time overlays */}
                                 {(() => {
                                   const currentStartTime = dayStartTimes.get(dateStr) || 5;
