@@ -2891,7 +2891,9 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                       {/* Main Content: Day Schedule (left) + Night Weather (right) */}
                       <div className="grid grid-cols-[1fr_auto] gap-0 min-h-[280px] overflow-visible">
                         {/* Left: Job Count & Jobs List with day weather icons (5am-6pm) */}
-                        <div className="px-1 py-2 bg-gray-50/50 relative border-r border-gray-200 overflow-hidden">
+                        <div className={`bg-gray-50/50 relative border-r border-gray-200 overflow-hidden ${
+                          isMobile ? 'px-1 py-0' : 'px-1 py-2'
+                        }`}>
                           
                           <div className="relative z-10">
                             {/* Draggable START Time Bar - At very top before 5am icon */}
@@ -3085,7 +3087,12 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                               }
                               
                               return (
-                                <div className={`space-y-1 relative flex flex-col time-slots-container ${isMobile ? 'flex-1 min-h-0 overflow-y-auto' : ''}`} data-date={dateStr}>
+                                <div className={`relative flex flex-col time-slots-container ${
+                                  isMobile ? 'space-y-0 flex-1 min-h-0 overflow-y-auto scrollbar-hide' : 'space-y-1'
+                                }`} data-date={dateStr} style={isMobile ? {
+                                  scrollbarWidth: 'none',
+                                  msOverflowStyle: 'none'
+                                } : undefined}>
                                 {/* Blocked time overlays */}
                                 {(() => {
                                   const currentStartTime = dayStartTimes.get(dateStr) || 5;
@@ -3255,7 +3262,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                               onTouchMove={isTouchDevice.current && !isCompleted ? handleJobTouchMove : undefined}
                                               onTouchEnd={isTouchDevice.current && !isCompleted ? handleJobTouchEnd : undefined}
                                               className={`flex-1 rounded transition-all text-xs group overflow-hidden flex items-center select-none ${
-                                                isMobile ? 'px-2 py-1 min-h-[28px] h-[28px]' : 'px-3 py-2 min-h-[40px] h-[40px]'
+                                                isMobile ? 'px-2 py-1 min-h-[32px] h-[32px]' : 'px-3 py-2 min-h-[40px] h-[40px]'
                                               } ${
                                                 isCompleted
                                                   ? 'bg-gray-100 border border-gray-300 opacity-60 cursor-default'
