@@ -2828,12 +2828,12 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                       }}
                     >
                       {/* Day Header - Improved with work/drive time stats */}
-                      <div className={`bg-white border-b border-gray-200 ${isMobile ? 'px-2 py-0.5' : 'px-4 py-3'}`}>
+                      <div className={`bg-white border-b border-gray-200 ${isMobile ? 'px-2 py-[0.5vh]' : 'px-4 py-3'}`}>
                         {/* Day and Date on same line with rain badge */}
-                        <div className={`flex items-center ${isMobile ? 'justify-center mb-0.5' : 'justify-between mb-2'}`}>
+                        <div className={`flex items-center ${isMobile ? 'justify-center mb-[0.3vh]' : 'justify-between mb-2'}`}>
                           <div className="flex items-center gap-2">
-                            <span className={`font-bold text-gray-900 ${isMobile ? 'text-sm' : 'text-xl'}`}>{dayName}</span>
-                            <span className={`text-gray-500 ${isMobile ? 'text-xs' : 'text-base'}`}>{dayDate}</span>
+                            <span className={`font-bold text-gray-900 ${isMobile ? 'text-[2vh]' : 'text-xl'}`}>{dayName}</span>
+                            <span className={`text-gray-500 ${isMobile ? 'text-[1.5vh]' : 'text-base'}`}>{dayDate}</span>
                           </div>
                           
                           {/* Rain Chance Badge */}
@@ -2847,10 +2847,10 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                         
                         {/* Work Stats Row - Centered */}
                         {totalJobs > 0 && (
-                          <div className={`flex items-center justify-center gap-4 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                          <div className={`flex items-center justify-center gap-4 ${isMobile ? 'text-[1.3vh]' : 'text-sm'}`}>
                             <div className="flex items-center gap-2 text-gray-700">
-                              <span className={`font-bold text-blue-600 ${isMobile ? 'text-sm' : 'text-lg'}`}>{totalJobs}</span>
-                              <span className={`text-gray-600 font-medium ${isMobile ? 'text-[10px]' : ''}`}>job{totalJobs !== 1 ? 's' : ''}</span>
+                              <span className={`font-bold text-blue-600 ${isMobile ? 'text-[1.8vh]' : 'text-lg'}`}>{totalJobs}</span>
+                              <span className={`text-gray-600 font-medium ${isMobile ? 'text-[1.3vh]' : ''}`}>job{totalJobs !== 1 ? 's' : ''}</span>
                             </div>
                             {(() => {
                               const totalWorkMinutes = [...scheduledJobsForDay, ...assignedJobs].reduce((sum, job) => sum + (job.totalTime || 30), 0);
@@ -2864,8 +2864,8 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                 <>
                                   <div className="h-4 w-px bg-gray-300"></div>
                                   <div className="flex items-center gap-1.5 text-gray-700">
-                                    <span className={`${isMobile ? 'text-sm' : 'text-base'}`}>⏱</span>
-                                    <span className={`font-semibold ${isMobile ? 'text-xs' : 'text-base'}`}>
+                                    <span className={`${isMobile ? 'text-[1.5vh]' : 'text-base'}`}>⏱</span>
+                                    <span className={`font-semibold ${isMobile ? 'text-[1.3vh]' : 'text-base'}`}>
                                       {workHours > 0 && `${workHours}h `}{workMins > 0 && `${workMins}m`}
                                       {!workHours && !workMins && '30m'}
                                     </span>
@@ -2874,8 +2874,8 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                     <>
                                       <div className="h-4 w-px bg-gray-300"></div>
                                       <div className="flex items-center gap-1.5 text-gray-700">
-                                        <span className={`${isMobile ? 'text-sm' : 'text-base'}`}>🚗</span>
-                                        <span className={`font-semibold ${isMobile ? 'text-xs' : 'text-base'}`}>
+                                        <span className={`${isMobile ? 'text-[1.5vh]' : 'text-base'}`}>🚗</span>
+                                        <span className={`font-semibold ${isMobile ? 'text-[1.3vh]' : 'text-base'}`}>
                                           {driveHours > 0 && `${driveHours}h `}{driveMins}m
                                         </span>
                                       </div>
@@ -3192,8 +3192,8 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                     
                                     return (
                                       <div className="flex flex-col items-center gap-0.5 w-10 shrink-0">
-                                        <HourIcon className={`${isMobile ? 'w-4 h-4' : 'w-6 h-6'} ${hourColor} stroke-[1.5]`} />
-                                        <span className={`text-gray-500 font-medium whitespace-nowrap ${isMobile ? 'text-[8px]' : 'text-[10px]'}`}>
+                                        <HourIcon className={`${isMobile ? 'w-[3vh] h-[3vh]' : 'w-6 h-6'} ${hourColor} stroke-[1.5]`} />
+                                        <span className={`text-gray-500 font-medium whitespace-nowrap ${isMobile ? 'text-[1.2vh]' : 'text-[10px]'}`}>
                                           {timeLabel}
                                         </span>
                                       </div>
@@ -3206,7 +3206,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                     <div 
                                       key={slot.slotIndex}
                                       className={`relative flex items-center transition-colors ${
-                                        isMobile ? 'flex-1 min-h-[4.5vh]' : 'min-h-[38.5px] h-[38.5px]'
+                                        isMobile ? 'flex-1 min-h-[3.5vh]' : 'min-h-[38.5px] h-[38.5px]'
                                       } ${isDropTarget ? 'bg-blue-100 border-l-4 border-blue-500' : ''}`}
                                       data-time-slot="true"
                                       data-slot-index={slot.slotIndex}
@@ -3225,14 +3225,14 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                                 {weatherIcon}
                                                 <div className="flex flex-col items-center gap-0.5">
                                                   <div className={`relative flex items-center justify-center bg-blue-50 rounded-full border border-blue-200 ${
-                                                    isMobile ? 'w-4 h-4' : 'w-6 h-6'
+                                                    isMobile ? 'w-[3vh] h-[3vh]' : 'w-6 h-6'
                                                   }`}>
-                                                    <svg className={`text-blue-600 ${isMobile ? 'w-3 h-3' : 'w-4 h-4'}`} fill="currentColor" viewBox="0 0 20 20">
+                                                    <svg className={`text-blue-600 ${isMobile ? 'w-[2vh] h-[2vh]' : 'w-4 h-4'}`} fill="currentColor" viewBox="0 0 20 20">
                                                       <path fillRule="evenodd" d="M10 2a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0110 2zM10 15a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0110 15zM10 7a3 3 0 100 6 3 3 0 000-6zM15.657 5.404a.75.75 0 10-1.06-1.06l-1.061 1.06a.75.75 0 001.06 1.06l1.06-1.06zM6.464 14.596a.75.75 0 10-1.06-1.06l-1.06 1.06a.75.75 0 001.06 1.06l1.06-1.06zM18 10a.75.75 0 01-.75.75h-1.5a.75.75 0 010-1.5h1.5A.75.75 0 0118 10zM5 10a.75.75 0 01-.75.75h-1.5a.75.75 0 010-1.5h1.5A.75.75 0 015 10zM14.596 15.657a.75.75 0 001.06-1.06l-1.06-1.061a.75.75 0 10-1.06 1.06l1.06 1.06zM5.404 6.464a.75.75 0 001.06-1.06l-1.06-1.06a.75.75 0 10-1.061 1.06l1.06 1.06z" clipRule="evenodd" />
                                                     </svg>
                                                   </div>
                                                   <span className={`text-blue-700 font-bold whitespace-nowrap tracking-tight ${
-                                                    isMobile ? 'text-[7px]' : 'text-[9px]'
+                                                    isMobile ? 'text-[1vh]' : 'text-[9px]'
                                                   }`}>WET</span>
                                                 </div>
                                               </div>
@@ -3266,7 +3266,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                               onTouchMove={isTouchDevice.current && !isCompleted ? handleJobTouchMove : undefined}
                                               onTouchEnd={isTouchDevice.current && !isCompleted ? handleJobTouchEnd : undefined}
                                               className={`flex-1 rounded transition-all text-xs group overflow-hidden flex items-center select-none ${
-                                                isMobile ? 'px-1.5 py-0.5' : 'px-3 py-2 min-h-[40px] h-[40px]'
+                                                isMobile ? 'px-[0.5vh] py-[0.3vh]' : 'px-3 py-2 min-h-[40px] h-[40px]'
                                               } ${
                                                 isCompleted
                                                   ? 'bg-gray-100 border border-gray-300 opacity-60 cursor-default'
@@ -3289,26 +3289,26 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                               <div className="flex items-center justify-between gap-1 w-full overflow-hidden">
                                                 <div className="flex-1 min-w-0">
                                                   <div className={`font-semibold truncate w-full ${
-                                                    isMobile ? 'text-[10px]' : 'text-xs'
+                                                    isMobile ? 'text-[1.4vh]' : 'text-xs'
                                                   } ${isCompleted ? 'text-gray-500 line-through' : 'text-gray-900'}`}>
                                                     {customer?.name}
                                                     {isSelected && (
-                                                      <span className={`ml-1 text-green-700 ${isMobile ? 'text-[9px]' : 'text-xs'}`}>✓ Selected</span>
+                                                      <span className={`ml-1 text-green-700 ${isMobile ? 'text-[1.2vh]' : 'text-xs'}`}>✓ Selected</span>
                                                     )}
                                                     {isCutItem && isTouchDevice.current && !isSelected && (
-                                                      <span className={`ml-1 text-yellow-700 ${isMobile ? 'text-[9px]' : 'text-xs'}`}>✂️ Cut</span>
+                                                      <span className={`ml-1 text-yellow-700 ${isMobile ? 'text-[1.2vh]' : 'text-xs'}`}>✂️ Cut</span>
                                                     )}
                                                     {isCompleted && (
-                                                      <span className={`ml-1 text-green-600 ${isMobile ? 'text-[9px]' : 'text-xs'}`}>✓</span>
+                                                      <span className={`ml-1 text-green-600 ${isMobile ? 'text-[1.2vh]' : 'text-xs'}`}>✓</span>
                                                     )}
                                                   </div>
                                                   {!isDraggedItem && isAssigned && (
-                                                    <div className={`text-gray-700 font-medium mt-0.5 italic ${isMobile ? 'text-[9px]' : 'text-xs'}`}>
+                                                    <div className={`text-gray-700 font-medium mt-0.5 italic ${isMobile ? 'text-[1.2vh]' : 'text-xs'}`}>
                                                       Moving here...
                                                     </div>
                                                   )}
                                                   {!isDraggedItem && !isAssigned && !isCutItem && (
-                                                    <div className={`truncate ${isMobile ? 'text-[9px]' : 'text-xs'} ${isCompleted ? 'text-gray-400' : 'text-gray-600'}`}>
+                                                    <div className={`truncate ${isMobile ? 'text-[1.2vh]' : 'text-xs'} ${isCompleted ? 'text-gray-400' : 'text-gray-600'}`}>
                                                       {scheduledTime && <span className="font-medium">{scheduledTime} • </span>}
                                                       ${customer?.price} • 60 min
                                                     </div>
