@@ -2897,7 +2897,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                           isMobile ? 'px-1 pb-0 pt-1 flex flex-col' : 'px-1 py-2'
                         }`}>
                           
-                          <div className={`relative z-10 ${isMobile ? 'flex-1 flex flex-col' : ''}`}>
+                          <div className={`relative z-10 ${isMobile ? 'flex-1 flex flex-col min-h-0' : ''}`}>
                             {/* Draggable START Time Bar - At very top before 5am icon */}
                             {(() => {
                               const currentStartTime = dayStartTimes.get(dateStr) || 5;
@@ -2916,10 +2916,10 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                               }
                               
                               return (
-                                <div className="mb-1">
+                                <div className={`${isMobile ? 'mb-[0.5vh]' : 'mb-1'}`}>
                                   {/* Draggable start time handle - ALWAYS visible at top */}
                                   <div
-                                    className="relative cursor-ns-resize transition-all group py-3"
+                                    className={`relative cursor-ns-resize transition-all group ${isMobile ? 'py-[1vh]' : 'py-3'}`}
                                     draggable
                                     onDragStart={(e) => {
                                       e.dataTransfer.effectAllowed = 'move';
@@ -3004,13 +3004,17 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
                                       </svg>
                                     </div>                                    {/* Time label - Always visible - positioned on right side */}
-                                    <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 bg-blue-600 text-white text-[10px] px-2 py-0.5 rounded font-semibold whitespace-nowrap shadow-md z-10">
+                                    <div className={`absolute left-full ml-2 top-1/2 -translate-y-1/2 bg-blue-600 text-white px-2 py-0.5 rounded font-semibold whitespace-nowrap shadow-md z-10 ${
+                                      isMobile ? 'text-[1.2vh]' : 'text-[10px]'
+                                    }`}>
                                       Start: {currentStartTime > 12 ? `${currentStartTime - 12}PM` : currentStartTime === 12 ? '12PM' : `${currentStartTime}AM`}
                                     </div>
                                     
                                     {/* Reason label - appears on right */}
                                     {currentStartTime > 5 && (
-                                      <div className="absolute -right-2 top-1/2 -translate-y-1/2 translate-x-full bg-white/95 text-blue-700 text-[9px] px-2 py-1 rounded shadow-sm font-medium whitespace-nowrap">
+                                      <div className={`absolute -right-2 top-1/2 -translate-y-1/2 translate-x-full bg-white/95 text-blue-700 px-2 py-1 rounded shadow-sm font-medium whitespace-nowrap ${
+                                        isMobile ? 'text-[1vh]' : 'text-[9px]'
+                                      }`}>
                                         {startReason}
                                       </div>
                                     )}
@@ -3092,7 +3096,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                               
                               return (
                                 <div className={`relative flex flex-col time-slots-container ${
-                                  isMobile ? 'space-y-0 flex-1 justify-between' : 'space-y-1'
+                                  isMobile ? 'space-y-0 flex-1' : 'space-y-1'
                                 }`} data-date={dateStr}>
                                 {/* Blocked time overlays */}
                                 {(() => {
@@ -3206,7 +3210,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                     <div 
                                       key={slot.slotIndex}
                                       className={`relative flex items-center transition-colors ${
-                                        isMobile ? 'flex-1 min-h-[3.5vh]' : 'min-h-[38.5px] h-[38.5px]'
+                                        isMobile ? 'min-h-[2.8vh] mb-[0.5vh]' : 'min-h-[38.5px] h-[38.5px]'
                                       } ${isDropTarget ? 'bg-blue-100 border-l-4 border-blue-500' : ''}`}
                                       data-time-slot="true"
                                       data-slot-index={slot.slotIndex}
@@ -3384,10 +3388,10 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                             }
                             
                             return (
-                              <div className="mt-1">
+                              <div className={`${isMobile ? 'mt-[0.5vh]' : 'mt-1'}`}>
                                 {/* Draggable end time handle - ALWAYS visible at bottom */}
                                 <div
-                                  className="relative cursor-ns-resize transition-all group py-3"
+                                  className={`relative cursor-ns-resize transition-all group ${isMobile ? 'py-[1vh]' : 'py-3'}`}
                                   draggable
                                   onDragStart={(e) => {
                                     e.dataTransfer.effectAllowed = 'move';
@@ -3470,13 +3474,17 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                   </div>
                                   
                                   {/* Time label - Always visible - positioned on right side */}
-                                  <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 bg-blue-600 text-white text-[10px] px-2 py-0.5 rounded font-semibold whitespace-nowrap shadow-md z-10">
+                                  <div className={`absolute left-full ml-2 top-1/2 -translate-y-1/2 bg-blue-600 text-white px-2 py-0.5 rounded font-semibold whitespace-nowrap shadow-md z-10 ${
+                                    isMobile ? 'text-[1.2vh]' : 'text-[10px]'
+                                  }`}>
                                     End: {currentEndTime > 12 ? `${currentEndTime - 12}PM` : currentEndTime === 12 ? '12PM' : `${currentEndTime}AM`}
                                   </div>
                                   
                                   {/* Reason label - appears on right */}
                                   {currentEndTime < 18 && (
-                                    <div className="absolute -right-2 top-1/2 -translate-y-1/2 translate-x-full bg-white/95 text-blue-700 text-[9px] px-2 py-1 rounded shadow-sm font-medium whitespace-nowrap">
+                                    <div className={`absolute -right-2 top-1/2 -translate-y-1/2 translate-x-full bg-white/95 text-blue-700 px-2 py-1 rounded shadow-sm font-medium whitespace-nowrap ${
+                                      isMobile ? 'text-[1vh]' : 'text-[9px]'
+                                    }`}>
                                       {endReason}
                                     </div>
                                   )}
