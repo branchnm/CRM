@@ -2934,8 +2934,9 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                       const rect = container.getBoundingClientRect();
                                       const y = e.clientY - rect.top;
                                       
-                                      const slotHeight = window.innerWidth < 768 ? 32 : 39.5;
-                                      const slotIndex = Math.round(y / slotHeight);
+                                      // Calculate slot based on percentage of container height
+                                      const totalSlots = 14; // 5am to 6pm
+                                      const slotIndex = Math.round((y / rect.height) * totalSlots);
                                       const newHour = 5 + slotIndex;
                                       const clampedHour = Math.max(5, Math.min(17, newHour));
                                       
@@ -2968,8 +2969,9 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                         const moveTouch = moveEvent.touches[0];
                                         const y = moveTouch.clientY - rect.top;
                                         
-                                        const slotHeight = window.innerWidth < 768 ? 32 : 39.5;
-                                        const slotIndex = Math.round(y / slotHeight);
+                                        // Calculate slot based on percentage of container height
+                                        const totalSlots = 14;
+                                        const slotIndex = Math.round((y / rect.height) * totalSlots);
                                         const newHour = 5 + slotIndex;
                                         const clampedHour = Math.max(5, Math.min(17, newHour));
                                         
@@ -3097,17 +3099,16 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                   const currentStartTime = dayStartTimes.get(dateStr) || 5;
                                   const currentEndTime = dayEndTimes.get(dateStr) || 18;
                                   
-                                  // Slot height changes based on mobile
-                                  const slotHeight = isMobile ? 32 : 39.5;
+                                  const totalSlots = 14; // 5am to 6pm = 14 hours
                                   
-                                  // Calculate blocked area - starting from 5am (first visible slot)
-                                  const blockedStartSlots = Math.max(0, currentStartTime - 5); // e.g., if start is 10am, block slots 0-4 (5am-9am)
-                                  const blockedStartHeight = blockedStartSlots * slotHeight;
+                                  // Calculate blocked area as percentage instead of pixels
+                                  const blockedStartSlots = Math.max(0, currentStartTime - 5);
+                                  const blockedStartPercent = (blockedStartSlots / totalSlots) * 100;
                                   
-                                  // Block from currentEndTime to 6pm (inclusive of currentEndTime slot)
-                                  const blockedEndSlots = Math.max(0, 19 - currentEndTime); // e.g., if end is 5pm, block 2 slots (5pm, 6pm)
-                                  const blockedEndHeight = blockedEndSlots * slotHeight;
-                                  const blockedEndTop = (currentEndTime - 5) * slotHeight; // Position from 5am - this puts the overlay AT the end time slot
+                                  // Block from currentEndTime to 6pm (inclusive)
+                                  const blockedEndSlots = Math.max(0, 19 - currentEndTime);
+                                  const blockedEndPercent = (blockedEndSlots / totalSlots) * 100;
+                                  const blockedEndTopPercent = ((currentEndTime - 5) / totalSlots) * 100;
                                   
                                   return (
                                     <>
@@ -3116,7 +3117,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                         <div 
                                           className="absolute top-0 left-0 right-0 bg-blue-50/60 pointer-events-none z-20"
                                           style={{ 
-                                            height: `${blockedStartHeight}px`,
+                                            height: `${blockedStartPercent}%`,
                                             backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(59, 130, 246, 0.2) 4px, rgba(59, 130, 246, 0.2) 8px)'
                                           }}
                                         />
@@ -3127,8 +3128,8 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                         <div 
                                           className="absolute left-0 right-0 bg-blue-50/60 pointer-events-none z-20"
                                           style={{ 
-                                            top: `${blockedEndTop}px`,
-                                            height: `${blockedEndHeight}px`,
+                                            top: `${blockedEndTopPercent}%`,
+                                            height: `${blockedEndPercent}%`,
                                             backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(59, 130, 246, 0.2) 4px, rgba(59, 130, 246, 0.2) 8px)'
                                           }}
                                         />
@@ -3205,7 +3206,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                     <div 
                                       key={slot.slotIndex}
                                       className={`relative flex items-center transition-colors ${
-                                        isMobile ? 'min-h-[32px] h-[32px]' : 'min-h-[38.5px] h-[38.5px]'
+                                        isMobile ? 'flex-1' : 'min-h-[38.5px] h-[38.5px]'
                                       } ${isDropTarget ? 'bg-blue-100 border-l-4 border-blue-500' : ''}`}
                                       data-time-slot="true"
                                       data-slot-index={slot.slotIndex}
@@ -3261,7 +3262,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                               onTouchMove={isTouchDevice.current && !isCompleted ? handleJobTouchMove : undefined}
                                               onTouchEnd={isTouchDevice.current && !isCompleted ? handleJobTouchEnd : undefined}
                                               className={`flex-1 rounded transition-all text-xs group overflow-hidden flex items-center select-none ${
-                                                isMobile ? 'px-2 py-1 min-h-[32px] h-[32px]' : 'px-3 py-2 min-h-[40px] h-[40px]'
+                                                isMobile ? 'px-2 py-1' : 'px-3 py-2 min-h-[40px] h-[40px]'
                                               } ${
                                                 isCompleted
                                                   ? 'bg-gray-100 border border-gray-300 opacity-60 cursor-default'
@@ -3395,8 +3396,9 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                     const rect = container.getBoundingClientRect();
                                     const y = e.clientY - rect.top;
                                     
-                                    const slotHeight = window.innerWidth < 768 ? 32 : 39.5;
-                                    const slotIndex = Math.round(y / slotHeight);
+                                    // Calculate slot based on percentage of container height
+                                    const totalSlots = 14;
+                                    const slotIndex = Math.round((y / rect.height) * totalSlots);
                                     const newHour = 5 + slotIndex;
                                     const clampedHour = Math.max(6, Math.min(18, newHour));
                                     
@@ -3426,8 +3428,9 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                       const moveTouch = moveEvent.touches[0];
                                       const y = moveTouch.clientY - rect.top;
                                       
-                                      const slotHeight = window.innerWidth < 768 ? 32 : 39.5;
-                                      const slotIndex = Math.round(y / slotHeight);
+                                      // Calculate slot based on percentage of container height
+                                      const totalSlots = 14;
+                                      const slotIndex = Math.round((y / rect.height) * totalSlots);
                                       const newHour = 5 + slotIndex;
                                       const clampedHour = Math.max(6, Math.min(18, newHour));
                                       
