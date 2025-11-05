@@ -2854,7 +2854,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                 <div className="mb-1">
                                   {/* Draggable start time handle - ALWAYS visible at top */}
                                   <div
-                                    className="relative h-2 bg-blue-600 cursor-ns-resize transition-all group shadow-md rounded"
+                                    className="relative h-4 bg-blue-600 cursor-ns-resize transition-all group shadow-md rounded py-2"
                                     draggable
                                     onDragStart={(e) => {
                                       e.dataTransfer.effectAllowed = 'move';
@@ -2870,7 +2870,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                       const y = e.clientY - rect.top;
                                       
                                       const slotIndex = Math.round(y / 39.5);
-                                      const newHour = 5 + slotIndex; // Changed from 4 to 5 to match first visible slot
+                                      const newHour = 5 + slotIndex;
                                       const clampedHour = Math.max(5, Math.min(17, newHour));
                                       
                                       if (clampedHour !== currentStartTime) {
@@ -2924,16 +2924,14 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                       
                                       document.addEventListener('touchmove', handleTouchMove, { passive: false });
                                       document.addEventListener('touchend', handleTouchEnd);
-                                    }}
-                                  >
+                                  }}
+                                >
                                     {/* Drag handle indicator - ALWAYS VISIBLE */}
-                                    <div className="absolute left-1/2 -translate-x-1/2 -top-2 w-8 h-4 bg-blue-600 rounded-full flex items-center justify-center shadow-md z-10">
-                                      <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <div className="absolute left-1/2 -translate-x-1/2 -top-4 w-12 h-6 bg-blue-600 rounded-full flex items-center justify-center shadow-md z-10">
+                                      <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
                                       </svg>
-                                    </div>
-                                    
-                                    {/* Time label - Always visible */}
+                                    </div>                                    {/* Time label - Always visible */}
                                     <div className="absolute -left-12 top-1/2 -translate-y-1/2 bg-blue-600 text-white text-[10px] px-2 py-0.5 rounded font-semibold whitespace-nowrap shadow-md">
                                       {currentStartTime > 12 ? `${currentStartTime - 12}PM` : currentStartTime === 12 ? '12PM' : `${currentStartTime}AM`}
                                     </div>
@@ -3031,7 +3029,8 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                   const blockedStartSlots = Math.max(0, currentStartTime - 5); // e.g., if start is 10am, block slots 0-4 (5am-9am)
                                   const blockedStartHeight = blockedStartSlots * 39.5;
                                   
-                                  const blockedEndSlots = 18 - currentEndTime;
+                                  // Fix: Include the slot at currentEndTime in the blocked area
+                                  const blockedEndSlots = Math.max(0, 19 - currentEndTime); // Changed from 18 to 19 to include the end hour slot
                                   const blockedEndHeight = blockedEndSlots * 39.5;
                                   const blockedEndTop = (currentEndTime - 5) * 39.5; // Position from 5am
                                   
@@ -3048,14 +3047,14 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                         />
                                       )}
                                       
-                                      {/* Blocked time overlay (after end time) - Purple rain pattern */}
+                                      {/* Blocked time overlay (after end time) - Blue rain pattern (same as start) */}
                                       {currentEndTime < 18 && (
                                         <div 
                                           className="absolute left-0 right-0 bg-blue-50/60 pointer-events-none z-20"
                                           style={{ 
                                             top: `${blockedEndTop}px`,
                                             height: `${blockedEndHeight}px`,
-                                            backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(147, 51, 234, 0.2) 4px, rgba(147, 51, 234, 0.2) 8px)'
+                                            backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(59, 130, 246, 0.2) 4px, rgba(59, 130, 246, 0.2) 8px)'
                                           }}
                                         />
                                       )}
@@ -3294,7 +3293,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                               <div className="mt-1">
                                 {/* Draggable end time handle - ALWAYS visible at bottom */}
                                 <div
-                                  className="relative h-2 bg-purple-600 cursor-ns-resize transition-all group shadow-md rounded"
+                                  className="relative h-4 bg-blue-600 cursor-ns-resize transition-all group shadow-md rounded py-2"
                                   draggable
                                   onDragStart={(e) => {
                                     e.dataTransfer.effectAllowed = 'move';
@@ -3310,8 +3309,8 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                     const y = e.clientY - rect.top;
                                     
                                     const slotIndex = Math.round(y / 39.5);
-                                    const newHour = 5 + slotIndex; // Changed from 4 to 5
-                                    const clampedHour = Math.max(6, Math.min(18, newHour));
+                                    const newHour = 5 + slotIndex;
+                                    const clampedHour = Math.max(6, Math.min(19, newHour)); // Changed max to 19 to allow dragging to 6pm slot
                                     
                                     if (clampedHour !== currentEndTime) {
                                       setDayEndTimes(prev => {
@@ -3340,8 +3339,8 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                       const y = moveTouch.clientY - rect.top;
                                       
                                       const slotIndex = Math.round(y / 39.5);
-                                      const newHour = 5 + slotIndex; // Changed from 4 to 5
-                                      const clampedHour = Math.max(6, Math.min(18, newHour));
+                                      const newHour = 5 + slotIndex;
+                                      const clampedHour = Math.max(6, Math.min(19, newHour)); // Changed max to 19
                                       
                                       if (clampedHour !== currentEndTime) {
                                         setDayEndTimes(prev => {
@@ -3363,20 +3362,20 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                   }}
                                 >
                                   {/* Drag handle indicator - ALWAYS VISIBLE */}
-                                  <div className="absolute left-1/2 -translate-x-1/2 -bottom-2 w-8 h-4 bg-purple-600 rounded-full flex items-center justify-center shadow-md z-10">
-                                    <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <div className="absolute left-1/2 -translate-x-1/2 -bottom-4 w-12 h-6 bg-blue-600 rounded-full flex items-center justify-center shadow-md z-10">
+                                    <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
                                     </svg>
                                   </div>
                                   
                                   {/* Time label - Always visible */}
-                                  <div className="absolute -left-12 top-1/2 -translate-y-1/2 bg-purple-600 text-white text-[10px] px-2 py-0.5 rounded font-semibold whitespace-nowrap shadow-md">
+                                  <div className="absolute -left-12 top-1/2 -translate-y-1/2 bg-blue-600 text-white text-[10px] px-2 py-0.5 rounded font-semibold whitespace-nowrap shadow-md">
                                     {currentEndTime > 12 ? `${currentEndTime - 12}PM` : currentEndTime === 12 ? '12PM' : `${currentEndTime}AM`}
                                   </div>
                                   
                                   {/* Reason label - appears on right */}
                                   {currentEndTime < 18 && (
-                                    <div className="absolute -right-2 top-1/2 -translate-y-1/2 translate-x-full bg-white/95 text-purple-700 text-[9px] px-2 py-1 rounded shadow-sm font-medium whitespace-nowrap">
+                                    <div className="absolute -right-2 top-1/2 -translate-y-1/2 translate-x-full bg-white/95 text-blue-700 text-[9px] px-2 py-1 rounded shadow-sm font-medium whitespace-nowrap">
                                       {endReason}
                                     </div>
                                   )}
