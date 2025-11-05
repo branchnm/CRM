@@ -695,8 +695,8 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
 
     try {
       // Calculate scheduled time from time slot
-      // Time slots start at 5am, but may be offset by day start time
-      const dayStartHour = dayStartTimes.get(newDate) || 4;
+      // Time slots start at 5am, may be offset by day start time
+      const dayStartHour = dayStartTimes.get(newDate) || 5;
       const slotOffset = Math.max(0, dayStartHour - 5);
       const actualHour = 5 + (timeSlot || 0) + slotOffset;
       const scheduledTime = timeSlot !== undefined ? `${actualHour}:00` : undefined;
@@ -847,7 +847,7 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
         });
         
         // Map the optimized jobs back to the original job objects with new order and scheduled times
-        const startHour = dayStartTimes.get(dateStr) || 6;
+        const startHour = dayStartTimes.get(dateStr) || 5;
         let currentTime = startHour * 60; // Convert to minutes from midnight
         
         const optimizedJobsWithData = optimizedRoute.jobs.map((optimizedJob, index) => {

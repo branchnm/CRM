@@ -2935,8 +2935,8 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
                                       </svg>
                                     </div>                                    {/* Time label - Always visible */}
-                                    <div className="absolute -left-12 top-1/2 -translate-y-1/2 bg-blue-600 text-white text-[10px] px-2 py-0.5 rounded font-semibold whitespace-nowrap shadow-md">
-                                      {currentStartTime > 12 ? `${currentStartTime - 12}PM` : currentStartTime === 12 ? '12PM' : `${currentStartTime}AM`}
+                                    <div className="absolute -left-16 top-1/2 -translate-y-1/2 bg-blue-600 text-white text-[10px] px-2 py-0.5 rounded font-semibold whitespace-nowrap shadow-md">
+                                      Start: {currentStartTime > 12 ? `${currentStartTime - 12}PM` : currentStartTime === 12 ? '12PM' : `${currentStartTime}AM`}
                                     </div>
                                     
                                     {/* Reason label - appears on right */}
@@ -3375,8 +3375,8 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                   </div>
                                   
                                   {/* Time label - Always visible */}
-                                  <div className="absolute -left-12 top-1/2 -translate-y-1/2 bg-blue-600 text-white text-[10px] px-2 py-0.5 rounded font-semibold whitespace-nowrap shadow-md">
-                                    {currentEndTime > 12 ? `${currentEndTime - 12}PM` : currentEndTime === 12 ? '12PM' : `${currentEndTime}AM`}
+                                  <div className="absolute -left-14 top-1/2 -translate-y-1/2 bg-blue-600 text-white text-[10px] px-2 py-0.5 rounded font-semibold whitespace-nowrap shadow-md">
+                                    End: {currentEndTime > 12 ? `${currentEndTime - 12}PM` : currentEndTime === 12 ? '12PM' : `${currentEndTime}AM`}
                                   </div>
                                   
                                   {/* Reason label - appears on right */}
