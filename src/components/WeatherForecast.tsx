@@ -2768,7 +2768,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                       onDragLeave={handleDragLeave}
                       onDrop={(e) => handleDrop(e, dateStr)}
                       className={`forecast-day-card relative ${
-                        isMobile ? 'mb-8 h-[85vh] overflow-hidden flex flex-col' : ''
+                        isMobile ? 'mb-8 overflow-hidden flex flex-col' : ''
                       } shadow-sm`}
                       style={{
                         background: weatherForDay?.hourlyForecasts && weatherForDay.hourlyForecasts.length > 0
@@ -2828,9 +2828,9 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                       }}
                     >
                       {/* Day Header - Improved with work/drive time stats */}
-                      <div className={`bg-white border-b border-gray-200 ${isMobile ? 'px-2 py-1' : 'px-4 py-3'}`}>
+                      <div className={`bg-white border-b border-gray-200 ${isMobile ? 'px-2 py-0.5' : 'px-4 py-3'}`}>
                         {/* Day and Date on same line with rain badge */}
-                        <div className={`flex items-center ${isMobile ? 'justify-center mb-1' : 'justify-between mb-2'}`}>
+                        <div className={`flex items-center ${isMobile ? 'justify-center mb-0.5' : 'justify-between mb-2'}`}>
                           <div className="flex items-center gap-2">
                             <span className={`font-bold text-gray-900 ${isMobile ? 'text-base' : 'text-xl'}`}>{dayName}</span>
                             <span className={`text-gray-500 ${isMobile ? 'text-sm' : 'text-base'}`}>{dayDate}</span>
@@ -2894,7 +2894,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                       }`}>
                         {/* Left: Job Count & Jobs List with day weather icons (5am-6pm) */}
                         <div className={`bg-gray-50/50 relative border-r border-gray-200 overflow-hidden ${
-                          isMobile ? 'px-1 py-3' : 'px-1 py-2'
+                          isMobile ? 'px-1 pb-0 pt-1' : 'px-1 py-2'
                         }`}>
                           
                           <div className="relative z-10">
