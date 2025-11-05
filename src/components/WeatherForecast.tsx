@@ -2854,7 +2854,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                 <div className="mb-1">
                                   {/* Draggable start time handle - ALWAYS visible at top */}
                                   <div
-                                    className="relative h-4 bg-blue-600 cursor-ns-resize transition-all group shadow-md rounded py-2"
+                                    className="relative cursor-ns-resize transition-all group py-3"
                                     draggable
                                     onDragStart={(e) => {
                                       e.dataTransfer.effectAllowed = 'move';
@@ -2903,7 +2903,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                         const y = moveTouch.clientY - rect.top;
                                         
                                         const slotIndex = Math.round(y / 39.5);
-                                        const newHour = 5 + slotIndex; // Changed from 4 to 5
+                                        const newHour = 5 + slotIndex;
                                         const clampedHour = Math.max(5, Math.min(17, newHour));
                                         
                                         if (clampedHour !== currentStartTime) {
@@ -2926,9 +2926,12 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                       document.addEventListener('touchend', handleTouchEnd);
                                   }}
                                 >
+                                    {/* Visible thin bar */}
+                                    <div className="h-1 bg-blue-600 shadow-md rounded"></div>
+                                    
                                     {/* Drag handle indicator - ALWAYS VISIBLE */}
-                                    <div className="absolute left-1/2 -translate-x-1/2 -top-4 w-12 h-6 bg-blue-600 rounded-full flex items-center justify-center shadow-md z-10">
-                                      <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <div className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 w-8 h-4 bg-blue-600 rounded-full flex items-center justify-center shadow-md z-10">
+                                      <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
                                       </svg>
                                     </div>                                    {/* Time label - Always visible */}
@@ -3029,10 +3032,10 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                   const blockedStartSlots = Math.max(0, currentStartTime - 5); // e.g., if start is 10am, block slots 0-4 (5am-9am)
                                   const blockedStartHeight = blockedStartSlots * 39.5;
                                   
-                                  // Fix: Include the slot at currentEndTime in the blocked area
-                                  const blockedEndSlots = Math.max(0, 19 - currentEndTime); // Changed from 18 to 19 to include the end hour slot
+                                  // Block from currentEndTime to 6pm (inclusive of currentEndTime slot)
+                                  const blockedEndSlots = Math.max(0, 19 - currentEndTime); // e.g., if end is 5pm, block 2 slots (5pm, 6pm)
                                   const blockedEndHeight = blockedEndSlots * 39.5;
-                                  const blockedEndTop = (currentEndTime - 5) * 39.5; // Position from 5am
+                                  const blockedEndTop = (currentEndTime - 5) * 39.5; // Position from 5am - this puts the overlay AT the end time slot
                                   
                                   return (
                                     <>
@@ -3293,7 +3296,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                               <div className="mt-1">
                                 {/* Draggable end time handle - ALWAYS visible at bottom */}
                                 <div
-                                  className="relative h-4 bg-blue-600 cursor-ns-resize transition-all group shadow-md rounded py-2"
+                                  className="relative cursor-ns-resize transition-all group py-3"
                                   draggable
                                   onDragStart={(e) => {
                                     e.dataTransfer.effectAllowed = 'move';
@@ -3310,7 +3313,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                     
                                     const slotIndex = Math.round(y / 39.5);
                                     const newHour = 5 + slotIndex;
-                                    const clampedHour = Math.max(6, Math.min(19, newHour)); // Changed max to 19 to allow dragging to 6pm slot
+                                    const clampedHour = Math.max(6, Math.min(18, newHour));
                                     
                                     if (clampedHour !== currentEndTime) {
                                       setDayEndTimes(prev => {
@@ -3340,7 +3343,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                       
                                       const slotIndex = Math.round(y / 39.5);
                                       const newHour = 5 + slotIndex;
-                                      const clampedHour = Math.max(6, Math.min(19, newHour)); // Changed max to 19
+                                      const clampedHour = Math.max(6, Math.min(18, newHour));
                                       
                                       if (clampedHour !== currentEndTime) {
                                         setDayEndTimes(prev => {
@@ -3361,9 +3364,12 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                     document.addEventListener('touchend', handleTouchEnd);
                                   }}
                                 >
+                                  {/* Visible thin bar */}
+                                  <div className="h-1 bg-blue-600 shadow-md rounded"></div>
+                                  
                                   {/* Drag handle indicator - ALWAYS VISIBLE */}
-                                  <div className="absolute left-1/2 -translate-x-1/2 -bottom-4 w-12 h-6 bg-blue-600 rounded-full flex items-center justify-center shadow-md z-10">
-                                    <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <div className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 w-8 h-4 bg-blue-600 rounded-full flex items-center justify-center shadow-md z-10">
+                                    <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
                                     </svg>
                                   </div>
