@@ -2768,7 +2768,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                       onDragLeave={handleDragLeave}
                       onDrop={(e) => handleDrop(e, dateStr)}
                       className={`forecast-day-card relative ${
-                        isMobile ? 'mb-8 overflow-hidden flex flex-col' : ''
+                        isMobile ? 'mb-8 h-[80vh] overflow-hidden flex flex-col' : ''
                       } shadow-sm`}
                       style={{
                         background: weatherForDay?.hourlyForecasts && weatherForDay.hourlyForecasts.length > 0
@@ -2890,14 +2890,14 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
 
                       {/* Main Content: Day Schedule (left) + Night Weather (right) */}
                       <div className={`grid grid-cols-[1fr_auto] gap-0 overflow-visible ${
-                        isMobile ? '' : 'min-h-[280px]'
+                        isMobile ? 'flex-1' : 'min-h-[280px]'
                       }`}>
                         {/* Left: Job Count & Jobs List with day weather icons (5am-6pm) */}
                         <div className={`bg-gray-50/50 relative border-r border-gray-200 overflow-hidden ${
-                          isMobile ? 'px-1 pb-0 pt-1' : 'px-1 py-2'
+                          isMobile ? 'px-1 pb-0 pt-1 flex flex-col' : 'px-1 py-2'
                         }`}>
                           
-                          <div className="relative z-10">
+                          <div className={`relative z-10 ${isMobile ? 'flex-1 flex flex-col' : ''}`}>
                             {/* Draggable START Time Bar - At very top before 5am icon */}
                             {(() => {
                               const currentStartTime = dayStartTimes.get(dateStr) || 5;
@@ -3090,7 +3090,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                               
                               return (
                                 <div className={`relative flex flex-col time-slots-container ${
-                                  isMobile ? 'space-y-0' : 'space-y-1'
+                                  isMobile ? 'space-y-0 flex-1 justify-between' : 'space-y-1'
                                 }`} data-date={dateStr}>
                                 {/* Blocked time overlays */}
                                 {(() => {
