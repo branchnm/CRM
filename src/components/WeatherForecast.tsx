@@ -2889,7 +2889,9 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                       </div>
 
                       {/* Main Content: Day Schedule (left) + Night Weather (right) */}
-                      <div className="grid grid-cols-[1fr_auto] gap-0 min-h-[280px] overflow-visible">
+                      <div className={`grid grid-cols-[1fr_auto] gap-0 overflow-visible ${
+                        isMobile ? '' : 'min-h-[280px]'
+                      }`}>
                         {/* Left: Job Count & Jobs List with day weather icons (5am-6pm) */}
                         <div className={`bg-gray-50/50 relative border-r border-gray-200 overflow-hidden ${
                           isMobile ? 'px-1 py-3' : 'px-1 py-2'
@@ -3088,7 +3090,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                               
                               return (
                                 <div className={`relative flex flex-col time-slots-container ${
-                                  isMobile ? 'space-y-0 flex-1 min-h-0' : 'space-y-1'
+                                  isMobile ? 'space-y-0' : 'space-y-1'
                                 }`} data-date={dateStr}>
                                 {/* Blocked time overlays */}
                                 {(() => {
