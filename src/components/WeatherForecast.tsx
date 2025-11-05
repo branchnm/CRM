@@ -24,7 +24,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Undo2,
-  Calendar
+  Calendar,
+  X
 } from 'lucide-react';
 import { 
   getWeatherData, 
@@ -2195,22 +2196,20 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
 
   return (
     <div className="space-y-4 relative">
-      {/* Selection Mode Banner - Shows when jobs are selected */}
+      {/* Cancel Selection Button - Floating bottom-right when jobs selected */}
       {isSelectionMode && selectedJobIds.size > 0 && (
-        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-40 flex items-center gap-3 px-4 py-2 bg-green-600 text-white rounded-full shadow-lg">
-          <span className="font-semibold">
-            {selectedJobIds.size} job{selectedJobIds.size > 1 ? 's' : ''} selected
-          </span>
-          <span className="text-green-100 text-xs">Tap slot to move</span>
-          <button
+        <div className="fixed bottom-20 right-4 z-50">
+          <Button
             onClick={() => {
               setIsSelectionMode(false);
               setSelectedJobIds(new Set());
             }}
-            className="ml-2 bg-white text-green-600 px-3 py-1 rounded-full text-xs font-semibold hover:bg-green-50 transition-colors"
+            size="sm"
+            className="bg-white text-gray-700 border-2 border-gray-300 hover:bg-gray-50 shadow-lg"
           >
-            Cancel
-          </button>
+            <X className="h-4 w-4 mr-1" />
+            Cancel ({selectedJobIds.size})
+          </Button>
         </div>
       )}
       
@@ -3096,7 +3095,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                               
                               return (
                                 <div className={`relative flex flex-col time-slots-container ${
-                                  isMobile ? 'space-y-0 flex-1' : 'space-y-1'
+                                  isMobile ? 'space-y-0 flex-1 justify-between gap-y-[1vh]' : 'space-y-1'
                                 }`} data-date={dateStr}>
                                 {/* Blocked time overlays */}
                                 {(() => {
@@ -3210,7 +3209,8 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                     <div 
                                       key={slot.slotIndex}
                                       className={`relative flex items-center transition-colors ${
-                                        isMobile ? 'min-h-[2.8vh] mb-[0.5vh]' : 'min-h-[38.5px] h-[38.5px]'
+                                        isMobile ? 'px-[0.5vh] py-[0.3vh] max-h-[2.8vh]' : 'px-3 py-2 min-h-[40px] h-[40px]'
+                                        
                                       } ${isDropTarget ? 'bg-blue-100 border-l-4 border-blue-500' : ''}`}
                                       data-time-slot="true"
                                       data-slot-index={slot.slotIndex}
@@ -3270,7 +3270,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                               onTouchMove={isTouchDevice.current && !isCompleted ? handleJobTouchMove : undefined}
                                               onTouchEnd={isTouchDevice.current && !isCompleted ? handleJobTouchEnd : undefined}
                                               className={`flex-1 rounded transition-all text-xs group overflow-hidden flex items-center select-none ${
-                                                isMobile ? 'px-[0.5vh] py-[0.3vh]' : 'px-3 py-2 min-h-[40px] h-[40px]'
+                                                isMobile ? 'px-[0.8vh] py-[0.5vh] min-h-[4vh] max-h-[4.5vh]' : 'px-3 py-2 min-h-[40px] h-[40px]'
                                               } ${
                                                 isCompleted
                                                   ? 'bg-gray-100 border border-gray-300 opacity-60 cursor-default'
@@ -3527,10 +3527,12 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                           );
                           
                           return (
-                            <div className={`${isMobile ? 'space-y-0 flex-1 flex flex-col justify-between' : 'space-y-1'}`}>
+                            <div className={`${isMobile ? 'space-y-0 flex-1 flex flex-col justify-between gap-y-[1vh]' : 'space-y-1'}`}>
                               {nightSlots.map((slot, idx) => (
                                 <div key={idx} className={`flex items-center justify-center ${
-                                  isMobile ? 'min-h-[2.8vh] mb-[0.5vh]' : 'h-10'
+                                  //this should be the night weather, but it seems to effect a bunch of other things too...
+                                  isMobile ? 'px-[.5vh] py-[.3vh] max-h-[2.8vh]' : 'px-3 py-2 min-h-[40px] h-[40px]'
+
                                 }`}>
                                   {slot.show && (
                                     <div className="flex flex-col items-center gap-0.5">
