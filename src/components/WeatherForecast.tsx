@@ -3496,9 +3496,9 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                       </div>
 
                       {/* Right: Night Weather (8pm, 11pm, 2am) aligned with day rows */}
-                      <div className="bg-slate-800 px-1 py-2 w-[40px] h-full">
+                      <div className={`bg-slate-800 px-1 py-2 w-[40px] h-full ${isMobile ? 'flex flex-col' : ''}`}>
                         {/* Spacer to align with the day header + 5AM row */}
-                        <div className="h-[52px]"></div>
+                        <div className={`${isMobile ? 'h-auto flex-shrink-0' : 'h-[52px]'}`}></div>
                         
                         {/* Night weather icons aligned with specific day time slots */}
                         {weatherForDay && (() => {
@@ -3527,13 +3527,17 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                           );
                           
                           return (
-                            <div className="space-y-1">
+                            <div className={`${isMobile ? 'space-y-0 flex-1 flex flex-col justify-between' : 'space-y-1'}`}>
                               {nightSlots.map((slot, idx) => (
-                                <div key={idx} className="h-10 flex items-center justify-center">
+                                <div key={idx} className={`flex items-center justify-center ${
+                                  isMobile ? 'min-h-[2.8vh] mb-[0.5vh]' : 'h-10'
+                                }`}>
                                   {slot.show && (
                                     <div className="flex flex-col items-center gap-0.5">
-                                      <NightIcon className={`w-6 h-6 ${nightColor} stroke-[1.5]`} />
-                                      <span className="text-[10px] text-slate-300 font-medium whitespace-nowrap">
+                                      <NightIcon className={`${isMobile ? 'w-[3vh] h-[3vh]' : 'w-6 h-6'} ${nightColor} stroke-[1.5]`} />
+                                      <span className={`text-slate-300 font-medium whitespace-nowrap ${
+                                        isMobile ? 'text-[1.2vh]' : 'text-[10px]'
+                                      }`}>
                                         {slot.label}
                                       </span>
                                     </div>
