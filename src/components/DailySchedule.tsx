@@ -1120,55 +1120,55 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
                 onDragEnd={handleDragEnd}
                 onDrop={(e) => handleDrop(e, index)}
               >
-                <CardContent className="p-2">
+                <CardContent className="p-1.5">
                   {/* Centered layout */}
-                  <div className="flex flex-col items-center text-center gap-2">
+                  <div className="flex flex-col items-center text-center gap-1">
                     <div className="w-full">
-                      <h3 className="text-blue-800 text-sm font-semibold">{customer.name}</h3>
-                      <div className="flex items-center justify-center gap-1.5 text-gray-600 text-xs mt-0.5">
-                        <MapPin className="h-3 w-3 shrink-0 pointer-events-none" />
+                      <h3 className="text-blue-800 text-xs font-semibold">{customer.name}</h3>
+                      <div className="flex items-center justify-center gap-1 text-gray-600 text-[10px] mt-0.5">
+                        <MapPin className="h-2.5 w-2.5 shrink-0 pointer-events-none" />
                         <span>{customer.address}</span>
                       </div>
                       {job.scheduledTime && (
-                        <div className="flex items-center justify-center gap-1.5 text-blue-600 text-xs font-medium mt-0.5">
-                          <Clock className="h-3 w-3 pointer-events-none" />
+                        <div className="flex items-center justify-center gap-1 text-blue-600 text-[10px] font-medium mt-0.5">
+                          <Clock className="h-2.5 w-2.5 pointer-events-none" />
                           <span>Scheduled: {formatScheduledTime(job.scheduledTime)}</span>
                         </div>
                       )}
-                      <div className="flex items-center justify-center gap-1.5 text-blue-600 text-xs mt-0.5">
-                        <Clock className="h-3 w-3 pointer-events-none" />
+                      <div className="flex items-center justify-center gap-1 text-blue-600 text-[10px] mt-0.5">
+                        <Clock className="h-2.5 w-2.5 pointer-events-none" />
                         <span>{driveTime}</span>
                       </div>
                     </div>
 
                   {/* Badges row */}
-                  <div className="flex flex-wrap gap-1 justify-center mb-1">
-                    {customer.isHilly && <Badge variant="secondary" className="text-[10px] py-0 px-1.5">Hilly</Badge>}
-                    {customer.hasFencing && <Badge variant="secondary" className="text-[10px] py-0 px-1.5">Fenced</Badge>}
-                    {customer.hasObstacles && <Badge variant="secondary" className="text-[10px] py-0 px-1.5">Obstacles</Badge>}
-                    <Badge variant="outline" className="text-[10px] py-0 px-1.5">{customer.squareFootage.toLocaleString()} sq ft</Badge>
-                    <Badge variant="outline" className="text-[10px] py-0 px-1.5">${customer.price}</Badge>
+                  <div className="flex flex-wrap gap-0.5 justify-center mb-0.5">
+                    {customer.isHilly && <Badge variant="secondary" className="text-[9px] py-0 px-1">Hilly</Badge>}
+                    {customer.hasFencing && <Badge variant="secondary" className="text-[9px] py-0 px-1">Fenced</Badge>}
+                    {customer.hasObstacles && <Badge variant="secondary" className="text-[9px] py-0 px-1">Obstacles</Badge>}
+                    <Badge variant="outline" className="text-[9px] py-0 px-1">{customer.squareFootage.toLocaleString()} sq ft</Badge>
+                    <Badge variant="outline" className="text-[9px] py-0 px-1">${customer.price}</Badge>
                   </div>
                   </div>
 
                   {/* Action buttons row */}
-                  <div className="flex gap-1.5 w-full">
+                  <div className="flex gap-1 w-full">
 
                       {job.status === 'scheduled' && (
                         <>
                           <Button
                             onClick={() => handleStartJobClick(job)}
-                            className="bg-blue-600 hover:bg-blue-700 flex-1 h-9 text-xs px-2"
+                            className="bg-blue-600 hover:bg-blue-700 flex-1 h-8 text-xs px-2"
                           >
-                            <Play className="h-3 w-3 mr-1" />
+                            <Play className="h-3 w-3 mr-0.5" />
                             Start
                           </Button>
                           <Button
                             variant="outline"
-                            className="flex-1 h-9 text-xs px-2 border-blue-300 text-blue-700 hover:bg-blue-50 hover:border-blue-400"
+                            className="flex-1 h-8 text-xs px-2 border-blue-300 text-blue-700 hover:bg-blue-50 hover:border-blue-400"
                             onClick={() => window.open(`https://maps.google.com/?q=${encodeURIComponent(customer.address)}`, '_blank')}
                           >
-                            <Navigation className="h-3 w-3 mr-1" />
+                            <Navigation className="h-3 w-3 mr-0.5" />
                             Navigate
                           </Button>
                         </>
@@ -1176,11 +1176,11 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
                       {job.status === 'in-progress' && (
                         <>
                           {/* Live Timer Display */}
-                          <div className="flex-1 bg-blue-50 border border-blue-200 rounded px-2 py-2 text-center min-w-0">
-                            <div className="flex items-center justify-center gap-1.5">
+                          <div className="flex-1 bg-blue-50 border border-blue-200 rounded px-2 py-1.5 text-center min-w-0">
+                            <div className="flex items-center justify-center gap-1">
                               <StopCircle className="h-3 w-3 text-blue-600 animate-pulse shrink-0" />
-                              <span className="text-xs text-blue-800 whitespace-nowrap">Running</span>
-                              <span className="text-xs text-blue-600 font-semibold ml-1">
+                              <span className="text-[10px] text-blue-800 whitespace-nowrap">Running</span>
+                              <span className="text-[10px] text-blue-600 font-semibold ml-0.5">
                                 {formatElapsedTime(elapsedTime[job.id] || 0)}
                               </span>
                             </div>
@@ -1194,9 +1194,9 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
                                   setCompletionMessage(null);
                                   setSelectedTime(null);
                                 }}
-                                className="bg-blue-600 hover:bg-blue-700 h-9 text-xs px-3 shrink-0"
+                                className="bg-blue-600 hover:bg-blue-700 h-8 text-xs px-2 shrink-0"
                               >
-                                <CheckCircle className="h-3 w-3 mr-1" />
+                                <CheckCircle className="h-3 w-3 mr-0.5" />
                                 Complete
                               </Button>
                             </DialogTrigger>
@@ -1393,36 +1393,36 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
 
                 return (
                   <Card key={`tomorrow-${job.id}`} className="bg-yellow-50/80 backdrop-blur border-yellow-300">
-                    <CardContent className="p-2 flex flex-col">
-                      <div className="flex flex-col items-center text-center gap-2">
+                    <CardContent className="p-1.5 flex flex-col">
+                      <div className="flex flex-col items-center text-center gap-1">
                         <div className="w-full">
-                          <h3 className="text-orange-800 text-sm font-medium">{customer.name}</h3>
-                          <div className="flex items-center justify-center gap-2 text-gray-600 text-xs mt-0.5">
-                            <MapPin className="h-3 w-3" />
+                          <h3 className="text-orange-800 text-xs font-medium">{customer.name}</h3>
+                          <div className="flex items-center justify-center gap-1 text-gray-600 text-[10px] mt-0.5">
+                            <MapPin className="h-2.5 w-2.5" />
                             <span>{customer.address}</span>
                           </div>
-                          <div className="flex items-center justify-center gap-2 text-yellow-600 text-xs mt-0.5">
-                            <Clock className="h-3 w-3" />
+                          <div className="flex items-center justify-center gap-1 text-yellow-600 text-[10px] mt-0.5">
+                            <Clock className="h-2.5 w-2.5" />
                             <span>{driveTime} drive</span>
                           </div>
                         </div>
                         
-                        <div className="flex flex-wrap gap-1 justify-center mb-1">
-                          {customer.isHilly && <Badge variant="secondary" className="text-[10px] py-0 px-1.5">Hilly</Badge>}
-                          {customer.hasFencing && <Badge variant="secondary" className="text-[10px] py-0 px-1.5">Fenced</Badge>}
-                          {customer.hasObstacles && <Badge variant="secondary" className="text-[10px] py-0 px-1.5">Obstacles</Badge>}
-                          <Badge variant="outline" className="text-[10px] py-0 px-1.5">{customer.squareFootage.toLocaleString()} sq ft</Badge>
-                          <Badge variant="outline" className="text-[10px] py-0 px-1.5">${customer.price}</Badge>
-                          <Badge variant="outline" className="text-[10px] py-0 px-1.5">{customer.frequency}</Badge>
+                        <div className="flex flex-wrap gap-0.5 justify-center mb-0.5">
+                          {customer.isHilly && <Badge variant="secondary" className="text-[9px] py-0 px-1">Hilly</Badge>}
+                          {customer.hasFencing && <Badge variant="secondary" className="text-[9px] py-0 px-1">Fenced</Badge>}
+                          {customer.hasObstacles && <Badge variant="secondary" className="text-[9px] py-0 px-1">Obstacles</Badge>}
+                          <Badge variant="outline" className="text-[9px] py-0 px-1">{customer.squareFootage.toLocaleString()} sq ft</Badge>
+                          <Badge variant="outline" className="text-[9px] py-0 px-1">${customer.price}</Badge>
+                          <Badge variant="outline" className="text-[9px] py-0 px-1">{customer.frequency}</Badge>
                         </div>
 
                         {customer.phone && (
                           <Button
                             variant="outline"
-                            className="w-full h-8"
+                            className="w-full h-7 text-[10px]"
                             onClick={() => window.open(`tel:${customer.phone}`, '_self')}
                           >
-                            <Phone className="h-4 w-4 mr-2" />
+                            <Phone className="h-3 w-3 mr-1" />
                             Call
                           </Button>
                         )}

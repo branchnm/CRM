@@ -470,7 +470,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
     const slot = jobTimeSlots.get(jobId);
     if (slot === undefined) return '';
     
-    const dayStartHour = dayStartTimes.get(dateStr) || 4;
+    const dayStartHour = dayStartTimes.get(dateStr) || 5;
     const slotOffset = Math.max(0, dayStartHour - 5);
     const adjustedSlot = slot + slotOffset;
     
@@ -919,8 +919,8 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
       const jobsOnDay = jobs.filter(j => j.date === dateStr && j.status === 'scheduled');
       
       if (jobsOnDay.length > 0) {
-        // Get current start time for this day (default 6 AM = hour 6)
-        const currentStartTime = dayStartTimes.get(dateStr) || 6;
+        // Get current start time for this day (default 5 AM = hour 5)
+        const currentStartTime = dayStartTimes.get(dateStr) || 5;
 
         if (weatherInfo.suggestion === 'delay') {
           // Morning rain or previous night rain - delay start time
@@ -2835,14 +2835,14 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                           <div className="relative z-10">
                             {/* Draggable START Time Bar - At very top before 5am icon */}
                             {(() => {
-                              const currentStartTime = dayStartTimes.get(dateStr) || 4;
+                              const currentStartTime = dayStartTimes.get(dateStr) || 5;
                               const hasOvernightRain = daysWithOvernightRain.has(dateStr);
                               
                               // Determine reason for delayed start
                               let startReason = "Adjust start time";
-                              if (hasOvernightRain && currentStartTime > 4) {
+                              if (hasOvernightRain && currentStartTime > 5) {
                                 startReason = "🌙 Overnight rain - Grass still wet";
-                              } else if (weatherForDay && currentStartTime > 4) {
+                              } else if (weatherForDay && currentStartTime > 5) {
                                 const morningForecasts = weatherForDay.hourlyForecasts?.slice(0, 3) || [];
                                 const hasMorningRain = morningForecasts.some((f: any) => (f.rainAmount || 0) > 0.5);
                                 if (hasMorningRain) {
@@ -2854,7 +2854,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                 <div className="mb-1">
                                   {/* Draggable start time handle - ALWAYS visible at top */}
                                   <div
-                                    className="relative h-1 bg-blue-600 cursor-ns-resize hover:h-2 transition-all group shadow-md rounded"
+                                    className="relative h-2 bg-blue-600 cursor-ns-resize transition-all group shadow-md rounded"
                                     draggable
                                     onDragStart={(e) => {
                                       e.dataTransfer.effectAllowed = 'move';
@@ -2870,8 +2870,8 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                       const y = e.clientY - rect.top;
                                       
                                       const slotIndex = Math.round(y / 39.5);
-                                      const newHour = 4 + slotIndex;
-                                      const clampedHour = Math.max(4, Math.min(17, newHour));
+                                      const newHour = 5 + slotIndex; // Changed from 4 to 5 to match first visible slot
+                                      const clampedHour = Math.max(5, Math.min(17, newHour));
                                       
                                       if (clampedHour !== currentStartTime) {
                                         setDayStartTimes(prev => {
@@ -2883,9 +2883,51 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                         onStartTimeChange?.(dateStr, clampedHour);
                                       }
                                     }}
+                                    onDragEnd={(e) => {
+                                      // Ensure final position is saved
+                                      e.preventDefault();
+                                    }}
+                                    onTouchStart={(e) => {
+                                      e.preventDefault();
+                                      const touch = e.touches[0];
+                                      const container = document.querySelector(`[data-date="${dateStr}"] .time-slots-container`);
+                                      if (!container) return;
+                                      
+                                      const rect = container.getBoundingClientRect();
+                                      const startY = touch.clientY;
+                                      const startTime = currentStartTime;
+                                      
+                                      const handleTouchMove = (moveEvent: TouchEvent) => {
+                                        moveEvent.preventDefault();
+                                        const moveTouch = moveEvent.touches[0];
+                                        const y = moveTouch.clientY - rect.top;
+                                        
+                                        const slotIndex = Math.round(y / 39.5);
+                                        const newHour = 5 + slotIndex; // Changed from 4 to 5
+                                        const clampedHour = Math.max(5, Math.min(17, newHour));
+                                        
+                                        if (clampedHour !== currentStartTime) {
+                                          setDayStartTimes(prev => {
+                                            const newMap = new Map(prev);
+                                            newMap.set(dateStr, clampedHour);
+                                            localStorage.setItem('dayStartTimes', JSON.stringify(Array.from(newMap.entries())));
+                                            return newMap;
+                                          });
+                                          onStartTimeChange?.(dateStr, clampedHour);
+                                        }
+                                      };
+                                      
+                                      const handleTouchEnd = () => {
+                                        document.removeEventListener('touchmove', handleTouchMove);
+                                        document.removeEventListener('touchend', handleTouchEnd);
+                                      };
+                                      
+                                      document.addEventListener('touchmove', handleTouchMove, { passive: false });
+                                      document.addEventListener('touchend', handleTouchEnd);
+                                    }}
                                   >
-                                    {/* Drag handle indicator */}
-                                    <div className="absolute left-1/2 -translate-x-1/2 -top-2 w-8 h-4 bg-blue-600 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-md z-10">
+                                    {/* Drag handle indicator - ALWAYS VISIBLE */}
+                                    <div className="absolute left-1/2 -translate-x-1/2 -top-2 w-8 h-4 bg-blue-600 rounded-full flex items-center justify-center shadow-md z-10">
                                       <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
                                       </svg>
@@ -2897,7 +2939,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                     </div>
                                     
                                     {/* Reason label - appears on right */}
-                                    {currentStartTime > 4 && (
+                                    {currentStartTime > 5 && (
                                       <div className="absolute -right-2 top-1/2 -translate-y-1/2 translate-x-full bg-white/95 text-blue-700 text-[9px] px-2 py-1 rounded shadow-sm font-medium whitespace-nowrap">
                                         {startReason}
                                       </div>
@@ -2909,12 +2951,11 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                             
                             {/* Time Slot Schedule: 4am-6pm with drag-and-drop (includes 5am icon as first slot) */}
                             {(() => {
-                              // Get start time for this day (default to 4am - earliest possible)
-                              const dayStartHour = dayStartTimes.get(dateStr) || 4;
+                              // Get start time for this day (default to 5am - earliest visible slot)
+                              const dayStartHour = dayStartTimes.get(dateStr) || 5;
                               const dayEndHour = dayEndTimes.get(dateStr) || 18;
                               
                               // Generate hourly time slots from 5am to 6pm (14 hours total)
-                              // We'll handle 4am separately as the blue bar position
                               const timeSlots = Array.from({ length: 14 }, (_, i) => {
                                 const hour = 5 + i; // Start from 5am
                                 const timeLabel = hour > 12 ? `${hour - 12} PM` : hour === 12 ? '12 PM' : `${hour} AM`;
@@ -2983,7 +3024,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                 <div className="space-y-1 relative flex flex-col time-slots-container" data-date={dateStr}>
                                 {/* Blocked time overlays */}
                                 {(() => {
-                                  const currentStartTime = dayStartTimes.get(dateStr) || 4;
+                                  const currentStartTime = dayStartTimes.get(dateStr) || 5;
                                   const currentEndTime = dayEndTimes.get(dateStr) || 18;
                                   
                                   // Calculate blocked area - starting from 5am (first visible slot)
@@ -3253,7 +3294,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                               <div className="mt-1">
                                 {/* Draggable end time handle - ALWAYS visible at bottom */}
                                 <div
-                                  className="relative h-1 bg-purple-600 cursor-ns-resize hover:h-2 transition-all group shadow-md rounded"
+                                  className="relative h-2 bg-purple-600 cursor-ns-resize transition-all group shadow-md rounded"
                                   draggable
                                   onDragStart={(e) => {
                                     e.dataTransfer.effectAllowed = 'move';
@@ -3269,8 +3310,8 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                     const y = e.clientY - rect.top;
                                     
                                     const slotIndex = Math.round(y / 39.5);
-                                    const newHour = 4 + slotIndex;
-                                    const clampedHour = Math.max(5, Math.min(18, newHour));
+                                    const newHour = 5 + slotIndex; // Changed from 4 to 5
+                                    const clampedHour = Math.max(6, Math.min(18, newHour));
                                     
                                     if (clampedHour !== currentEndTime) {
                                       setDayEndTimes(prev => {
@@ -3281,9 +3322,48 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                       });
                                     }
                                   }}
+                                  onDragEnd={(e) => {
+                                    // Ensure final position is saved
+                                    e.preventDefault();
+                                  }}
+                                  onTouchStart={(e) => {
+                                    e.preventDefault();
+                                    const touch = e.touches[0];
+                                    const container = document.querySelector(`[data-date="${dateStr}"] .time-slots-container`);
+                                    if (!container) return;
+                                    
+                                    const rect = container.getBoundingClientRect();
+                                    
+                                    const handleTouchMove = (moveEvent: TouchEvent) => {
+                                      moveEvent.preventDefault();
+                                      const moveTouch = moveEvent.touches[0];
+                                      const y = moveTouch.clientY - rect.top;
+                                      
+                                      const slotIndex = Math.round(y / 39.5);
+                                      const newHour = 5 + slotIndex; // Changed from 4 to 5
+                                      const clampedHour = Math.max(6, Math.min(18, newHour));
+                                      
+                                      if (clampedHour !== currentEndTime) {
+                                        setDayEndTimes(prev => {
+                                          const newMap = new Map(prev);
+                                          newMap.set(dateStr, clampedHour);
+                                          localStorage.setItem('dayEndTimes', JSON.stringify(Array.from(newMap.entries())));
+                                          return newMap;
+                                        });
+                                      }
+                                    };
+                                    
+                                    const handleTouchEnd = () => {
+                                      document.removeEventListener('touchmove', handleTouchMove);
+                                      document.removeEventListener('touchend', handleTouchEnd);
+                                    };
+                                    
+                                    document.addEventListener('touchmove', handleTouchMove, { passive: false });
+                                    document.addEventListener('touchend', handleTouchEnd);
+                                  }}
                                 >
-                                  {/* Drag handle indicator */}
-                                  <div className="absolute left-1/2 -translate-x-1/2 -bottom-2 w-8 h-4 bg-purple-600 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-md z-10">
+                                  {/* Drag handle indicator - ALWAYS VISIBLE */}
+                                  <div className="absolute left-1/2 -translate-x-1/2 -bottom-2 w-8 h-4 bg-purple-600 rounded-full flex items-center justify-center shadow-md z-10">
                                     <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
                                     </svg>
