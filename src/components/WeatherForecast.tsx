@@ -1878,37 +1878,26 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
     });
   };
 
-  // Mobile double-tap to cut/paste - much better UX than drag on mobile
+  // Mobile tap handler - disabled in favor of hold-to-select
   const handleJobTap = useCallback((jobId: string) => {
-    const now = Date.now();
-    const timeSinceLastTap = now - lastTapTime.current;
-    
-    // Double-tap detection (within 500ms)
-    if (timeSinceLastTap < 500 && lastTapJobId.current === jobId) {
-      // Double-tap detected - toggle cut mode
-      if (cutJobId === jobId) {
-        // Tapping the same cut job again - cancel cut
-        setCutJobId(null);
-        console.log('Canceled cut for job:', jobId);
-      } else {
-        // Cut this job
-        setCutJobId(jobId);
-        // Increment cut counter and hide instruction after 2 uses
-        const cutCount = parseInt(localStorage.getItem('jobCutCount') || '0', 10);
-        localStorage.setItem('jobCutCount', (cutCount + 1).toString());
-        if (cutCount + 1 >= 2) {
-          setShowCutInstruction(false);
+    // If in selection mode, toggle selection
+    if (isSelectionMode) {
+      setSelectedJobIds(prev => {
+        const newSet = new Set(prev);
+        if (newSet.has(jobId)) {
+          newSet.delete(jobId);
+          // Exit selection mode if no jobs selected
+          if (newSet.size === 0) {
+            setIsSelectionMode(false);
+          }
+        } else {
+          newSet.add(jobId);
         }
-        console.log('Cut job:', jobId);
-      }
-      lastTapTime.current = 0; // Reset to prevent triple-tap
-      lastTapJobId.current = null;
-    } else {
-      // Single tap - just record it
-      lastTapTime.current = now;
-      lastTapJobId.current = jobId;
+        return newSet;
+      });
     }
-  }, [cutJobId]);
+    // Double-tap functionality removed - use hold-to-select instead
+  }, [isSelectionMode]);
 
   // Long-press handlers for cutting jobs on mobile
   const handleJobTouchStart = (e: React.TouchEvent, jobId: string) => {
@@ -2779,7 +2768,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                       onDragLeave={handleDragLeave}
                       onDrop={(e) => handleDrop(e, dateStr)}
                       className={`forecast-day-card relative ${
-                        isMobile ? 'mb-8 h-[85vh]' : ''
+                        isMobile ? 'mb-8 h-[75vh] overflow-hidden flex flex-col' : ''
                       } shadow-sm`}
                       style={{
                         background: weatherForDay?.hourlyForecasts && weatherForDay.hourlyForecasts.length > 0
@@ -3094,7 +3083,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                               }
                               
                               return (
-                                <div className="space-y-1 relative flex flex-col time-slots-container" data-date={dateStr}>
+                                <div className={`space-y-1 relative flex flex-col time-slots-container ${isMobile ? 'flex-1 min-h-0 overflow-y-auto' : ''}`} data-date={dateStr}>
                                 {/* Blocked time overlays */}
                                 {(() => {
                                   const currentStartTime = dayStartTimes.get(dateStr) || 5;
@@ -3324,16 +3313,20 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                           );
                                         })() : (
                                           <div 
-                                            onClick={isTouchDevice.current && cutJobId ? () => handleSlotTap(dateStr, slot.slotIndex) : undefined}
+                                            onClick={isTouchDevice.current && (cutJobId || (isSelectionMode && selectedJobIds.size > 0)) ? () => handleSlotTap(dateStr, slot.slotIndex) : undefined}
                                             className={`flex-1 border border-dashed rounded p-2 text-center text-[10px] transition-all ${
-                                              cutJobId && isTouchDevice.current
+                                              (cutJobId || (isSelectionMode && selectedJobIds.size > 0)) && isTouchDevice.current
                                                 ? 'opacity-100 border-green-500 bg-green-50 text-green-700 cursor-pointer active:bg-green-100'
                                                 : isSlotHovered 
                                                 ? 'opacity-100 border-blue-500 text-blue-600' 
                                                 : 'opacity-0 hover:opacity-100 border-gray-300 text-gray-400'
                                             }`}
                                           >
-                                            {cutJobId && isTouchDevice.current ? '📋 Double-tap to paste' : 'Drop job here'}
+                                            {(isSelectionMode && selectedJobIds.size > 0 && isTouchDevice.current) 
+                                              ? `📋 Tap to paste ${selectedJobIds.size} job${selectedJobIds.size > 1 ? 's' : ''}`
+                                              : cutJobId && isTouchDevice.current 
+                                              ? '📋 Double-tap to paste' 
+                                              : 'Drop job here'}
                                           </div>
                                         )}
                                       </div>
