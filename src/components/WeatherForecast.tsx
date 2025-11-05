@@ -452,6 +452,12 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
   
   // Mobile cut/paste mode - better UX than drag on mobile
   const [cutJobId, setCutJobId] = useState<string | null>(null);
+  
+  // Multi-select mode - hold to select multiple jobs
+  const [selectedJobIds, setSelectedJobIds] = useState<Set<string>>(new Set());
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const selectionHoldTimeout = useRef<number | null>(null);
+  
   const lastTapTime = useRef<number>(0);
   const lastTapJobId = useRef<string | null>(null);
   const longPressTimer = useRef<number | null>(null);
@@ -1906,6 +1912,25 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
 
   // Long-press handlers for cutting jobs on mobile
   const handleJobTouchStart = (e: React.TouchEvent, jobId: string) => {
+    // If in selection mode, toggle selection on tap
+    if (isSelectionMode) {
+      e.preventDefault();
+      setSelectedJobIds(prev => {
+        const newSet = new Set(prev);
+        if (newSet.has(jobId)) {
+          newSet.delete(jobId);
+          // Exit selection mode if no jobs selected
+          if (newSet.size === 0) {
+            setIsSelectionMode(false);
+          }
+        } else {
+          newSet.add(jobId);
+        }
+        return newSet;
+      });
+      return;
+    }
+    
     // Record start position to detect movement
     longPressStartPos.current = {
       x: e.touches[0].clientX,
@@ -1915,16 +1940,12 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
     // Prevent text selection during long press
     e.preventDefault();
     
-    // Start long-press timer (500ms)
+    // Start long-press timer (500ms) - enters selection mode
     longPressTimer.current = window.setTimeout(() => {
-      // Cut the job after 500ms
-      setCutJobId(jobId);
-      // Increment cut counter and hide instruction after 2 uses
-      const cutCount = parseInt(localStorage.getItem('jobCutCount') || '0', 10);
-      localStorage.setItem('jobCutCount', (cutCount + 1).toString());
-      if (cutCount + 1 >= 2) {
-        setShowCutInstruction(false);
-      }
+      // Enter selection mode and select this job
+      setIsSelectionMode(true);
+      setSelectedJobIds(new Set([jobId]));
+      
       // Haptic feedback if available
       if (navigator.vibrate) {
         navigator.vibrate(50);
@@ -1955,8 +1976,28 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
     longPressStartPos.current = null;
   };
 
-  // Handle double-tap on empty slot to paste
+  // Handle double-tap on empty slot to paste or move selected jobs
   const handleSlotTap = useCallback(async (dateStr: string, slotIndex: number) => {
+    // If in selection mode, move all selected jobs to this day
+    if (isSelectionMode && selectedJobIds.size > 0 && onRescheduleJob) {
+      const jobsToMove = Array.from(selectedJobIds)
+        .map(id => jobs.find(j => j.id === id))
+        .filter(Boolean) as Job[];
+      
+      // Move each job to the target date, starting at the target slot
+      for (let i = 0; i < jobsToMove.length; i++) {
+        const job = jobsToMove[i];
+        await onRescheduleJob(job.id, dateStr, slotIndex + i);
+      }
+      
+      // Exit selection mode
+      setIsSelectionMode(false);
+      setSelectedJobIds(new Set());
+      
+      toast.success(`Moved ${jobsToMove.length} job${jobsToMove.length > 1 ? 's' : ''}`);
+      return;
+    }
+    
     if (!cutJobId || !onRescheduleJob) return; // Nothing to paste
     
     const now = Date.now();
@@ -1993,7 +2034,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
     } else {
       lastTapTime.current = now;
     }
-  }, [cutJobId, jobs, onRescheduleJob]);
+  }, [cutJobId, jobs, onRescheduleJob, isSelectionMode, selectedJobIds]);
 
   // Remove old touch handlers - replaced with tap handlers
   /*
@@ -2165,6 +2206,25 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
 
   return (
     <div className="space-y-4 relative">
+      {/* Selection Mode Banner - Shows when jobs are selected */}
+      {isSelectionMode && selectedJobIds.size > 0 && (
+        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-40 flex items-center gap-3 px-4 py-2 bg-green-600 text-white rounded-full shadow-lg">
+          <span className="font-semibold">
+            {selectedJobIds.size} job{selectedJobIds.size > 1 ? 's' : ''} selected
+          </span>
+          <span className="text-green-100 text-xs">Tap slot to move</span>
+          <button
+            onClick={() => {
+              setIsSelectionMode(false);
+              setSelectedJobIds(new Set());
+            }}
+            className="ml-2 bg-white text-green-600 px-3 py-1 rounded-full text-xs font-semibold hover:bg-green-50 transition-colors"
+          >
+            Cancel
+          </button>
+        </div>
+      )}
+      
       {/* Today Button - Top Left Corner - Mobile Only - Shows when not on today */}
       {isMobile && dayOffset !== 0 && (
         <button
@@ -2719,7 +2779,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                       onDragLeave={handleDragLeave}
                       onDrop={(e) => handleDrop(e, dateStr)}
                       className={`forecast-day-card relative ${
-                        isMobile ? 'mb-8' : ''
+                        isMobile ? 'mb-8 h-[85vh]' : ''
                       } shadow-sm`}
                       style={{
                         background: weatherForDay?.hourlyForecasts && weatherForDay.hourlyForecasts.length > 0
@@ -3190,6 +3250,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                           const scheduledTime = getScheduledTimeForJob(jobInSlot.id, dateStr);
                                           
                                           const isCutItem = jobInSlot.id === cutJobId;
+                                          const isSelected = selectedJobIds.has(jobInSlot.id);
                                           
                                           return (
                                             <div
@@ -3202,6 +3263,8 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                               className={`flex-1 rounded px-3 py-2 transition-all text-xs group min-h-[40px] h-[40px] overflow-hidden flex items-center select-none ${
                                                 isCompleted
                                                   ? 'bg-gray-100 border border-gray-300 opacity-60 cursor-default'
+                                                  : isSelected
+                                                  ? 'bg-green-100 border-2 border-green-600 shadow-lg'
                                                   : isCutItem
                                                   ? 'bg-yellow-100 border-2 border-yellow-500 shadow-lg'
                                                   : isDraggedItem
@@ -3220,7 +3283,10 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                                 <div className="flex-1 min-w-0">
                                                   <div className={`font-semibold truncate w-full ${isCompleted ? 'text-gray-500 line-through' : 'text-gray-900'}`}>
                                                     {customer?.name}
-                                                    {isCutItem && isTouchDevice.current && (
+                                                    {isSelected && (
+                                                      <span className="ml-1 text-xs text-green-700">✓ Selected</span>
+                                                    )}
+                                                    {isCutItem && isTouchDevice.current && !isSelected && (
                                                       <span className="ml-1 text-xs text-yellow-700">✂️ Cut</span>
                                                     )}
                                                     {isCompleted && (
