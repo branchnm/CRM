@@ -8,7 +8,6 @@ import {
   CloudRain, 
   MapPin, 
   Search, 
-  // ...existing code continues...
   Navigation,
   AlertTriangle,
   Loader2,
@@ -24,7 +23,8 @@ import {
   Route,
   ChevronLeft,
   ChevronRight,
-  Undo2
+  Undo2,
+  Calendar
 } from 'lucide-react';
 import { 
   getWeatherData, 
@@ -2165,6 +2165,18 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
 
   return (
     <div className="space-y-4 relative">
+      {/* Today Button - Top Left Corner - Mobile Only - Shows when not on today */}
+      {isMobile && dayOffset !== 0 && (
+        <button
+          onClick={() => setDayOffset(0)}
+          className="fixed top-4 left-4 z-40 flex items-center gap-2 px-3 py-2 bg-white rounded-full shadow-lg border border-blue-200 text-sm hover:bg-blue-50 transition-colors"
+          title="Go to today"
+        >
+          <Calendar className="h-4 w-4 text-blue-600" />
+          <span className="font-medium text-blue-900">Today</span>
+        </button>
+      )}
+      
       {/* Address Indicator - Top Right Corner - Mobile Only */}
       {locationName && isMobile && !isEditingAddress && (
         <button
@@ -2934,8 +2946,8 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                       <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
                                       </svg>
-                                    </div>                                    {/* Time label - Always visible */}
-                                    <div className="absolute -left-16 top-1/2 -translate-y-1/2 bg-blue-600 text-white text-[10px] px-2 py-0.5 rounded font-semibold whitespace-nowrap shadow-md">
+                                    </div>                                    {/* Time label - Always visible - positioned on right side */}
+                                    <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 bg-blue-600 text-white text-[10px] px-2 py-0.5 rounded font-semibold whitespace-nowrap shadow-md z-10">
                                       Start: {currentStartTime > 12 ? `${currentStartTime - 12}PM` : currentStartTime === 12 ? '12PM' : `${currentStartTime}AM`}
                                     </div>
                                     
@@ -3374,8 +3386,8 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                     </svg>
                                   </div>
                                   
-                                  {/* Time label - Always visible */}
-                                  <div className="absolute -left-14 top-1/2 -translate-y-1/2 bg-blue-600 text-white text-[10px] px-2 py-0.5 rounded font-semibold whitespace-nowrap shadow-md">
+                                  {/* Time label - Always visible - positioned on right side */}
+                                  <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 bg-blue-600 text-white text-[10px] px-2 py-0.5 rounded font-semibold whitespace-nowrap shadow-md z-10">
                                     End: {currentEndTime > 12 ? `${currentEndTime - 12}PM` : currentEndTime === 12 ? '12PM' : `${currentEndTime}AM`}
                                   </div>
                                   
