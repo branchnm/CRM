@@ -2884,7 +2884,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                               // Clear/Sunny - BRIGHT YELLOW
                               return 'rgb(254, 243, 199)'; // yellow-200
                             })(),
-                        border: '3px solid rgb(209, 213, 219)' // gray-300 neutral border
+                        border: '2px solid rgb(209, 213, 219)' // gray-300 neutral border, slightly thicker
                       }}
                     >
                       {/* Day Header - Improved with work/drive time stats */}
