@@ -89,6 +89,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
   const [isEditingAddress, setIsEditingAddress] = useState(false);
   const addressInputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const forecastScrollContainerRef = useRef<HTMLDivElement>(null);
   const [userGPSLocation, setUserGPSLocation] = useState<{ lat: number; lon: number } | null>(null);
   const [jobAssignments, setJobAssignments] = useState<Map<string, string>>(new Map()); // jobId -> date mapping
   const [jobTimeSlots, setJobTimeSlots] = useState<Map<string, number>>(new Map()); // jobId -> timeSlot (0-11 for 6am-6pm)
@@ -112,6 +113,11 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [slideDirection, setSlideDirection] = useState<'left' | 'right' | null>(null);
   const previousDayOffset = useRef(dayOffset);
+  
+  // Desktop horizontal scroll state
+  const [desktopScrollLeft, setDesktopScrollLeft] = useState(0);
+  const [isDesktopScrolling, setIsDesktopScrolling] = useState(false);
+  const desktopScrollTimeout = useRef<number | undefined>(undefined);
   
   // Track instruction dismissal - hide after 2 uses
   const [showCutInstruction, setShowCutInstruction] = useState(() => {
@@ -304,6 +310,67 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
     setIsTransitioning(true);
     setTimeout(() => setIsTransitioning(false), 300);
   };
+
+  // Desktop horizontal scroll with snap
+  const snapToNearestCard = useCallback(() => {
+    if (!forecastScrollContainerRef.current || isMobile) return;
+    
+    const container = forecastScrollContainerRef.current;
+    const cards = container.querySelectorAll('.forecast-day-card');
+    if (cards.length === 0) return;
+
+    const containerRect = container.getBoundingClientRect();
+    const containerCenter = containerRect.left + containerRect.width / 2;
+
+    let closestCard: Element | null = null;
+    let closestDistance = Infinity;
+
+    cards.forEach((card) => {
+      const cardRect = card.getBoundingClientRect();
+      const cardCenter = cardRect.left + cardRect.width / 2;
+      const distance = Math.abs(cardCenter - containerCenter);
+
+      if (distance < closestDistance) {
+        closestDistance = distance;
+        closestCard = card;
+      }
+    });
+
+    if (closestCard) {
+      (closestCard as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
+  }, [isMobile]);
+
+  // Handle desktop scroll with snap
+  useEffect(() => {
+    if (isMobile || !forecastScrollContainerRef.current) return;
+
+    const container = forecastScrollContainerRef.current;
+
+    const handleScroll = () => {
+      setIsDesktopScrolling(true);
+      
+      // Clear existing timeout
+      if (desktopScrollTimeout.current) {
+        clearTimeout(desktopScrollTimeout.current);
+      }
+
+      // Set new timeout to detect when scrolling stops
+      desktopScrollTimeout.current = window.setTimeout(() => {
+        setIsDesktopScrolling(false);
+        snapToNearestCard();
+      }, 150);
+    };
+
+    container.addEventListener('scroll', handleScroll, { passive: true });
+
+    return () => {
+      container.removeEventListener('scroll', handleScroll);
+      if (desktopScrollTimeout.current) {
+        clearTimeout(desktopScrollTimeout.current);
+      }
+    };
+  }, [isMobile, snapToNearestCard]);
 
   // Close suggestions when clicking outside
   useEffect(() => {
@@ -2748,8 +2815,17 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                 </button>
               )}
 
-              {/* Flex wrapper - centered with constant card width */}
-              <div className="flex-1 overflow-hidden forecast-grid-container mx-16">
+              {/* Flex wrapper - horizontal scroll container with snap */}
+              <div 
+                ref={forecastScrollContainerRef}
+                className={`flex-1 forecast-grid-container ${
+                  isMobile ? 'overflow-hidden mx-16' : 'overflow-x-auto overflow-y-hidden scrollbar-hide mx-16'
+                }`}
+                style={{
+                  scrollSnapType: isMobile ? undefined : 'x mandatory',
+                  scrollBehavior: isMobile ? undefined : 'smooth',
+                }}
+              >
                 {/* Desktop Instructions */}
                 {!isMobile && isTouchDevice.current && cutJobId && (
                   <div className="p-2 bg-yellow-50 border-2 border-yellow-400 rounded-lg mb-2">
@@ -2768,7 +2844,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                 {/* Forecast Grid with Touch Support and Snap Scrolling */}
                 <div 
                   key={dayOffset} // Force re-render with animation when day changes
-                  className={`${isMobile ? 'grid grid-cols-1 forecast-grid-mobile' : 'flex justify-center items-stretch'} relative ${
+                  className={`${isMobile ? 'grid grid-cols-1 forecast-grid-mobile' : 'flex items-stretch px-[calc(50%-140px)]'} relative ${
                     slideDirection === 'left' ? 'animate-slide-in-right' : 
                     slideDirection === 'right' ? 'animate-slide-in-left' : ''
                   }`}
@@ -2829,9 +2905,10 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                       onDragLeave={handleDragLeave}
                       onDrop={(e) => handleDrop(e, dateStr)}
                       className={`forecast-day-card relative ${
-                        isMobile ? 'mb-8 h-[80vh] overflow-hidden flex flex-col' : 'h-[75vh] w-[280px] shrink-0 flex flex-col'
+                        isMobile ? 'mb-8 h-[80vh] overflow-hidden flex flex-col' : 'h-[75vh] w-[280px] shrink-0 flex flex-col scroll-snap-center'
                       } shadow-lg rounded-lg overflow-hidden`}
                       style={{
+                        scrollSnapAlign: isMobile ? undefined : 'center',
                         background: weatherForDay?.hourlyForecasts && weatherForDay.hourlyForecasts.length > 0
                           ? `linear-gradient(to bottom, ${weatherForDay.hourlyForecasts.map((h, idx) => {
                               const desc = h.description.toLowerCase();
