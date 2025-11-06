@@ -87,52 +87,52 @@ export default function AuthPage() {
     <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-yellow-50 flex items-center justify-center p-4 sm:p-6 md:p-8">
       <div className="w-full max-w-md space-y-6 sm:space-y-8">
         {/* Logo and Title */}
-        <div className="text-center space-y-3 sm:space-y-4">
-          <div className="flex justify-center mb-3 sm:mb-4">
-            <div className="bg-linear-to-br from-blue-500 to-blue-700 p-3 sm:p-4 rounded-2xl shadow-lg">
-              <CloudSun className="h-10 w-10 sm:h-12 sm:w-12 text-white" />
+        <div className="text-center space-y-2 sm:space-y-3">
+          <div className="flex justify-center mb-2 sm:mb-3">
+            <div className="bg-linear-to-br from-blue-500 to-blue-700 p-3 sm:p-4 md:p-5 rounded-2xl sm:rounded-3xl shadow-xl">
+              <CloudSun className="h-12 w-12 sm:h-14 sm:w-14 md:h-16 md:w-16 text-white drop-shadow-lg" />
             </div>
           </div>
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-linear-to-r from-blue-600 via-blue-700 to-blue-800 uppercase tracking-wider drop-shadow-sm">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-linear-to-r from-blue-600 via-blue-700 to-blue-800 uppercase tracking-wider drop-shadow-sm px-2">
             Job Flow
           </h1>
-          <p className="text-sm sm:text-base text-blue-700 font-medium">
+          <p className="text-sm sm:text-base md:text-lg text-blue-700 font-medium px-2">
             Your outdoor service business assistant
           </p>
         </div>
 
         {/* Auth Card */}
-        <Card className="border-blue-100 shadow-xl bg-white/80 backdrop-blur-sm">
-          <CardHeader className="space-y-1 pb-4 sm:pb-6">
-            <CardTitle className="text-xl sm:text-2xl font-bold text-center text-blue-800">
+        <Card className="border-2 border-blue-100 shadow-2xl bg-white/90 backdrop-blur">
+          <CardHeader className="space-y-2 pb-4 sm:pb-6 px-4 sm:px-6 pt-5 sm:pt-6">
+            <CardTitle className="text-xl sm:text-2xl md:text-3xl font-bold text-center text-blue-800">
               Welcome Back
             </CardTitle>
-            <CardDescription className="text-center text-sm sm:text-base">
+            <CardDescription className="text-center text-sm sm:text-base text-blue-600">
               Sign in to manage your jobs and customers
             </CardDescription>
           </CardHeader>
-          <CardContent className="pt-0">
+          <CardContent className="pt-0 px-4 sm:px-6 pb-5 sm:pb-6">
             <Tabs defaultValue="login" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-6 bg-blue-50">
+              <TabsList className="grid w-full grid-cols-2 mb-5 sm:mb-6 bg-blue-50 p-1 h-auto">
                 <TabsTrigger 
                   value="login"
-                  className="data-[state=active]:bg-blue-600 data-[state=active]:text-white"
+                  className="data-[state=active]:bg-blue-600 data-[state=active]:text-white py-2 sm:py-2.5 text-sm sm:text-base font-semibold rounded-md transition-all"
                 >
                   Login
                 </TabsTrigger>
                 <TabsTrigger 
                   value="signup"
-                  className="data-[state=active]:bg-blue-600 data-[state=active]:text-white"
+                  className="data-[state=active]:bg-blue-600 data-[state=active]:text-white py-2 sm:py-2.5 text-sm sm:text-base font-semibold rounded-md transition-all"
                 >
                   Sign Up
                 </TabsTrigger>
               </TabsList>
 
-              <TabsContent value="login" className="space-y-4">
+              <TabsContent value="login" className="mt-0">
                 <form onSubmit={handleLogin} className="space-y-4 sm:space-y-5">
                   <div className="space-y-2">
-                    <Label htmlFor="login-email" className="text-sm sm:text-base text-blue-900">
-                      Email
+                    <Label htmlFor="login-email" className="text-sm sm:text-base text-blue-900 font-medium">
+                      Email Address
                     </Label>
                     <Input
                       id="login-email"
@@ -142,11 +142,11 @@ export default function AuthPage() {
                       onChange={(e) => setLoginEmail(e.target.value)}
                       required
                       disabled={isLoading}
-                      className="h-10 sm:h-11 border-blue-200 focus:border-blue-400 focus:ring-blue-400"
+                      className="h-11 sm:h-12 text-base border-2 border-blue-200 focus:border-blue-500 focus:ring-blue-500 rounded-lg transition-all"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="login-password" className="text-sm sm:text-base text-blue-900">
+                    <Label htmlFor="login-password" className="text-sm sm:text-base text-blue-900 font-medium">
                       Password
                     </Label>
                     <Input
@@ -157,44 +157,44 @@ export default function AuthPage() {
                       onChange={(e) => setLoginPassword(e.target.value)}
                       required
                       disabled={isLoading}
-                      className="h-10 sm:h-11 border-blue-200 focus:border-blue-400 focus:ring-blue-400"
+                      className="h-11 sm:h-12 text-base border-2 border-blue-200 focus:border-blue-500 focus:ring-blue-500 rounded-lg transition-all"
                     />
                   </div>
 
                   {error && (
-                    <Alert variant="destructive" className="py-2 sm:py-3">
-                      <AlertDescription className="text-sm">{error}</AlertDescription>
+                    <Alert variant="destructive" className="py-3 border-2">
+                      <AlertDescription className="text-sm sm:text-base">{error}</AlertDescription>
                     </Alert>
                   )}
 
                   {success && (
-                    <Alert className="bg-green-50 border-green-200 py-2 sm:py-3">
-                      <AlertDescription className="text-green-800 text-sm">{success}</AlertDescription>
+                    <Alert className="bg-green-50 border-2 border-green-300 py-3">
+                      <AlertDescription className="text-green-800 text-sm sm:text-base font-medium">{success}</AlertDescription>
                     </Alert>
                   )}
 
                   <Button 
                     type="submit" 
-                    className="w-full h-10 sm:h-11 bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-md hover:shadow-lg transition-all" 
+                    className="w-full h-11 sm:h-12 bg-blue-600 hover:bg-blue-700 text-white text-base font-bold shadow-lg hover:shadow-xl transition-all rounded-lg mt-6" 
                     disabled={isLoading}
                   >
                     {isLoading ? (
                       <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                         Logging in...
                       </>
                     ) : (
-                      'Login'
+                      'Login to Job Flow'
                     )}
                   </Button>
                 </form>
               </TabsContent>
 
-              <TabsContent value="signup" className="space-y-4">
+              <TabsContent value="signup" className="mt-0">
                 <form onSubmit={handleSignup} className="space-y-4 sm:space-y-5">
                   <div className="space-y-2">
-                    <Label htmlFor="signup-email" className="text-sm sm:text-base text-blue-900">
-                      Email
+                    <Label htmlFor="signup-email" className="text-sm sm:text-base text-blue-900 font-medium">
+                      Email Address
                     </Label>
                     <Input
                       id="signup-email"
@@ -204,11 +204,11 @@ export default function AuthPage() {
                       onChange={(e) => setSignupEmail(e.target.value)}
                       required
                       disabled={isLoading}
-                      className="h-10 sm:h-11 border-blue-200 focus:border-blue-400 focus:ring-blue-400"
+                      className="h-11 sm:h-12 text-base border-2 border-blue-200 focus:border-blue-500 focus:ring-blue-500 rounded-lg transition-all"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="signup-password" className="text-sm sm:text-base text-blue-900">
+                    <Label htmlFor="signup-password" className="text-sm sm:text-base text-blue-900 font-medium">
                       Password
                     </Label>
                     <Input
@@ -219,11 +219,11 @@ export default function AuthPage() {
                       onChange={(e) => setSignupPassword(e.target.value)}
                       required
                       disabled={isLoading}
-                      className="h-10 sm:h-11 border-blue-200 focus:border-blue-400 focus:ring-blue-400"
+                      className="h-11 sm:h-12 text-base border-2 border-blue-200 focus:border-blue-500 focus:ring-blue-500 rounded-lg transition-all"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="signup-confirm-password" className="text-sm sm:text-base text-blue-900">
+                    <Label htmlFor="signup-confirm-password" className="text-sm sm:text-base text-blue-900 font-medium">
                       Confirm Password
                     </Label>
                     <Input
@@ -234,34 +234,34 @@ export default function AuthPage() {
                       onChange={(e) => setSignupConfirmPassword(e.target.value)}
                       required
                       disabled={isLoading}
-                      className="h-10 sm:h-11 border-blue-200 focus:border-blue-400 focus:ring-blue-400"
+                      className="h-11 sm:h-12 text-base border-2 border-blue-200 focus:border-blue-500 focus:ring-blue-500 rounded-lg transition-all"
                     />
                   </div>
 
                   {error && (
-                    <Alert variant="destructive" className="py-2 sm:py-3">
-                      <AlertDescription className="text-sm">{error}</AlertDescription>
+                    <Alert variant="destructive" className="py-3 border-2">
+                      <AlertDescription className="text-sm sm:text-base">{error}</AlertDescription>
                     </Alert>
                   )}
 
                   {success && (
-                    <Alert className="bg-green-50 border-green-200 py-2 sm:py-3">
-                      <AlertDescription className="text-green-800 text-sm">{success}</AlertDescription>
+                    <Alert className="bg-green-50 border-2 border-green-300 py-3">
+                      <AlertDescription className="text-green-800 text-sm sm:text-base font-medium">{success}</AlertDescription>
                     </Alert>
                   )}
 
                   <Button 
                     type="submit" 
-                    className="w-full h-10 sm:h-11 bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-md hover:shadow-lg transition-all" 
+                    className="w-full h-11 sm:h-12 bg-blue-600 hover:bg-blue-700 text-white text-base font-bold shadow-lg hover:shadow-xl transition-all rounded-lg mt-6" 
                     disabled={isLoading}
                   >
                     {isLoading ? (
                       <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                         Creating account...
                       </>
                     ) : (
-                      'Create Account'
+                      'Create Your Account'
                     )}
                   </Button>
                 </form>
@@ -271,9 +271,11 @@ export default function AuthPage() {
         </Card>
 
         {/* Footer */}
-        <p className="text-center text-xs sm:text-sm text-blue-600">
-          Secure authentication powered by Supabase
-        </p>
+        <div className="text-center space-y-1 sm:space-y-2 px-2">
+          <p className="text-xs sm:text-sm text-blue-600 font-medium">
+            🔒 Secure authentication powered by Supabase
+          </p>
+        </div>
       </div>
     </div>
   );
