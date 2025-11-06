@@ -320,15 +320,15 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
     if (cards.length === 0) return;
 
     const containerRect = container.getBoundingClientRect();
-    const containerCenter = containerRect.left + containerRect.width / 2;
+    const containerLeft = containerRect.left;
 
     let closestCard: Element | null = null;
     let closestDistance = Infinity;
 
+    // Find card whose left edge is closest to container's left edge
     cards.forEach((card) => {
       const cardRect = card.getBoundingClientRect();
-      const cardCenter = cardRect.left + cardRect.width / 2;
-      const distance = Math.abs(cardCenter - containerCenter);
+      const distance = Math.abs(cardRect.left - containerLeft);
 
       if (distance < closestDistance) {
         closestDistance = distance;
@@ -337,7 +337,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
     });
 
     if (closestCard) {
-      (closestCard as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+      (closestCard as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
     }
   }, [isMobile]);
 
@@ -2819,7 +2819,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
               <div 
                 ref={forecastScrollContainerRef}
                 className={`flex-1 forecast-grid-container ${
-                  isMobile ? 'overflow-hidden mx-16' : 'overflow-x-auto overflow-y-hidden scrollbar-hide mx-16'
+                  isMobile ? 'overflow-hidden mx-16' : 'overflow-x-auto overflow-y-hidden scrollbar-hide'
                 }`}
                 style={{
                   scrollSnapType: isMobile ? undefined : 'x mandatory',
@@ -2844,7 +2844,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                 {/* Forecast Grid with Touch Support and Snap Scrolling */}
                 <div 
                   key={dayOffset} // Force re-render with animation when day changes
-                  className={`${isMobile ? 'grid grid-cols-1 forecast-grid-mobile' : 'flex items-stretch px-[calc(50%-140px)]'} relative ${
+                  className={`${isMobile ? 'grid grid-cols-1 forecast-grid-mobile' : 'flex items-stretch pl-16 pr-16'} relative ${
                     slideDirection === 'left' ? 'animate-slide-in-right' : 
                     slideDirection === 'right' ? 'animate-slide-in-left' : ''
                   }`}
@@ -2905,10 +2905,10 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                       onDragLeave={handleDragLeave}
                       onDrop={(e) => handleDrop(e, dateStr)}
                       className={`forecast-day-card relative ${
-                        isMobile ? 'mb-8 h-[80vh] overflow-hidden flex flex-col' : 'h-[75vh] w-[280px] shrink-0 flex flex-col scroll-snap-center'
+                        isMobile ? 'mb-8 h-[80vh] overflow-hidden flex flex-col' : 'h-[75vh] w-[280px] shrink-0 flex flex-col'
                       } shadow-lg rounded-lg overflow-hidden`}
                       style={{
-                        scrollSnapAlign: isMobile ? undefined : 'center',
+                        scrollSnapAlign: isMobile ? undefined : 'start',
                         background: weatherForDay?.hourlyForecasts && weatherForDay.hourlyForecasts.length > 0
                           ? `linear-gradient(to bottom, ${weatherForDay.hourlyForecasts.map((h, idx) => {
                               const desc = h.description.toLowerCase();
