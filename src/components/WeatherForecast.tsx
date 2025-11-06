@@ -2736,20 +2736,21 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
             )}
 
             {/* Week View Grid - Droppable Days with Navigation */}
-            <div className="flex items-center gap-6">
-              {/* Left Arrow - Desktop Only */}
+            <div className="relative flex items-center justify-center gap-6">
+              {/* Left Arrow - Desktop Only - Positioned absolutely to the left */}
               {!isMobile && (
                 <button
-                  onClick={() => setDayOffset(dayOffset - 1)}
-                  className="shrink-0 w-12 h-12 rounded-full bg-blue-600 hover:bg-blue-700 flex items-center justify-center text-white shadow-lg transition-all hover:scale-110"
+                  onClick={() => setDayOffset(Math.max(0, dayOffset - 1))}
+                  disabled={dayOffset === 0}
+                  className="absolute left-0 top-1/2 -translate-y-1/2 z-10 shrink-0 w-12 h-12 rounded-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center text-white shadow-lg transition-all hover:scale-110 disabled:hover:scale-100"
                   aria-label="Previous day"
                 >
                   <ChevronLeft className="w-6 h-6" />
                 </button>
               )}
 
-              {/* Flex wrapper - no special mobile treatment */}
-              <div className="flex-1 overflow-x-hidden forecast-grid-container">
+              {/* Flex wrapper - centered with max width to show only complete cards */}
+              <div className="flex-1 overflow-hidden forecast-grid-container mx-16">
                 {/* Desktop Instructions */}
                 {!isMobile && isTouchDevice.current && cutJobId && (
                   <div className="p-2 bg-yellow-50 border-2 border-yellow-400 rounded-lg mb-2">
@@ -2768,7 +2769,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                 {/* Forecast Grid with Touch Support and Snap Scrolling */}
                 <div 
                   key={dayOffset} // Force re-render with animation when day changes
-                  className={`${isMobile ? 'grid grid-cols-1 forecast-grid-mobile' : 'flex gap-[1.5vw] overflow-x-hidden'} items-stretch relative ${
+                  className={`${isMobile ? 'grid grid-cols-1 forecast-grid-mobile' : 'flex gap-[1.5vw] justify-center'} items-stretch relative ${
                     slideDirection === 'left' ? 'animate-slide-in-right' : 
                     slideDirection === 'right' ? 'animate-slide-in-left' : ''
                   }`}
@@ -2781,21 +2782,19 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                   }}
                 >
                 {next5Days
-                  .filter((_, index) => isMobile ? index === 0 : true) // On mobile, only show the first day (offset by dayOffset)
+                  .filter((_, index) => isMobile ? index === 0 : index >= dayOffset && index < dayOffset + 5) // Show current window of days
                   .map((day, index) => {
                   // For mobile, index is always 0 (showing only current offset day)
-                  // For desktop, index matches the day in the array
-                  const actualIndex = isMobile ? 0 : index;
+                  // For desktop, calculate actual index in next5Days array
+                  const actualIndex = isMobile ? 0 : dayOffset + index;
                   const dateStr = day.toLocaleDateString('en-CA'); // YYYY-MM-DD format
                   const todayStr = new Date().toLocaleDateString('en-CA');
                   const isToday = dateStr === todayStr;
                   const dayName = isToday ? 'Today' : day.toLocaleDateString('en-US', { weekday: 'short' });
                   const dayDate = day.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
                   
-                  // Get weather for this day - adjust index by dayOffset to get correct weather data
-                  // When dayOffset is 0, index 0 = today (weatherData.daily[0])
-                  // When dayOffset is 1, index 0 = tomorrow (weatherData.daily[1])
-                  const weatherIndex = actualIndex + dayOffset;
+                  // Get weather for this day
+                  const weatherIndex = actualIndex;
                   const weatherForDay = weatherData?.daily[weatherIndex];
                   
                   // Get jobs scheduled for this day (including completed jobs to show greyed out)
@@ -3617,11 +3616,12 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                 })}
               </div>
 
-              {/* Right Arrow - Desktop Only */}
+              {/* Right Arrow - Desktop Only - Positioned absolutely to the right */}
               {!isMobile && (
                 <button
-                  onClick={() => setDayOffset(dayOffset + 1)}
-                  className="shrink-0 w-12 h-12 rounded-full bg-blue-600 hover:bg-blue-700 flex items-center justify-center text-white shadow-lg transition-all hover:scale-110"
+                  onClick={() => setDayOffset(Math.min(next5Days.length - 1, dayOffset + 1))}
+                  disabled={dayOffset >= next5Days.length - 1}
+                  className="absolute right-0 top-1/2 -translate-y-1/2 z-10 shrink-0 w-12 h-12 rounded-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center text-white shadow-lg transition-all hover:scale-110 disabled:hover:scale-100"
                   aria-label="Next day"
                 >
                   <ChevronRight className="w-6 h-6" />
