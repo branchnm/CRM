@@ -1,5 +1,17 @@
 # 🔐 Quick Auth Setup Guide
 
+## ⚠️ IMPORTANT - READ THIS FIRST!
+
+**If you're seeing other users' data:**
+1. The existing customers/jobs in your database don't have `user_id` set yet
+2. You MUST complete **Step 3** below to assign them to your account
+3. Without Step 3, RLS policies can't filter the data properly
+4. Use the diagnostic queries in `src/db/diagnose_and_fix_rls.sql` to verify
+
+**Logout button on desktop:**
+- Now shows your email + "Logout" text button (top right)
+- Refresh your browser to see the updated UI
+
 ## ✅ What's Already Done
 - ✅ Auth service layer created (`src/services/auth.ts`)
 - ✅ Login/Signup UI built (`src/components/AuthPage.tsx`)
@@ -49,13 +61,13 @@
    ```sql
    SELECT id, email FROM auth.users WHERE email = 'branchnm@jobflow.local';
    ```
-   - Copy the `id` value (the UUID)
+   - Copy the `id` value (dbfbd6e7-6243-4420-8470-72df824f8506)
 
 2. **Assign Data to Your Account**
    - Replace `YOUR_USER_ID_HERE` with the UUID you copied:
    ```sql
-   UPDATE customers SET user_id = 'YOUR_USER_ID_HERE' WHERE user_id IS NULL;
-   UPDATE jobs SET user_id = 'YOUR_USER_ID_HERE' WHERE user_id IS NULL;
+   UPDATE customers SET user_id = 'dbfbd6e7-6243-4420-8470-72df824f8506' WHERE user_id IS NULL;
+   UPDATE jobs SET user_id = 'dbfbd6e7-6243-4420-8470-72df824f8506' WHERE user_id IS NULL;
    ```
    - Click **Run**
 
@@ -98,6 +110,21 @@ Your app now has:
 
 ## ❓ Troubleshooting
 
+**Test user can see branchnm's data?**
+- **CRITICAL**: You MUST run Step 3 to assign existing data to your account
+- Run the diagnostic queries in `src/db/diagnose_and_fix_rls.sql`
+- Check if existing data has user_id:
+  ```sql
+  SELECT COUNT(*) FROM customers WHERE user_id IS NULL;
+  SELECT COUNT(*) FROM jobs WHERE user_id IS NULL;
+  ```
+- If count > 0, run the UPDATE commands from Step 3 again
+
+**Logout button not visible on desktop?**
+- Fixed! Now shows email + "Logout" button on desktop
+- Shows just icon on mobile
+- Refresh your browser (Ctrl+R)
+
 **Can't see login page?**
 - Clear browser cache and refresh
 - Check browser console for errors
@@ -110,7 +137,7 @@ Your app now has:
 - Make sure you ran Step 3 (migrate existing data)
 - Check that the user_id matches in SQL Editor:
   ```sql
-  SELECT COUNT(*) FROM customers WHERE user_id = 'YOUR_USER_ID';
+  SELECT COUNT(*) FROM customers WHERE user_id = 'dbfbd6e7-6243-4420-8470-72df824f8506';
   ```
 
 **RLS policies blocking everything?**
@@ -119,3 +146,4 @@ Your app now has:
   ```sql
   SELECT * FROM pg_policies WHERE tablename IN ('customers', 'jobs');
   ```
+- If no policies, run `src/db/diagnose_and_fix_rls.sql` section to recreate them
