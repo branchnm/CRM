@@ -118,6 +118,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
   const [desktopScrollLeft, setDesktopScrollLeft] = useState(0);
   const [isDesktopScrolling, setIsDesktopScrolling] = useState(false);
   const desktopScrollTimeout = useRef<number | undefined>(undefined);
+  const [isTodayCardVisible, setIsTodayCardVisible] = useState(true);
   
   // Track instruction dismissal - hide after 2 uses
   const [showCutInstruction, setShowCutInstruction] = useState(() => {
@@ -311,6 +312,39 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
     setTimeout(() => setIsTransitioning(false), 300);
   };
 
+  // Check if Today card is visible in viewport
+  const checkTodayCardVisibility = useCallback(() => {
+    if (!forecastScrollContainerRef.current) return;
+    
+    const container = forecastScrollContainerRef.current;
+    const cards = container.querySelectorAll('.forecast-day-card');
+    if (cards.length === 0) return;
+    
+    // Find the card with today's date
+    const todayStr = new Date().toLocaleDateString('en-CA');
+    let todayCard: Element | null = null;
+    
+    cards.forEach((card) => {
+      const dateAttr = card.getAttribute('data-date');
+      if (dateAttr === todayStr) {
+        todayCard = card;
+      }
+    });
+    
+    if (!todayCard) {
+      setIsTodayCardVisible(false);
+      return;
+    }
+    
+    // Check if today card is visible in viewport
+    const containerRect = container.getBoundingClientRect();
+    const cardRect = (todayCard as HTMLElement).getBoundingClientRect();
+    
+    // Card is visible if any part of it is within the container's visible area
+    const isVisible = cardRect.right > containerRect.left && cardRect.left < containerRect.right;
+    setIsTodayCardVisible(isVisible);
+  }, []);
+
   // Desktop horizontal scroll with snap
   const snapToNearestCard = useCallback(() => {
     if (!forecastScrollContainerRef.current || isMobile) return;
@@ -350,6 +384,9 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
     const handleScroll = () => {
       setIsDesktopScrolling(true);
       
+      // Check if Today card is visible
+      checkTodayCardVisibility();
+      
       // Clear existing timeout
       if (desktopScrollTimeout.current) {
         clearTimeout(desktopScrollTimeout.current);
@@ -360,29 +397,8 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
         setIsDesktopScrolling(false);
         snapToNearestCard();
         
-        // Update dayOffset based on visible card
-        const cards = container.querySelectorAll('.forecast-day-card');
-        if (cards.length === 0) return;
-        
-        const containerRect = container.getBoundingClientRect();
-        const containerLeft = containerRect.left;
-        
-        let closestCardIndex = 0;
-        let closestDistance = Infinity;
-        
-        cards.forEach((card, idx) => {
-          const cardRect = card.getBoundingClientRect();
-          const distance = Math.abs(cardRect.left - containerLeft);
-          
-          if (distance < closestDistance) {
-            closestDistance = distance;
-            closestCardIndex = idx;
-          }
-        });
-        
-        // Update dayOffset if it doesn't match the visible card
-        // Don't update if user is actively using arrows (prevents jumping)
-        setDayOffset(closestCardIndex);
+        // Final check of Today card visibility after snap
+        checkTodayCardVisibility();
       }, 150);
     };
 
@@ -394,7 +410,18 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
         clearTimeout(desktopScrollTimeout.current);
       }
     };
-  }, [isMobile, snapToNearestCard]);
+  }, [isMobile, snapToNearestCard, checkTodayCardVisibility]);
+
+  // Check Today card visibility on mount and when forecast renders
+  useEffect(() => {
+    if (!isMobile && forecastScrollContainerRef.current) {
+      // Delay to ensure DOM is ready
+      const timer = setTimeout(() => {
+        checkTodayCardVisibility();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [isMobile, checkTodayCardVisibility, weatherData]);
 
   // Close suggestions when clicking outside
   useEffect(() => {
@@ -2357,17 +2384,21 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
         </div>
       )}
       
-      {/* Today Button - Top Left Corner - Shows when not on today */}
-      {dayOffset !== 0 && (
+      {/* Today Button - Top Left Corner - Shows when Today card is not visible */}
+      {!isTodayCardVisible && (
         <button
           onClick={() => {
-            setDayOffset(0);
-            // Scroll to first card on desktop
-            if (!isMobile && forecastScrollContainerRef.current) {
-              const firstCard = forecastScrollContainerRef.current.querySelector('.forecast-day-card');
-              if (firstCard) {
-                (firstCard as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
-              }
+            // Find and scroll to the Today card
+            if (forecastScrollContainerRef.current) {
+              const todayStr = new Date().toLocaleDateString('en-CA');
+              const cards = forecastScrollContainerRef.current.querySelectorAll('.forecast-day-card');
+              
+              cards.forEach((card) => {
+                const dateAttr = card.getAttribute('data-date');
+                if (dateAttr === todayStr) {
+                  (card as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
+                }
+              });
             }
           }}
           className={`${isMobile ? 'fixed top-4 left-4' : 'absolute top-4 left-4'} z-40 flex items-center gap-2 px-3 py-2 bg-white rounded-full shadow-lg border border-blue-200 text-sm hover:bg-blue-50 transition-colors`}
@@ -2849,6 +2880,8 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                       const targetCard = cards[newOffset];
                       if (targetCard) {
                         (targetCard as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
+                        // Check Today visibility after scroll
+                        setTimeout(() => checkTodayCardVisibility(), 300);
                       }
                     }
                   }}
@@ -3752,6 +3785,8 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                       const targetCard = cards[newOffset];
                       if (targetCard) {
                         (targetCard as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
+                        // Check Today visibility after scroll
+                        setTimeout(() => checkTodayCardVisibility(), 300);
                       }
                     }
                   }}
