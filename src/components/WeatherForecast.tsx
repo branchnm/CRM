@@ -2768,7 +2768,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                 {/* Forecast Grid with Touch Support and Snap Scrolling */}
                 <div 
                   key={dayOffset} // Force re-render with animation when day changes
-                  className={`grid ${isMobile ? 'grid-cols-1 forecast-grid-mobile' : 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'} gap-3 items-start relative ${
+                  className={`grid ${isMobile ? 'grid-cols-1 forecast-grid-mobile' : 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'} gap-[1.5vw] items-stretch relative ${
                     slideDirection === 'left' ? 'animate-slide-in-right' : 
                     slideDirection === 'right' ? 'animate-slide-in-left' : ''
                   }`}
@@ -2828,8 +2828,8 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                       onDragLeave={handleDragLeave}
                       onDrop={(e) => handleDrop(e, dateStr)}
                       className={`forecast-day-card relative ${
-                        isMobile ? 'mb-8 h-[80vh] overflow-hidden flex flex-col' : ''
-                      } shadow-sm`}
+                        isMobile ? 'mb-8 h-[80vh] overflow-hidden flex flex-col' : 'min-h-[70vh] h-full flex flex-col'
+                      } shadow-lg rounded-lg overflow-hidden`}
                       style={{
                         background: weatherForDay?.hourlyForecasts && weatherForDay.hourlyForecasts.length > 0
                           ? `linear-gradient(to bottom, ${weatherForDay.hourlyForecasts.map((h, idx) => {
@@ -2888,18 +2888,18 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                       }}
                     >
                       {/* Day Header - Improved with work/drive time stats */}
-                      <div className={`bg-white border-b border-gray-200 ${isMobile ? 'px-2 py-[0.5vh]' : 'px-4 py-3'}`}>
+                      <div className={`bg-white border-b border-gray-200 ${isMobile ? 'px-2 py-[0.5vh]' : 'px-[0.8vw] py-[1.2vh]'}`}>
                         {/* Day and Date on same line with rain badge */}
-                        <div className={`flex items-center ${isMobile ? 'justify-center mb-[0.3vh]' : 'justify-between mb-2'}`}>
+                        <div className={`flex items-center ${isMobile ? 'justify-center mb-[0.3vh]' : 'justify-between mb-[0.8vh]'}`}>
                           <div className="flex items-center gap-2">
-                            <span className={`font-bold text-gray-900 ${isMobile ? 'text-[2vh]' : 'text-xl'}`}>{dayName}</span>
-                            <span className={`text-gray-500 ${isMobile ? 'text-[1.5vh]' : 'text-base'}`}>{dayDate}</span>
+                            <span className={`font-bold text-gray-900 ${isMobile ? 'text-[2vh]' : 'text-[1.3vw]'}`}>{dayName}</span>
+                            <span className={`text-gray-500 ${isMobile ? 'text-[1.5vh]' : 'text-[0.95vw]'}`}>{dayDate}</span>
                           </div>
                           
                           {/* Rain Chance Badge */}
                           {weatherForDay && rainChance > 0 && !isMobile && (
-                            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold bg-blue-100 text-blue-800">
-                              <CloudRain className="h-4 w-4" />
+                            <div className="inline-flex items-center gap-1.5 px-[0.6vw] py-[0.4vh] rounded-full font-semibold bg-blue-100 text-blue-800" style={{ fontSize: '0.85vw' }}>
+                              <CloudRain className="h-[1vw] w-[1vw]" />
                               {rainChance}%
                             </div>
                           )}
@@ -2907,9 +2907,9 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                         
                         {/* Work Stats Row - Centered */}
                         {totalJobs > 0 && (
-                          <div className={`flex items-center justify-center gap-4 ${isMobile ? 'text-[1.3vh]' : 'text-sm'}`}>
+                          <div className={`flex items-center justify-center gap-4 ${isMobile ? 'text-[1.3vh]' : ''}`} style={{ fontSize: isMobile ? undefined : '0.8vw' }}>
                             <div className="flex items-center gap-2 text-gray-700">
-                              <span className={`font-bold text-blue-600 ${isMobile ? 'text-[1.8vh]' : 'text-lg'}`}>{totalJobs}</span>
+                              <span className={`font-bold text-blue-600 ${isMobile ? 'text-[1.8vh]' : ''}`} style={{ fontSize: isMobile ? undefined : '1.1vw' }}>{totalJobs}</span>
                               <span className={`text-gray-600 font-medium ${isMobile ? 'text-[1.3vh]' : ''}`}>job{totalJobs !== 1 ? 's' : ''}</span>
                             </div>
                             {(() => {
@@ -2924,8 +2924,8 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                 <>
                                   <div className="h-4 w-px bg-gray-300"></div>
                                   <div className="flex items-center gap-1.5 text-gray-700">
-                                    <span className={`${isMobile ? 'text-[1.5vh]' : 'text-base'}`}>⏱</span>
-                                    <span className={`font-semibold ${isMobile ? 'text-[1.3vh]' : 'text-base'}`}>
+                                    <span className={`${isMobile ? 'text-[1.5vh]' : ''}`} style={{ fontSize: isMobile ? undefined : '0.9vw' }}>⏱</span>
+                                    <span className={`font-semibold ${isMobile ? 'text-[1.3vh]' : ''}`} style={{ fontSize: isMobile ? undefined : '0.8vw' }}>
                                       {workHours > 0 && `${workHours}h `}{workMins > 0 && `${workMins}m`}
                                       {!workHours && !workMins && '30m'}
                                     </span>
@@ -2934,8 +2934,8 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                     <>
                                       <div className="h-4 w-px bg-gray-300"></div>
                                       <div className="flex items-center gap-1.5 text-gray-700">
-                                        <span className={`${isMobile ? 'text-[1.5vh]' : 'text-base'}`}>🚗</span>
-                                        <span className={`font-semibold ${isMobile ? 'text-[1.3vh]' : 'text-base'}`}>
+                                        <span className={`${isMobile ? 'text-[1.5vh]' : ''}`} style={{ fontSize: isMobile ? undefined : '0.9vw' }}>🚗</span>
+                                        <span className={`font-semibold ${isMobile ? 'text-[1.3vh]' : ''}`} style={{ fontSize: isMobile ? undefined : '0.8vw' }}>
                                           {driveHours > 0 && `${driveHours}h `}{driveMins}m
                                         </span>
                                       </div>
@@ -2949,12 +2949,12 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                       </div>
 
                       {/* Main Content: Day Schedule (left) + Night Weather (right) */}
-                      <div className={`grid grid-cols-[1fr_auto] gap-0 overflow-visible ${
-                        isMobile ? 'flex-1' : 'min-h-[280px]'
+                      <div className={`grid grid-cols-[1fr_auto] gap-0 overflow-visible flex-1 ${
+                        isMobile ? '' : ''
                       }`}>
                         {/* Left: Job Count & Jobs List with day weather icons (5am-6pm) */}
                         <div className={`bg-gray-50/50 relative border-r border-gray-200 overflow-hidden ${
-                          isMobile ? 'px-1 pb-0 pt-1 flex flex-col' : 'px-1 py-2'
+                          isMobile ? 'px-1 pb-0 pt-1 flex flex-col' : 'px-[0.4vw] py-[0.8vh] flex flex-col'
                         }`}>
                           
                           <div className={`relative z-10 ${isMobile ? 'flex-1 flex flex-col min-h-0' : ''}`}>
