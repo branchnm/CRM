@@ -105,7 +105,7 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
       
       if (missing.length === 0) return;
       
-      console.log('Auto-creating jobs for', missing.length, 'customers:', missing.map(c => c.name));
+      console.log(`🔄 Auto-creating jobs for ${missing.length} customers`);
       
       // Mark these jobs as being created
       missing.forEach(c => creatingJobsRef.current.add(`${c.id}-${today}`));
@@ -115,7 +115,7 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
         const todayJobsList = jobs.filter(j => j.date === today);
         const maxOrder = Math.max(0, ...todayJobsList.map(j => j.order || 0));
         
-        await Promise.all(
+        const results = await Promise.allSettled(
           missing.map((c, index) =>
             addJob({ 
               customerId: c.id, 
@@ -126,16 +126,26 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
           )
         );
         
-        // Refresh both customers and jobs from database
-        console.log('Jobs created successfully, refreshing data...');
-        await onRefreshJobs?.();
-        await onRefreshCustomers();
+        const created = results.filter(r => r.status === 'fulfilled').length;
+        const duplicates = results.filter(r => 
+          r.status === 'rejected' && 
+          (r.reason?.message?.includes('duplicate key') || r.reason?.message?.includes('409'))
+        ).length;
+        const errors = results.filter(r => 
+          r.status === 'rejected' && 
+          !(r.reason?.message?.includes('duplicate key') || r.reason?.message?.includes('409'))
+        ).length;
+        
+        console.log(`✅ Created: ${created}, ⏭️ Duplicates: ${duplicates}, ❌ Errors: ${errors}`);
+        
+        // Refresh both customers and jobs from database if any were created
+        if (created > 0) {
+          await onRefreshJobs?.();
+          await onRefreshCustomers();
+        }
       } catch (e) {
         console.error('Failed to create jobs in Supabase:', e);
-        // Don't show toast on conflict errors - they're expected during race conditions
-        if (!String(e).includes('409') && !String(e).includes('Conflict')) {
-          toast.error('Failed to create today\'s jobs.');
-        }
+        toast.error('Failed to create today\'s jobs.');
       } finally {
         // Clear the creation flags after attempt
         missing.forEach(c => creatingJobsRef.current.delete(`${c.id}-${today}`));
@@ -164,7 +174,7 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
       
       if (missingJobs.length === 0) return;
       
-      console.log('Auto-creating jobs for', missingJobs.length, 'customers with nextCutDate:', missingJobs.map(c => `${c.name} on ${c.nextCutDate}`));
+      console.log(`🔄 Auto-creating ${missingJobs.length} jobs for customers with nextCutDate`);
       
       // Mark these jobs as being created
       missingJobs.forEach(c => creatingJobsRef.current.add(`${c.id}-${c.nextCutDate}`));
@@ -177,7 +187,7 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
           jobsByDate.set(j.date, Math.max(current, j.order || 0));
         });
         
-        await Promise.all(
+        const results = await Promise.allSettled(
           missingJobs.map((c) => {
             const maxOrder = jobsByDate.get(c.nextCutDate!) || 0;
             jobsByDate.set(c.nextCutDate!, maxOrder + 1);
@@ -191,15 +201,25 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
           })
         );
         
-        // Refresh jobs from database
-        console.log('Future jobs created successfully, refreshing...');
-        await onRefreshJobs?.();
+        const created = results.filter(r => r.status === 'fulfilled').length;
+        const duplicates = results.filter(r => 
+          r.status === 'rejected' && 
+          (r.reason?.message?.includes('duplicate key') || r.reason?.message?.includes('409'))
+        ).length;
+        const errors = results.filter(r => 
+          r.status === 'rejected' && 
+          !(r.reason?.message?.includes('duplicate key') || r.reason?.message?.includes('409'))
+        ).length;
+        
+        console.log(`✅ Created: ${created}, ⏭️ Duplicates: ${duplicates}, ❌ Errors: ${errors}`);
+        
+        // Refresh jobs from database if any were created
+        if (created > 0) {
+          await onRefreshJobs?.();
+        }
       } catch (e) {
         console.error('Failed to create scheduled jobs:', e);
-        // Don't show toast on conflict errors
-        if (!String(e).includes('409') && !String(e).includes('Conflict')) {
-          console.error('Non-conflict error creating jobs:', e);
-        }
+        toast.error('Failed to create scheduled jobs.');
       } finally {
         // Clear the creation flags after attempt
         missingJobs.forEach(c => creatingJobsRef.current.delete(`${c.id}-${c.nextCutDate}`));
@@ -223,7 +243,7 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
       
       if (missing.length === 0) return;
       
-      console.log('Auto-creating jobs for tomorrow:', missing.length, 'customers');
+      console.log(`🔄 Auto-creating ${missing.length} jobs for tomorrow`);
       
       // Mark these jobs as being created
       missing.forEach(c => creatingJobsRef.current.add(`${c.id}-${tomorrowDate}`));
@@ -233,7 +253,7 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
         const tomorrowJobsList = jobs.filter(j => j.date === tomorrowDate);
         const maxOrder = Math.max(0, ...tomorrowJobsList.map(j => j.order || 0));
         
-        await Promise.all(
+        const results = await Promise.allSettled(
           missing.map((c, index) =>
             addJob({ 
               customerId: c.id, 
@@ -244,14 +264,25 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
           )
         );
         
+        const created = results.filter(r => r.status === 'fulfilled').length;
+        const duplicates = results.filter(r => 
+          r.status === 'rejected' && 
+          (r.reason?.message?.includes('duplicate key') || r.reason?.message?.includes('409'))
+        ).length;
+        const errors = results.filter(r => 
+          r.status === 'rejected' && 
+          !(r.reason?.message?.includes('duplicate key') || r.reason?.message?.includes('409'))
+        ).length;
+        
+        console.log(`✅ Created: ${created}, ⏭️ Duplicates: ${duplicates}, ❌ Errors: ${errors}`);
+        
         // Only refresh if we actually created jobs
-        await onRefreshJobs?.();
+        if (created > 0) {
+          await onRefreshJobs?.();
+        }
       } catch (e) {
         console.error('Failed to create tomorrow\'s jobs in Supabase:', e);
-        // Don't show toast on conflict errors
-        if (!String(e).includes('409') && !String(e).includes('Conflict')) {
-          toast.error('Failed to create tomorrow\'s jobs.');
-        }
+        toast.error('Failed to create tomorrow\'s jobs.');
       } finally {
         // Clear the creation flags after attempt
         missing.forEach(c => creatingJobsRef.current.delete(`${c.id}-${tomorrowDate}`));
