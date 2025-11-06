@@ -1956,16 +1956,26 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
   };
 
   const handleJobTouchMove = (e: React.TouchEvent) => {
-    // Cancel long-press if user moves finger (likely scrolling/swiping)
-    if (longPressStartPos.current && longPressTimer.current) {
-      const moveX = Math.abs(e.touches[0].clientX - longPressStartPos.current.x);
-      const moveY = Math.abs(e.touches[0].clientY - longPressStartPos.current.y);
-      
-      // Cancel if moved more than 4px (sensitive to detect swipes)
+    if (!longPressStartPos.current) return;
+    
+    const moveX = Math.abs(e.touches[0].clientX - longPressStartPos.current.x);
+    const moveY = Math.abs(e.touches[0].clientY - longPressStartPos.current.y);
+    
+    // Different thresholds for different modes
+    if (isSelectionMode) {
+      // In selection mode: Allow more movement before canceling tap (15px)
+      // This prevents accidental cancellation from small finger movements
+      if (moveX > 15 || moveY > 15) {
+        (e.currentTarget as any).dataset.hasMoved = 'true';
+      }
+    } else {
+      // Not in selection mode: Very sensitive (4px) to detect swipes/scrolls
+      // This cancels long-press quickly if user is swiping
       if (moveX > 4 || moveY > 4) {
-        clearTimeout(longPressTimer.current);
-        longPressTimer.current = null;
-        // Mark as moved to prevent selection on touch end
+        if (longPressTimer.current) {
+          clearTimeout(longPressTimer.current);
+          longPressTimer.current = null;
+        }
         (e.currentTarget as any).dataset.hasMoved = 'true';
       }
     }
