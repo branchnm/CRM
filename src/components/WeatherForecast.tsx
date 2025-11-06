@@ -2867,7 +2867,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
             )}
 
             {/* Week View Grid - Droppable Days with Navigation */}
-            <div className="relative flex items-center gap-6">
+            <div className="relative flex items-center gap-6 min-h-[85vh]">
               {/* Left Arrow - Desktop Only - Positioned outside container */}
               {!isMobile && (
                 <button
@@ -2897,7 +2897,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
               <div 
                 ref={forecastScrollContainerRef}
                 className={`flex-1 forecast-grid-container ${
-                  isMobile ? 'overflow-hidden mx-16' : 'overflow-x-auto overflow-y-hidden scrollbar-hide'
+                  isMobile ? 'overflow-hidden mx-16' : 'overflow-x-auto scrollbar-hide'
                 }`}
                 style={{
                   scrollSnapType: isMobile ? undefined : 'x mandatory',
@@ -2983,7 +2983,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                       onDragLeave={handleDragLeave}
                       onDrop={(e) => handleDrop(e, dateStr)}
                       className={`forecast-day-card relative ${
-                        isMobile ? 'mb-8 h-[80vh] overflow-hidden flex flex-col' : 'h-[75vh] w-[280px] shrink-0 flex flex-col'
+                        isMobile ? 'mb-8 h-[80vh] overflow-hidden flex flex-col' : 'h-auto w-[280px] shrink-0 flex flex-col'
                       } shadow-lg rounded-lg overflow-hidden`}
                       style={{
                         scrollSnapAlign: isMobile ? undefined : 'start',
