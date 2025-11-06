@@ -4,6 +4,7 @@ import { InsightsDashboard } from "./components/InsightsDashboard";
 import { CustomerView } from "./components/CustomerView";
 import { Settings } from "./components/Settings";
 import { CalendarView } from "./components/CalendarView";
+import AuthPage from "./components/AuthPage";
 import {
   Calendar,
   TrendingUp,
@@ -11,9 +12,13 @@ import {
   Settings as SettingsIcon,
   CalendarDays,
   CloudSun,
+  LogOut,
 } from "lucide-react";
 import { fetchCustomers } from "./services/customers";
 import { fetchJobs } from "./services/jobs";
+import { getCurrentUser, onAuthStateChange, signOut } from "./services/auth";
+import type { User } from "@supabase/supabase-js";
+import { Button } from "./components/ui/button";
 
 export interface Customer {
   id: string;
@@ -72,11 +77,46 @@ export interface Equipment {
 }
 
 function App() {
+  const [user, setUser] = useState<User | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("schedule");
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [showBottomNav, setShowBottomNav] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
+
+  // Check auth state on mount and listen for changes
+  useEffect(() => {
+    // Check current user
+    getCurrentUser().then((currentUser) => {
+      setUser(currentUser);
+      setAuthLoading(false);
+    });
+
+    // Listen for auth changes
+    const subscription = onAuthStateChange((currentUser) => {
+      setUser(currentUser);
+      setAuthLoading(false);
+      
+      // Reload customers when user logs in
+      if (currentUser) {
+        loadCustomers();
+      } else {
+        setCustomers([]);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  // Handle logout
+  const handleLogout = async () => {
+    await signOut();
+    setCustomers([]);
+    setActiveTab("schedule");
+  };
 
   // Handle scroll to show/hide bottom navigation
   useEffect(() => {
@@ -98,24 +138,31 @@ function App() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [lastScrollY]);
 
-  // Load customers from Supabase on mount
+  // Load customers from Supabase
+  const loadCustomers = async () => {
+    if (!user) return;
+    
+    try {
+      const data = await fetchCustomers();
+      setCustomers(data);
+      setLoading(false);
+    } catch (error) {
+      console.error('Failed to load customers:', error);
+      setLoading(false);
+    }
+  };
+
+  // Load customers when user is authenticated
   useEffect(() => {
-    const loadCustomers = async () => {
-      try {
-        const data = await fetchCustomers();
-        setCustomers(data);
-        setLoading(false);
-      } catch (error) {
-        console.error('Failed to load customers:', error);
-        setLoading(false);
-        // Fallback to empty array - users can add new ones
-      }
-    };
-    loadCustomers();
-  }, []);
+    if (user) {
+      loadCustomers();
+    }
+  }, [user]);
 
   // Expose a refresh function to children
   const refreshCustomers = async () => {
+    if (!user) return;
+    
     try {
       const data = await fetchCustomers();
       setCustomers(data);
@@ -126,8 +173,10 @@ function App() {
 
   const [jobs, setJobs] = useState<Job[]>([]);
 
-  // Load jobs from Supabase on mount
+  // Load jobs from Supabase when user is authenticated
   useEffect(() => {
+    if (!user) return;
+    
     const loadJobs = async () => {
       try {
         const data = await fetchJobs();
@@ -137,7 +186,7 @@ function App() {
       }
     };
     loadJobs();
-  }, []);
+  }, [user]);
 
   const [messageTemplates, setMessageTemplates] = useState<
     MessageTemplate[]
@@ -269,6 +318,20 @@ function App() {
     { id: "settings", label: "Settings", icon: SettingsIcon },
   ];
 
+  // Show loading state while checking auth
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-yellow-50 flex items-center justify-center">
+        <div className="text-blue-800 text-xl">Loading...</div>
+      </div>
+    );
+  }
+
+  // Show auth page if not logged in
+  if (!user) {
+    return <AuthPage />;
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-yellow-50 flex items-center justify-center">
@@ -280,12 +343,23 @@ function App() {
   return (
     <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-yellow-50 pb-20 md:pb-0">
       <div className="container mx-auto p-2 sm:p-4 md:p-8 max-w-7xl">
-        {/* Header - Logo style */}
+        {/* Header - Logo style with Logout */}
         <div className="mb-4 md:mb-6">
-          <div className="flex items-center justify-center mb-2 md:mb-4">
+          <div className="flex items-center justify-between mb-2 md:mb-4">
+            <div className="flex-1"></div>
             <h1 className="text-2xl sm:text-3xl md:text-4xl font-black text-transparent bg-clip-text bg-linear-to-r from-blue-600 via-blue-700 to-blue-800 uppercase tracking-wider drop-shadow-sm">
               Job Flow
             </h1>
+            <div className="flex-1 flex justify-end">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={handleLogout}
+                className="text-blue-600 hover:text-blue-700"
+              >
+                <LogOut className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </div>
 

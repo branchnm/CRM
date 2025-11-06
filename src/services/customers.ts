@@ -3,6 +3,17 @@ import type { Customer } from "../App";
 import { calculateNextCutDate } from "../utils/dateHelpers";
 
 /**
+ * Get the current authenticated user's ID
+ */
+async function getCurrentUserId(): Promise<string> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    throw new Error('User not authenticated');
+  }
+  return user.id;
+}
+
+/**
  * Delete a customer from Supabase
  */
 export async function deleteCustomer(customerId: string): Promise<void> {
@@ -33,9 +44,10 @@ export async function deleteAllCustomers(): Promise<void> {
 }
 
 /**
- * Fetch all customers from Supabase
+ * Fetch all customers from Supabase (filtered by current user)
  */
 export async function fetchCustomers(): Promise<Customer[]> {
+  // RLS policies will automatically filter by user_id
   const { data, error } = await supabase
     .from("customers")
     .select("*")
@@ -99,8 +111,11 @@ export async function fetchCustomers(): Promise<Customer[]> {
  * Add a new customer to Supabase
  */
 export async function addCustomer(customer: Omit<Customer, "id">): Promise<Customer> {
+  const userId = await getCurrentUserId();
+  
   // Convert from camelCase to snake_case for database
   const dbCustomer = {
+    user_id: userId, // Add user_id
     name: customer.name,
     address: customer.address,
     phone: customer.phone,

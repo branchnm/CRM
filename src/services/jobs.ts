@@ -1,7 +1,19 @@
 import { supabase } from "../lib/supabase";
 import type { Job } from "../App";
 
+/**
+ * Get the current authenticated user's ID
+ */
+async function getCurrentUserId(): Promise<string> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    throw new Error('User not authenticated');
+  }
+  return user.id;
+}
+
 export async function fetchJobs(date?: string): Promise<Job[]> {
+  // RLS policies will automatically filter by user_id
   let query = supabase.from("jobs").select("*");
   if (date) query = query.eq("date", date);
   const { data, error } = await query.order("date", { ascending: true });
@@ -28,8 +40,11 @@ export async function fetchJobs(date?: string): Promise<Job[]> {
 }
 
 export async function upsertJob(job: Omit<Job, "id"> & { id?: string }): Promise<Job> {
+  const userId = await getCurrentUserId();
+  
   const db = {
     id: job.id,
+    user_id: userId, // Add user_id
     customer_id: job.customerId,
     date: job.date,
     scheduled_time: job.scheduledTime || null,
@@ -74,7 +89,10 @@ export async function upsertJob(job: Omit<Job, "id"> & { id?: string }): Promise
 }
 
 export async function addJob(job: Omit<Job, "id">): Promise<Job> {
+  const userId = await getCurrentUserId();
+  
   const db = {
+    user_id: userId, // Add user_id
     customer_id: job.customerId,
     date: job.date,
     scheduled_time: job.scheduledTime || null,
@@ -120,7 +138,10 @@ export async function addJob(job: Omit<Job, "id">): Promise<Job> {
 }
 
 export async function updateJob(job: Job): Promise<Job> {
+  const userId = await getCurrentUserId();
+  
   const db = {
+    user_id: userId, // Add user_id
     customer_id: job.customerId,
     date: job.date,
     scheduled_time: job.scheduledTime || null,
