@@ -2748,7 +2748,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                 </button>
               )}
 
-              {/* Flex wrapper - centered with dynamic card width calculation */}
+              {/* Flex wrapper - centered with constant card width */}
               <div className="flex-1 overflow-hidden forecast-grid-container mx-16">
                 {/* Desktop Instructions */}
                 {!isMobile && isTouchDevice.current && cutJobId && (
@@ -2768,12 +2768,12 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                 {/* Forecast Grid with Touch Support and Snap Scrolling */}
                 <div 
                   key={dayOffset} // Force re-render with animation when day changes
-                  className={`${isMobile ? 'grid grid-cols-1 forecast-grid-mobile' : 'grid gap-[1.5vw] justify-center'} items-stretch relative ${
+                  className={`${isMobile ? 'grid grid-cols-1 forecast-grid-mobile' : 'flex justify-center items-stretch'} relative ${
                     slideDirection === 'left' ? 'animate-slide-in-right' : 
                     slideDirection === 'right' ? 'animate-slide-in-left' : ''
                   }`}
                   style={{
-                    gridTemplateColumns: isMobile ? undefined : 'repeat(auto-fit, minmax(18vw, 1fr))',
+                    gap: isMobile ? undefined : 'clamp(0.5rem, 1.5vw, 2rem)',
                     transform: isMobile && !slideDirection ? `translateX(${swipeOffset}px)` : undefined,
                     transition: isTransitioning && !slideDirection ? 'transform 0.3s ease-out' : 'none',
                   }}
@@ -2829,7 +2829,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                       onDragLeave={handleDragLeave}
                       onDrop={(e) => handleDrop(e, dateStr)}
                       className={`forecast-day-card relative ${
-                        isMobile ? 'mb-8 h-[80vh] overflow-hidden flex flex-col' : 'h-[75vh] flex flex-col'
+                        isMobile ? 'mb-8 h-[80vh] overflow-hidden flex flex-col' : 'h-[75vh] w-[280px] shrink-0 flex flex-col'
                       } shadow-lg rounded-lg overflow-hidden`}
                       style={{
                         background: weatherForDay?.hourlyForecasts && weatherForDay.hourlyForecasts.length > 0
