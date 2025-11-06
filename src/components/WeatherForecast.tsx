@@ -359,6 +359,30 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
       desktopScrollTimeout.current = window.setTimeout(() => {
         setIsDesktopScrolling(false);
         snapToNearestCard();
+        
+        // Update dayOffset based on visible card
+        const cards = container.querySelectorAll('.forecast-day-card');
+        if (cards.length === 0) return;
+        
+        const containerRect = container.getBoundingClientRect();
+        const containerLeft = containerRect.left;
+        
+        let closestCardIndex = 0;
+        let closestDistance = Infinity;
+        
+        cards.forEach((card, idx) => {
+          const cardRect = card.getBoundingClientRect();
+          const distance = Math.abs(cardRect.left - containerLeft);
+          
+          if (distance < closestDistance) {
+            closestDistance = distance;
+            closestCardIndex = idx;
+          }
+        });
+        
+        // Update dayOffset if it doesn't match the visible card
+        // Don't update if user is actively using arrows (prevents jumping)
+        setDayOffset(closestCardIndex);
       }, 150);
     };
 
@@ -2304,9 +2328,9 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
   // Desktop drag handlers remain unchanged for computer use
 
   // Get the next 5 days for the forecast view, starting from the offset - memoized for performance
-  const next5Days = useMemo(() => {
+  const next30Days = useMemo(() => {
     const days = [];
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 30; i++) {
       const date = new Date();
       date.setDate(date.getDate() + dayOffset + i);
       days.push(date);
@@ -2333,11 +2357,20 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
         </div>
       )}
       
-      {/* Today Button - Top Left Corner - Mobile Only - Shows when not on today */}
-      {isMobile && dayOffset !== 0 && (
+      {/* Today Button - Top Left Corner - Shows when not on today */}
+      {dayOffset !== 0 && (
         <button
-          onClick={() => setDayOffset(0)}
-          className="fixed top-4 left-4 z-40 flex items-center gap-2 px-3 py-2 bg-white rounded-full shadow-lg border border-blue-200 text-sm hover:bg-blue-50 transition-colors"
+          onClick={() => {
+            setDayOffset(0);
+            // Scroll to first card on desktop
+            if (!isMobile && forecastScrollContainerRef.current) {
+              const firstCard = forecastScrollContainerRef.current.querySelector('.forecast-day-card');
+              if (firstCard) {
+                (firstCard as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
+              }
+            }
+          }}
+          className={`${isMobile ? 'fixed top-4 left-4' : 'absolute top-4 left-4'} z-40 flex items-center gap-2 px-3 py-2 bg-white rounded-full shadow-lg border border-blue-200 text-sm hover:bg-blue-50 transition-colors`}
           title="Go to today"
         >
           <Calendar className="h-4 w-4 text-blue-600" />
@@ -2803,12 +2836,24 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
             )}
 
             {/* Week View Grid - Droppable Days with Navigation */}
-            <div className="relative flex items-center justify-center gap-6">
-              {/* Left Arrow - Desktop Only - Positioned absolutely to the left */}
+            <div className="relative flex items-center gap-6">
+              {/* Left Arrow - Desktop Only - Positioned outside container */}
               {!isMobile && (
                 <button
-                  onClick={() => setDayOffset(dayOffset - 1)}
-                  className="absolute left-0 top-1/2 -translate-y-1/2 z-10 shrink-0 w-12 h-12 rounded-full bg-blue-600 hover:bg-blue-700 flex items-center justify-center text-white shadow-lg transition-all hover:scale-110"
+                  onClick={() => {
+                    const newOffset = Math.max(0, dayOffset - 1);
+                    setDayOffset(newOffset);
+                    // Scroll to the corresponding card
+                    if (forecastScrollContainerRef.current) {
+                      const cards = forecastScrollContainerRef.current.querySelectorAll('.forecast-day-card');
+                      const targetCard = cards[newOffset];
+                      if (targetCard) {
+                        (targetCard as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
+                      }
+                    }
+                  }}
+                  disabled={dayOffset === 0}
+                  className="shrink-0 w-12 h-12 rounded-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center text-white shadow-lg transition-all hover:scale-110 disabled:hover:scale-100"
                   aria-label="Previous day"
                 >
                   <ChevronLeft className="w-6 h-6" />
@@ -2844,7 +2889,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                 {/* Forecast Grid with Touch Support and Snap Scrolling */}
                 <div 
                   key={dayOffset} // Force re-render with animation when day changes
-                  className={`${isMobile ? 'grid grid-cols-1 forecast-grid-mobile' : 'flex items-stretch pl-16 pr-16'} relative ${
+                  className={`${isMobile ? 'grid grid-cols-1 forecast-grid-mobile' : 'flex items-stretch'} relative ${
                     slideDirection === 'left' ? 'animate-slide-in-right' : 
                     slideDirection === 'right' ? 'animate-slide-in-left' : ''
                   }`}
@@ -2857,7 +2902,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                   onTouchMove={isMobile ? onTouchMove : undefined}
                   onTouchEnd={isMobile ? onTouchEnd : undefined}
                 >
-                {next5Days
+                {next30Days
                   .filter((_, index) => isMobile ? index === 0 : true) // On mobile, only show the first day (offset by dayOffset); desktop shows all that fit
                   .map((day, index) => {
                   // For mobile, index is always 0 (showing only current offset day)
@@ -3695,11 +3740,23 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                 })}
               </div>
 
-              {/* Right Arrow - Desktop Only - Positioned absolutely to the right */}
+              {/* Right Arrow - Desktop Only - Positioned outside container */}
               {!isMobile && (
                 <button
-                  onClick={() => setDayOffset(dayOffset + 1)}
-                  className="absolute right-0 top-1/2 -translate-y-1/2 z-10 shrink-0 w-12 h-12 rounded-full bg-blue-600 hover:bg-blue-700 flex items-center justify-center text-white shadow-lg transition-all hover:scale-110"
+                  onClick={() => {
+                    const newOffset = Math.min(29, dayOffset + 1);
+                    setDayOffset(newOffset);
+                    // Scroll to the corresponding card
+                    if (forecastScrollContainerRef.current) {
+                      const cards = forecastScrollContainerRef.current.querySelectorAll('.forecast-day-card');
+                      const targetCard = cards[newOffset];
+                      if (targetCard) {
+                        (targetCard as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
+                      }
+                    }
+                  }}
+                  disabled={dayOffset >= 29}
+                  className="shrink-0 w-12 h-12 rounded-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center text-white shadow-lg transition-all hover:scale-110 disabled:hover:scale-100"
                   aria-label="Next day"
                 >
                   <ChevronRight className="w-6 h-6" />
