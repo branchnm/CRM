@@ -2740,16 +2740,15 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
               {/* Left Arrow - Desktop Only - Positioned absolutely to the left */}
               {!isMobile && (
                 <button
-                  onClick={() => setDayOffset(Math.max(0, dayOffset - 1))}
-                  disabled={dayOffset === 0}
-                  className="absolute left-0 top-1/2 -translate-y-1/2 z-10 shrink-0 w-12 h-12 rounded-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center text-white shadow-lg transition-all hover:scale-110 disabled:hover:scale-100"
+                  onClick={() => setDayOffset(dayOffset - 1)}
+                  className="absolute left-0 top-1/2 -translate-y-1/2 z-10 shrink-0 w-12 h-12 rounded-full bg-blue-600 hover:bg-blue-700 flex items-center justify-center text-white shadow-lg transition-all hover:scale-110"
                   aria-label="Previous day"
                 >
                   <ChevronLeft className="w-6 h-6" />
                 </button>
               )}
 
-              {/* Flex wrapper - centered with max width to show only complete cards */}
+              {/* Flex wrapper - centered with dynamic card width calculation */}
               <div className="flex-1 overflow-hidden forecast-grid-container mx-16">
                 {/* Desktop Instructions */}
                 {!isMobile && isTouchDevice.current && cutJobId && (
@@ -2769,32 +2768,35 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                 {/* Forecast Grid with Touch Support and Snap Scrolling */}
                 <div 
                   key={dayOffset} // Force re-render with animation when day changes
-                  className={`${isMobile ? 'grid grid-cols-1 forecast-grid-mobile' : 'flex gap-[1.5vw] justify-center'} items-stretch relative ${
+                  className={`${isMobile ? 'grid grid-cols-1 forecast-grid-mobile' : 'grid gap-[1.5vw] justify-center'} items-stretch relative ${
                     slideDirection === 'left' ? 'animate-slide-in-right' : 
                     slideDirection === 'right' ? 'animate-slide-in-left' : ''
                   }`}
-                  onTouchStart={isMobile ? onTouchStart : undefined}
-                  onTouchMove={isMobile ? onTouchMove : undefined}
-                  onTouchEnd={isMobile ? onTouchEnd : undefined}
                   style={{
+                    gridTemplateColumns: isMobile ? undefined : 'repeat(auto-fit, minmax(18vw, 1fr))',
                     transform: isMobile && !slideDirection ? `translateX(${swipeOffset}px)` : undefined,
                     transition: isTransitioning && !slideDirection ? 'transform 0.3s ease-out' : 'none',
                   }}
+                  onTouchStart={isMobile ? onTouchStart : undefined}
+                  onTouchMove={isMobile ? onTouchMove : undefined}
+                  onTouchEnd={isMobile ? onTouchEnd : undefined}
                 >
                 {next5Days
-                  .filter((_, index) => isMobile ? index === 0 : index >= dayOffset && index < dayOffset + 5) // Show current window of days
+                  .filter((_, index) => isMobile ? index === 0 : true) // On mobile, only show the first day (offset by dayOffset); desktop shows all that fit
                   .map((day, index) => {
                   // For mobile, index is always 0 (showing only current offset day)
-                  // For desktop, calculate actual index in next5Days array
-                  const actualIndex = isMobile ? 0 : dayOffset + index;
+                  // For desktop, index matches the day in the array
+                  const actualIndex = isMobile ? 0 : index;
                   const dateStr = day.toLocaleDateString('en-CA'); // YYYY-MM-DD format
                   const todayStr = new Date().toLocaleDateString('en-CA');
                   const isToday = dateStr === todayStr;
                   const dayName = isToday ? 'Today' : day.toLocaleDateString('en-US', { weekday: 'short' });
                   const dayDate = day.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
                   
-                  // Get weather for this day
-                  const weatherIndex = actualIndex;
+                  // Get weather for this day - adjust index by dayOffset to get correct weather data
+                  // When dayOffset is 0, index 0 = today (weatherData.daily[0])
+                  // When dayOffset is 1, index 0 = tomorrow (weatherData.daily[1])
+                  const weatherIndex = actualIndex + dayOffset;
                   const weatherForDay = weatherData?.daily[weatherIndex];
                   
                   // Get jobs scheduled for this day (including completed jobs to show greyed out)
@@ -2827,7 +2829,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                       onDragLeave={handleDragLeave}
                       onDrop={(e) => handleDrop(e, dateStr)}
                       className={`forecast-day-card relative ${
-                        isMobile ? 'mb-8 h-[80vh] overflow-hidden flex flex-col' : 'h-[75vh] min-w-[18vw] flex-shrink-0 flex flex-col'
+                        isMobile ? 'mb-8 h-[80vh] overflow-hidden flex flex-col' : 'h-[75vh] flex flex-col'
                       } shadow-lg rounded-lg overflow-hidden`}
                       style={{
                         background: weatherForDay?.hourlyForecasts && weatherForDay.hourlyForecasts.length > 0
@@ -3619,9 +3621,8 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
               {/* Right Arrow - Desktop Only - Positioned absolutely to the right */}
               {!isMobile && (
                 <button
-                  onClick={() => setDayOffset(Math.min(next5Days.length - 1, dayOffset + 1))}
-                  disabled={dayOffset >= next5Days.length - 1}
-                  className="absolute right-0 top-1/2 -translate-y-1/2 z-10 shrink-0 w-12 h-12 rounded-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center text-white shadow-lg transition-all hover:scale-110 disabled:hover:scale-100"
+                  onClick={() => setDayOffset(dayOffset + 1)}
+                  className="absolute right-0 top-1/2 -translate-y-1/2 z-10 shrink-0 w-12 h-12 rounded-full bg-blue-600 hover:bg-blue-700 flex items-center justify-center text-white shadow-lg transition-all hover:scale-110"
                   aria-label="Next day"
                 >
                   <ChevronRight className="w-6 h-6" />
