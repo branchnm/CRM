@@ -1917,33 +1917,30 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
 
   // Long-press handlers for cutting jobs on mobile
   const handleJobTouchStart = (e: React.TouchEvent, jobId: string) => {
-    // If in selection mode, toggle selection on tap
-    if (isSelectionMode) {
-      e.preventDefault();
-      setSelectedJobIds(prev => {
-        const newSet = new Set(prev);
-        if (newSet.has(jobId)) {
-          newSet.delete(jobId);
-          // Exit selection mode if no jobs selected
-          if (newSet.size === 0) {
-            setIsSelectionMode(false);
-          }
-        } else {
-          newSet.add(jobId);
-        }
-        return newSet;
-      });
-      return;
-    }
-    
-    // Record start position to detect movement
+    // Record start position and time to detect taps vs swipes
     longPressStartPos.current = {
       x: e.touches[0].clientX,
       y: e.touches[0].clientY
     };
     
+    // Store the start time to detect quick taps
+    const startTime = Date.now();
+    
+    // If in selection mode, handle on touch end (not here)
+    if (isSelectionMode) {
+      e.preventDefault();
+      // Store jobId for touch end handler
+      (e.currentTarget as any).dataset.jobId = jobId;
+      (e.currentTarget as any).dataset.touchStartTime = startTime;
+      return;
+    }
+    
     // Prevent text selection during long press
     e.preventDefault();
+    
+    // Store for touch end handler
+    (e.currentTarget as any).dataset.jobId = jobId;
+    (e.currentTarget as any).dataset.touchStartTime = startTime;
     
     // Start long-press timer (500ms) - enters selection mode
     longPressTimer.current = window.setTimeout(() => {
@@ -1959,26 +1956,57 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
   };
 
   const handleJobTouchMove = (e: React.TouchEvent) => {
-    // Cancel long-press if user moves finger (likely scrolling)
+    // Cancel long-press if user moves finger (likely scrolling/swiping)
     if (longPressStartPos.current && longPressTimer.current) {
       const moveX = Math.abs(e.touches[0].clientX - longPressStartPos.current.x);
       const moveY = Math.abs(e.touches[0].clientY - longPressStartPos.current.y);
       
-      // Cancel if moved more than 25px (increased sensitivity to prevent accidental selection during swipe)
-      if (moveX > 25 || moveY > 25) {
+      // Cancel if moved more than 10px (sensitive to detect swipes)
+      if (moveX > 10 || moveY > 10) {
         clearTimeout(longPressTimer.current);
         longPressTimer.current = null;
+        // Mark as moved to prevent selection on touch end
+        (e.currentTarget as any).dataset.hasMoved = 'true';
       }
     }
   };
 
-  const handleJobTouchEnd = () => {
+  const handleJobTouchEnd = (e: React.TouchEvent) => {
+    const target = e.currentTarget as any;
+    const jobId = target.dataset.jobId;
+    const startTime = parseInt(target.dataset.touchStartTime || '0');
+    const hasMoved = target.dataset.hasMoved === 'true';
+    const duration = Date.now() - startTime;
+    
     // Clear long-press timer if touch ended before 500ms
     if (longPressTimer.current) {
       clearTimeout(longPressTimer.current);
       longPressTimer.current = null;
     }
+    
+    // Clean up
+    delete target.dataset.jobId;
+    delete target.dataset.touchStartTime;
+    delete target.dataset.hasMoved;
     longPressStartPos.current = null;
+    
+    // If in selection mode and this was a quick tap without movement
+    if (isSelectionMode && jobId && !hasMoved && duration < 300) {
+      e.preventDefault();
+      setSelectedJobIds(prev => {
+        const newSet = new Set(prev);
+        if (newSet.has(jobId)) {
+          newSet.delete(jobId);
+          // Exit selection mode if no jobs selected
+          if (newSet.size === 0) {
+            setIsSelectionMode(false);
+          }
+        } else {
+          newSet.add(jobId);
+        }
+        return newSet;
+      });
+    }
   };
 
   // Handle double-tap on empty slot to paste or move selected jobs
