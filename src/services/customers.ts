@@ -47,6 +47,10 @@ export async function deleteAllCustomers(): Promise<void> {
  * Fetch all customers from Supabase (filtered by current user)
  */
 export async function fetchCustomers(): Promise<Customer[]> {
+  // Debug: Check who is authenticated
+  const { data: { user } } = await supabase.auth.getUser();
+  console.log('🔐 Fetching customers for user:', user?.email, 'ID:', user?.id);
+  
   // RLS policies will automatically filter by user_id
   const { data, error } = await supabase
     .from("customers")
@@ -57,6 +61,9 @@ export async function fetchCustomers(): Promise<Customer[]> {
     console.error("Error fetching customers:", error);
     throw new Error(`Failed to fetch customers: ${error.message}`);
   }
+
+  console.log('📊 Fetched customers:', data?.length || 0, 'records');
+  console.log('🔍 First customer user_id:', data?.[0]?.user_id);
 
   // Helper: format Date to YYYY-MM-DD
   const toYMD = (d: Date) => {

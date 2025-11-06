@@ -13,11 +13,19 @@ async function getCurrentUserId(): Promise<string> {
 }
 
 export async function fetchJobs(date?: string): Promise<Job[]> {
+  // Debug: Check who is authenticated
+  const { data: { user } } = await supabase.auth.getUser();
+  console.log('🔐 Fetching jobs for user:', user?.email, 'ID:', user?.id);
+  
   // RLS policies will automatically filter by user_id
   let query = supabase.from("jobs").select("*");
   if (date) query = query.eq("date", date);
   const { data, error } = await query.order("date", { ascending: true });
   if (error) throw new Error(`Failed to fetch jobs: ${error.message}`);
+  
+  console.log('📊 Fetched jobs:', data?.length || 0, 'records');
+  console.log('🔍 First job user_id:', data?.[0]?.user_id);
+  
   return (data || []).map((row: any) => ({
     id: row.id,
     customerId: row.customer_id,
