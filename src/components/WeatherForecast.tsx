@@ -122,6 +122,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
   // Track job changes to show/hide optimize button
   const [lastOptimizedJobState, setLastOptimizedJobState] = useState<string>('');
   const [hasJobChanges, setHasJobChanges] = useState(false);
+  const [optimizationStatus, setOptimizationStatus] = useState<'idle' | 'optimizing' | 'optimized'>('idle');
 
   // Debounce address input to reduce API calls
   const debouncedAddressInput = useDebounce(addressInput, 500); // 500ms delay
@@ -406,24 +407,38 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
     
     // If we have a last optimized state, compare it
     if (lastOptimizedJobState) {
-      setHasJobChanges(currentJobState !== lastOptimizedJobState);
+      const hasChanges = currentJobState !== lastOptimizedJobState;
+      setHasJobChanges(hasChanges);
+      // Reset optimization status when jobs change after optimization
+      if (hasChanges && optimizationStatus === 'optimized') {
+        setOptimizationStatus('idle');
+      }
     } else {
       // No optimization yet, show button if there are jobs
       setHasJobChanges(jobs.length > 0);
     }
-  }, [jobs, lastOptimizedJobState]);
+  }, [jobs, lastOptimizedJobState, optimizationStatus]);
 
   // When optimize is triggered, save the current job state
   useEffect(() => {
     if (isOptimizing) {
+      setOptimizationStatus('optimizing');
       const currentJobState = JSON.stringify(
         jobs.map(j => ({ id: j.id, date: j.date, order: j.order, status: j.status }))
           .sort((a, b) => a.id.localeCompare(b.id))
       );
       setLastOptimizedJobState(currentJobState);
       setHasJobChanges(false);
+    } else if (optimizationStatus === 'optimizing') {
+      // Optimization just finished
+      setOptimizationStatus('optimized');
+      // Hide the button after 2 seconds
+      const timer = setTimeout(() => {
+        setOptimizationStatus('idle');
+      }, 2000);
+      return () => clearTimeout(timer);
     }
-  }, [isOptimizing, jobs]);
+  }, [isOptimizing, jobs, optimizationStatus]);
 
   const [dayStartTimes, setDayStartTimes] = useState<Map<string, number>>(() => {
     const saved = localStorage.getItem('dayStartTimes');
@@ -2601,17 +2616,25 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
         </div>
       )}
 
-      {/* Mobile Optimize Routes Button - Shows when jobs modified, positioned near undo */}
-      {isMobile && locationName && !showUndo && hasJobChanges && (
+      {/* Mobile Optimize Routes Button - Shows when jobs modified or just optimized */}
+      {isMobile && locationName && !showUndo && (hasJobChanges || optimizationStatus !== 'idle') && (
         <div className="fixed bottom-20 right-4 z-50">
           <Button
             onClick={onOptimizeRoute}
-            disabled={isOptimizing || !startingAddress}
+            disabled={optimizationStatus !== 'idle' || !startingAddress}
             size="sm"
-            className="bg-blue-600 hover:bg-blue-700 shadow-lg"
+            className={`shadow-lg transition-colors ${
+              optimizationStatus === 'optimized' 
+                ? 'bg-green-600 hover:bg-green-700' 
+                : 'bg-blue-600 hover:bg-blue-700'
+            }`}
           >
-            <Route className="h-4 w-4 mr-1" />
-            {isOptimizing ? 'Optimizing...' : 'Optimize'}
+            {optimizationStatus === 'optimizing' && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+            {optimizationStatus === 'optimized' && <CheckCircle className="h-4 w-4 mr-1" />}
+            {optimizationStatus === 'idle' && <Route className="h-4 w-4 mr-1" />}
+            {optimizationStatus === 'optimizing' && 'Optimizing...'}
+            {optimizationStatus === 'optimized' && 'Optimized'}
+            {optimizationStatus === 'idle' && 'Optimize'}
           </Button>
         </div>
       )}
