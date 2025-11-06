@@ -1961,8 +1961,8 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
       const moveX = Math.abs(e.touches[0].clientX - longPressStartPos.current.x);
       const moveY = Math.abs(e.touches[0].clientY - longPressStartPos.current.y);
       
-      // Cancel if moved more than 10px (sensitive to detect swipes)
-      if (moveX > 10 || moveY > 10) {
+      // Cancel if moved more than 4px (sensitive to detect swipes)
+      if (moveX > 4 || moveY > 4) {
         clearTimeout(longPressTimer.current);
         longPressTimer.current = null;
         // Mark as moved to prevent selection on touch end
