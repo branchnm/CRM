@@ -342,7 +342,7 @@ function App() {
 
   return (
     <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-yellow-50 pb-20 md:pb-0">
-      <div className="container mx-auto p-2 sm:p-4 md:p-8 max-w-7xl">
+      <div className="container mx-auto p-2 sm:p-4 md:p-8">
         {/* Header - Logo style with Logout */}
         <div className="mb-4 md:mb-6">
           <div className="flex items-center justify-between mb-2 md:mb-4">

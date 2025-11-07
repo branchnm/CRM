@@ -2867,7 +2867,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
             )}
 
             {/* Week View Grid - Droppable Days with Navigation */}
-            <div className="relative flex items-center justify-center min-h-[85vh] w-full px-.1">
+            <div className="relative flex items-center justify-center min-h-[85vh] w-full px-1">
               {/* Left Arrow - Desktop Only - Positioned outside container */}
               {!isMobile && (
                 <button
@@ -2901,8 +2901,8 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                 style={{
                   scrollSnapType: isMobile ? undefined : 'x mandatory',
                   scrollBehavior: isMobile ? undefined : 'smooth',
-                  width: isMobile ? '100%' : 'calc(100vw - 16rem)', // Account for arrow buttons and padding
-                  maxWidth: isMobile ? '100%' : 'calc(95vw - 8rem)',
+                  width: isMobile ? '100%' : 'calc(100vw - 6.5rem)', // Reduced to 6.5rem for arrows + minimal padding
+                  maxWidth: isMobile ? '100%' : '99vw', // Increased to 99vw
                 }}
               >
                 {/* Desktop Instructions */}
@@ -3722,7 +3722,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                       </div>
 
                       {/* Right: Night Weather (8pm, 11pm, 2am) aligned with day rows */}
-                      <div className={`bg-slate-800 px-[0.15vh] py-[0.3vh] w-[4.5vw] h-full ${isMobile ? 'flex flex-col' : ''}`}>
+                      <div className={`bg-slate-800 px-[0.15vh] py-[0.3vh] w-12 h-full ${isMobile ? 'flex flex-col' : ''}`}>
                         {/* Spacer to align with the day header + 5AM row */}
                         <div className={`${isMobile ? 'h-auto shrink-0' : 'h-[7.5vh]'}`}></div>
                         
