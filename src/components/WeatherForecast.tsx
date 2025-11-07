@@ -2354,7 +2354,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
   
   // Desktop drag handlers remain unchanged for computer use
 
-  // Get the next 5 days for the forecast view, starting from the offset - memoized for performance
+  // Get the next 30 days for the forecast view, including past days based on offset
   const next30Days = useMemo(() => {
     const days = [];
     for (let i = 0; i < 30; i++) {
@@ -2867,17 +2867,17 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
             )}
 
             {/* Week View Grid - Droppable Days with Navigation */}
-            <div className="relative flex items-center justify-center min-h-[85vh] w-full">
+            <div className="relative flex items-center justify-center min-h-[85vh] w-full px-16">
               {/* Left Arrow - Desktop Only - Positioned outside container */}
               {!isMobile && (
                 <button
                   onClick={() => {
-                    const newOffset = Math.max(0, dayOffset - 1);
+                    const newOffset = dayOffset - 1; // Allow negative offsets for past days
                     setDayOffset(newOffset);
                     // Scroll to the corresponding card
                     if (forecastScrollContainerRef.current) {
                       const cards = forecastScrollContainerRef.current.querySelectorAll('.forecast-day-card');
-                      const targetCard = cards[newOffset];
+                      const targetCard = cards[0]; // Always scroll to first card (current offset day)
                       if (targetCard) {
                         (targetCard as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
                         // Check Today visibility after scroll
@@ -2885,8 +2885,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                       }
                     }
                   }}
-                  disabled={dayOffset === 0}
-                  className="absolute left-4 z-10 shrink-0 w-12 h-12 rounded-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center text-white shadow-lg transition-all hover:scale-110 disabled:hover:scale-100"
+                  className="absolute left-2 z-10 shrink-0 w-12 h-12 rounded-full bg-blue-600 hover:bg-blue-700 flex items-center justify-center text-white shadow-lg transition-all hover:scale-110"
                   aria-label="Previous day"
                 >
                   <ChevronLeft className="w-6 h-6" />
@@ -2902,8 +2901,8 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                 style={{
                   scrollSnapType: isMobile ? undefined : 'x mandatory',
                   scrollBehavior: isMobile ? undefined : 'smooth',
-                  width: isMobile ? '100%' : 'calc(100vw - 8rem)', // Account for arrow buttons
-                  maxWidth: isMobile ? '100%' : '95vw',
+                  width: isMobile ? '100%' : 'calc(100vw - 16rem)', // Account for arrow buttons and padding
+                  maxWidth: isMobile ? '100%' : 'calc(95vw - 8rem)',
                 }}
               >
                 {/* Desktop Instructions */}
@@ -3051,7 +3050,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                       }}
                     >
                       {/* Day Header - Improved with work/drive time stats */}
-                      <div className={`bg-white border-b border-gray-200 ${isMobile ? 'px-2 py-[0.5vh]' : 'px-2 py-[0.8vh]'}`}>
+                      <div className={`bg-white border-b border-gray-200 ${isMobile ? 'px-2 py-[0.5vh]' : 'px-2 py-[0.5vh]'}`}>
                         {/* Day and Date on same line with rain badge */}
                         <div className={`flex items-center ${isMobile ? 'justify-center mb-[0.3vh]' : 'justify-between mb-[0.8vh]'}`}>
                           <div className="flex items-center gap-2">
@@ -3117,7 +3116,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                       }`}>
                         {/* Left: Job Count & Jobs List with day weather icons (5am-6pm) */}
                         <div className={`bg-gray-50/50 relative border-r border-gray-200 overflow-hidden ${
-                          isMobile ? 'px-1 pb-0 pt-1 flex flex-col' : 'px-1 py-[0.5vh] flex flex-col'
+                          isMobile ? 'px-1 pb-0 pt-1 flex flex-col' : 'px-1 py-[0.3vh] flex flex-col'
                         }`}>
                           
                           <div className={`relative z-10 ${isMobile ? 'flex-1 flex flex-col min-h-0' : 'flex-1 flex flex-col min-h-0'}`}>
@@ -3319,7 +3318,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                               
                               return (
                                 <div className={`relative flex flex-col time-slots-container overflow-y-auto ${
-                                  isMobile ? 'space-y-0 flex-1 justify-between gap-y-[1vh]' : 'space-y-0.5 flex-1'
+                                  isMobile ? 'space-y-0 flex-1 justify-between gap-y-[1vh]' : 'flex-1'
                                 }`} data-date={dateStr}>
                                 {/* Blocked time overlays */}
                                 {(() => {
@@ -3433,7 +3432,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                     <div 
                                       key={slot.slotIndex}
                                       className={`relative flex items-center transition-colors ${
-                                        isMobile ? 'px-[0.5vh] py-[0.3vh] max-h-[2.8vh]' : 'px-2 py-1 min-h-[3.5vh] max-h-[4vh]'
+                                        isMobile ? 'px-[0.5vh] py-[0.3vh] max-h-[2.8vh]' : 'px-1.5 py-0.5 min-h-[3vh] max-h-[3.5vh]'
                                         
                                       } ${isDropTarget ? 'bg-blue-100 border-l-4 border-blue-500' : ''}`}
                                       data-time-slot="true"
@@ -3494,7 +3493,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                               onTouchMove={isTouchDevice.current && !isCompleted ? handleJobTouchMove : undefined}
                                               onTouchEnd={isTouchDevice.current && !isCompleted ? handleJobTouchEnd : undefined}
                                               className={`flex-1 rounded transition-all text-xs group overflow-hidden flex items-center select-none ${
-                                                isMobile ? 'px-[0.8vh] py-[0.5vh] min-h-[4vh] max-h-[4.5vh]' : 'px-2 py-1 min-h-[3.2vh] max-h-[3.8vh]'
+                                                isMobile ? 'px-[0.8vh] py-[0.5vh] min-h-[4vh] max-h-[4.5vh]' : 'px-1.5 py-0.5 min-h-[2.8vh] max-h-[3.3vh]'
                                               } ${
                                                 isCompleted
                                                   ? 'bg-gray-100 border border-gray-300 opacity-60 cursor-default'
@@ -3751,11 +3750,11 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                           );
                           
                           return (
-                            <div className={`${isMobile ? 'space-y-0 flex-1 flex flex-col justify-between gap-y-[1vh]' : 'space-y-0.5'}`}>
+                            <div className={`${isMobile ? 'space-y-0 flex-1 flex flex-col justify-between gap-y-[1vh]' : ''}`}>
                               {nightSlots.map((slot, idx) => (
                                 <div key={idx} className={`flex items-center justify-center ${
                                   //this should be the night weather, but it seems to effect a bunch of other things too...
-                                  isMobile ? 'px-[.5vh] py-[.3vh] max-h-[2.8vh]' : 'px-2 py-1 min-h-[3.5vh] max-h-[4vh]'
+                                  isMobile ? 'px-[.5vh] py-[.3vh] max-h-[2.8vh]' : 'px-1.5 py-0.5 min-h-[3vh] max-h-[3.5vh]'
 
                                 }`}>
                                   {slot.show && (
@@ -3784,12 +3783,12 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
               {!isMobile && (
                 <button
                   onClick={() => {
-                    const newOffset = Math.min(29, dayOffset + 1);
+                    const newOffset = dayOffset + 1;
                     setDayOffset(newOffset);
                     // Scroll to the corresponding card
                     if (forecastScrollContainerRef.current) {
                       const cards = forecastScrollContainerRef.current.querySelectorAll('.forecast-day-card');
-                      const targetCard = cards[newOffset];
+                      const targetCard = cards[0]; // Always scroll to first card (current offset day)
                       if (targetCard) {
                         (targetCard as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
                         // Check Today visibility after scroll
@@ -3797,8 +3796,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                       }
                     }
                   }}
-                  disabled={dayOffset >= 29}
-                  className="absolute right-4 z-10 shrink-0 w-12 h-12 rounded-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center text-white shadow-lg transition-all hover:scale-110 disabled:hover:scale-100"
+                  className="absolute right-2 z-10 shrink-0 w-12 h-12 rounded-full bg-blue-600 hover:bg-blue-700 flex items-center justify-center text-white shadow-lg transition-all hover:scale-110"
                   aria-label="Next day"
                 >
                   <ChevronRight className="w-6 h-6" />
