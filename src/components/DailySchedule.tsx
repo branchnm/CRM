@@ -806,16 +806,16 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
       
       toast.loading('Calculating optimal routes for all days...', { id: 'optimize-route' });
       
-      // Get next 5 days (today + 4 days ahead)
-      const next5Days = [];
-      for (let i = 0; i < 5; i++) {
+      // Get next 30 days (today + 29 days ahead)
+      const next30Days = [];
+      for (let i = 0; i < 30; i++) {
         const date = new Date();
         date.setDate(date.getDate() + i);
-        next5Days.push(date.toLocaleDateString('en-CA'));
+        next30Days.push(date.toLocaleDateString('en-CA'));
       }
       
       console.log('=== STARTING MULTI-DAY ROUTE OPTIMIZATION ===');
-      console.log('Optimizing jobs for dates:', next5Days);
+      console.log('Optimizing jobs for dates:', next30Days);
       console.log('Starting address:', startingAddress);
       
       const allOptimizedJobs: Job[] = [];
@@ -823,7 +823,7 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
       let totalOptimizedDays = 0;
       
       // Optimize each day's jobs
-      for (const dateStr of next5Days) {
+      for (const dateStr of next30Days) {
         const dayJobs = jobs.filter(j => j.date === dateStr);
         const scheduledJobs = dayJobs.filter(j => j.status === 'scheduled');
         const nonScheduledJobs = dayJobs.filter(j => j.status !== 'scheduled');

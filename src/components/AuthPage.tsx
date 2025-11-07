@@ -84,54 +84,56 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-yellow-50 flex items-center justify-center p-4 sm:p-6 md:p-8">
-      <div className="w-full max-w-md space-y-6 sm:space-y-8">
+    <div className="h-screen w-screen bg-linear-to-br from-blue-50 via-white to-yellow-50 flex items-center justify-center overflow-hidden p-[2vh]">
+      <div className="w-full max-w-md space-y-[2vh] flex flex-col" style={{ maxHeight: '96vh' }}>
         {/* Logo and Title */}
-        <div className="text-center space-y-2 sm:space-y-3">
-          <div className="flex justify-center mb-2 sm:mb-3">
-            <div className="bg-linear-to-br from-blue-500 to-blue-700 p-3 sm:p-4 md:p-5 rounded-2xl sm:rounded-3xl shadow-xl">
-              <CloudSun className="h-12 w-12 sm:h-14 sm:w-14 md:h-16 md:w-16 text-white drop-shadow-lg" />
+        <div className="text-center space-y-[1vh] shrink-0">
+          <div className="flex justify-center mb-[1vh]">
+            <div className="bg-linear-to-br from-blue-500 to-blue-700 rounded-2xl shadow-xl" style={{ padding: 'clamp(0.75rem, 1.5vh, 1.25rem)' }}>
+              <CloudSun className="text-white drop-shadow-lg" style={{ height: 'clamp(3rem, 6vh, 4rem)', width: 'clamp(3rem, 6vh, 4rem)' }} />
             </div>
           </div>
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-linear-to-r from-blue-600 via-blue-700 to-blue-800 uppercase tracking-wider drop-shadow-sm px-2">
+          <h1 className="font-black text-transparent bg-clip-text bg-linear-to-r from-blue-600 via-blue-700 to-blue-800 uppercase tracking-wider drop-shadow-sm" style={{ fontSize: 'clamp(1.5rem, 4vh, 2.5rem)' }}>
             Job Flow
           </h1>
-          <p className="text-sm sm:text-base md:text-lg text-blue-700 font-medium px-2">
+          <p className="text-blue-700 font-medium" style={{ fontSize: 'clamp(0.875rem, 1.8vh, 1.125rem)' }}>
             Your outdoor service business assistant
           </p>
         </div>
 
         {/* Auth Card */}
-        <Card className="border-2 border-blue-100 shadow-2xl bg-white/90 backdrop-blur">
-          <CardHeader className="space-y-2 pb-4 sm:pb-6 px-4 sm:px-6 pt-5 sm:pt-6">
-            <CardTitle className="text-xl sm:text-2xl md:text-3xl font-bold text-center text-blue-800">
+        <Card className="border-2 border-blue-100 shadow-2xl bg-white/90 backdrop-blur flex-1 flex flex-col overflow-hidden">
+          <CardHeader className="space-y-[1vh] shrink-0" style={{ padding: 'clamp(1rem, 2vh, 1.5rem)' }}>
+            <CardTitle className="font-bold text-center text-blue-800" style={{ fontSize: 'clamp(1.25rem, 3vh, 2rem)' }}>
               Welcome Back
             </CardTitle>
-            <CardDescription className="text-center text-sm sm:text-base text-blue-600">
+            <CardDescription className="text-center text-blue-600" style={{ fontSize: 'clamp(0.875rem, 1.6vh, 1rem)' }}>
               Sign in to manage your jobs and customers
             </CardDescription>
           </CardHeader>
-          <CardContent className="pt-0 px-4 sm:px-6 pb-5 sm:pb-6">
-            <Tabs defaultValue="login" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-5 sm:mb-6 bg-blue-50 p-1 h-auto">
+          <CardContent className="flex-1 flex flex-col overflow-auto" style={{ padding: '0 clamp(1rem, 2vh, 1.5rem) clamp(1rem, 2vh, 1.5rem)' }}>
+            <Tabs defaultValue="login" className="w-full flex flex-col flex-1">
+              <TabsList className="grid w-full grid-cols-2 bg-blue-50 p-1 shrink-0" style={{ marginBottom: 'clamp(1rem, 2vh, 1.5rem)', height: 'auto' }}>
                 <TabsTrigger 
                   value="login"
-                  className="data-[state=active]:bg-blue-600 data-[state=active]:text-white py-2 sm:py-2.5 text-sm sm:text-base font-semibold rounded-md transition-all"
+                  className="data-[state=active]:bg-blue-600 data-[state=active]:text-white font-semibold rounded-md transition-all"
+                  style={{ padding: 'clamp(0.5rem, 1.2vh, 0.75rem)', fontSize: 'clamp(0.875rem, 1.6vh, 1rem)' }}
                 >
                   Login
                 </TabsTrigger>
                 <TabsTrigger 
                   value="signup"
-                  className="data-[state=active]:bg-blue-600 data-[state=active]:text-white py-2 sm:py-2.5 text-sm sm:text-base font-semibold rounded-md transition-all"
+                  className="data-[state=active]:bg-blue-600 data-[state=active]:text-white font-semibold rounded-md transition-all"
+                  style={{ padding: 'clamp(0.5rem, 1.2vh, 0.75rem)', fontSize: 'clamp(0.875rem, 1.6vh, 1rem)' }}
                 >
                   Sign Up
                 </TabsTrigger>
               </TabsList>
 
-              <TabsContent value="login" className="mt-0">
-                <form onSubmit={handleLogin} className="space-y-4 sm:space-y-5">
-                  <div className="space-y-2">
-                    <Label htmlFor="login-email" className="text-sm sm:text-base text-blue-900 font-medium">
+              <TabsContent value="login" className="mt-0 flex-1">
+                <form onSubmit={handleLogin} className="space-y-[2vh]">
+                  <div className="space-y-[0.5vh]">
+                    <Label htmlFor="login-email" className="text-blue-900 font-medium" style={{ fontSize: 'clamp(0.875rem, 1.6vh, 1rem)' }}>
                       Email Address
                     </Label>
                     <Input
@@ -142,11 +144,12 @@ export default function AuthPage() {
                       onChange={(e) => setLoginEmail(e.target.value)}
                       required
                       disabled={isLoading}
-                      className="h-11 sm:h-12 text-base border-2 border-blue-200 focus:border-blue-500 focus:ring-blue-500 rounded-lg transition-all"
+                      className="border-2 border-blue-200 focus:border-blue-500 focus:ring-blue-500 rounded-lg transition-all"
+                      style={{ height: 'clamp(2.5rem, 5vh, 3rem)', fontSize: 'clamp(0.875rem, 1.6vh, 1rem)' }}
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="login-password" className="text-sm sm:text-base text-blue-900 font-medium">
+                  <div className="space-y-[0.5vh]">
+                    <Label htmlFor="login-password" className="text-blue-900 font-medium" style={{ fontSize: 'clamp(0.875rem, 1.6vh, 1rem)' }}>
                       Password
                     </Label>
                     <Input
@@ -157,30 +160,32 @@ export default function AuthPage() {
                       onChange={(e) => setLoginPassword(e.target.value)}
                       required
                       disabled={isLoading}
-                      className="h-11 sm:h-12 text-base border-2 border-blue-200 focus:border-blue-500 focus:ring-blue-500 rounded-lg transition-all"
+                      className="border-2 border-blue-200 focus:border-blue-500 focus:ring-blue-500 rounded-lg transition-all"
+                      style={{ height: 'clamp(2.5rem, 5vh, 3rem)', fontSize: 'clamp(0.875rem, 1.6vh, 1rem)' }}
                     />
                   </div>
 
                   {error && (
-                    <Alert variant="destructive" className="py-3 border-2">
-                      <AlertDescription className="text-sm sm:text-base">{error}</AlertDescription>
+                    <Alert variant="destructive" className="border-2" style={{ padding: 'clamp(0.5rem, 1.2vh, 0.75rem)' }}>
+                      <AlertDescription style={{ fontSize: 'clamp(0.875rem, 1.6vh, 1rem)' }}>{error}</AlertDescription>
                     </Alert>
                   )}
 
                   {success && (
-                    <Alert className="bg-green-50 border-2 border-green-300 py-3">
-                      <AlertDescription className="text-green-800 text-sm sm:text-base font-medium">{success}</AlertDescription>
+                    <Alert className="bg-green-50 border-2 border-green-300" style={{ padding: 'clamp(0.5rem, 1.2vh, 0.75rem)' }}>
+                      <AlertDescription className="text-green-800 font-medium" style={{ fontSize: 'clamp(0.875rem, 1.6vh, 1rem)' }}>{success}</AlertDescription>
                     </Alert>
                   )}
 
                   <Button 
                     type="submit" 
-                    className="w-full h-11 sm:h-12 bg-blue-600 hover:bg-blue-700 text-white text-base font-bold shadow-lg hover:shadow-xl transition-all rounded-lg mt-6" 
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-lg hover:shadow-xl transition-all rounded-lg" 
                     disabled={isLoading}
+                    style={{ height: 'clamp(2.5rem, 5vh, 3rem)', fontSize: 'clamp(0.875rem, 1.6vh, 1rem)', marginTop: 'clamp(1rem, 2vh, 1.5rem)' }}
                   >
                     {isLoading ? (
                       <>
-                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                        <Loader2 className="mr-2 animate-spin" style={{ height: 'clamp(1rem, 2vh, 1.25rem)', width: 'clamp(1rem, 2vh, 1.25rem)' }} />
                         Logging in...
                       </>
                     ) : (
@@ -190,10 +195,10 @@ export default function AuthPage() {
                 </form>
               </TabsContent>
 
-              <TabsContent value="signup" className="mt-0">
-                <form onSubmit={handleSignup} className="space-y-4 sm:space-y-5">
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-email" className="text-sm sm:text-base text-blue-900 font-medium">
+              <TabsContent value="signup" className="mt-0 flex-1">
+                <form onSubmit={handleSignup} className="space-y-[1.5vh]">
+                  <div className="space-y-[0.5vh]">
+                    <Label htmlFor="signup-email" className="text-blue-900 font-medium" style={{ fontSize: 'clamp(0.875rem, 1.6vh, 1rem)' }}>
                       Email Address
                     </Label>
                     <Input
@@ -204,11 +209,12 @@ export default function AuthPage() {
                       onChange={(e) => setSignupEmail(e.target.value)}
                       required
                       disabled={isLoading}
-                      className="h-11 sm:h-12 text-base border-2 border-blue-200 focus:border-blue-500 focus:ring-blue-500 rounded-lg transition-all"
+                      className="border-2 border-blue-200 focus:border-blue-500 focus:ring-blue-500 rounded-lg transition-all"
+                      style={{ height: 'clamp(2.5rem, 5vh, 3rem)', fontSize: 'clamp(0.875rem, 1.6vh, 1rem)' }}
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-password" className="text-sm sm:text-base text-blue-900 font-medium">
+                  <div className="space-y-[0.5vh]">
+                    <Label htmlFor="signup-password" className="text-blue-900 font-medium" style={{ fontSize: 'clamp(0.875rem, 1.6vh, 1rem)' }}>
                       Password
                     </Label>
                     <Input
@@ -219,11 +225,12 @@ export default function AuthPage() {
                       onChange={(e) => setSignupPassword(e.target.value)}
                       required
                       disabled={isLoading}
-                      className="h-11 sm:h-12 text-base border-2 border-blue-200 focus:border-blue-500 focus:ring-blue-500 rounded-lg transition-all"
+                      className="border-2 border-blue-200 focus:border-blue-500 focus:ring-blue-500 rounded-lg transition-all"
+                      style={{ height: 'clamp(2.5rem, 5vh, 3rem)', fontSize: 'clamp(0.875rem, 1.6vh, 1rem)' }}
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-confirm-password" className="text-sm sm:text-base text-blue-900 font-medium">
+                  <div className="space-y-[0.5vh]">
+                    <Label htmlFor="signup-confirm-password" className="text-blue-900 font-medium" style={{ fontSize: 'clamp(0.875rem, 1.6vh, 1rem)' }}>
                       Confirm Password
                     </Label>
                     <Input
@@ -234,30 +241,32 @@ export default function AuthPage() {
                       onChange={(e) => setSignupConfirmPassword(e.target.value)}
                       required
                       disabled={isLoading}
-                      className="h-11 sm:h-12 text-base border-2 border-blue-200 focus:border-blue-500 focus:ring-blue-500 rounded-lg transition-all"
+                      className="border-2 border-blue-200 focus:border-blue-500 focus:ring-blue-500 rounded-lg transition-all"
+                      style={{ height: 'clamp(2.5rem, 5vh, 3rem)', fontSize: 'clamp(0.875rem, 1.6vh, 1rem)' }}
                     />
                   </div>
 
                   {error && (
-                    <Alert variant="destructive" className="py-3 border-2">
-                      <AlertDescription className="text-sm sm:text-base">{error}</AlertDescription>
+                    <Alert variant="destructive" className="border-2" style={{ padding: 'clamp(0.5rem, 1.2vh, 0.75rem)' }}>
+                      <AlertDescription style={{ fontSize: 'clamp(0.875rem, 1.6vh, 1rem)' }}>{error}</AlertDescription>
                     </Alert>
                   )}
 
                   {success && (
-                    <Alert className="bg-green-50 border-2 border-green-300 py-3">
-                      <AlertDescription className="text-green-800 text-sm sm:text-base font-medium">{success}</AlertDescription>
+                    <Alert className="bg-green-50 border-2 border-green-300" style={{ padding: 'clamp(0.5rem, 1.2vh, 0.75rem)' }}>
+                      <AlertDescription className="text-green-800 font-medium" style={{ fontSize: 'clamp(0.875rem, 1.6vh, 1rem)' }}>{success}</AlertDescription>
                     </Alert>
                   )}
 
                   <Button 
                     type="submit" 
-                    className="w-full h-11 sm:h-12 bg-blue-600 hover:bg-blue-700 text-white text-base font-bold shadow-lg hover:shadow-xl transition-all rounded-lg mt-6" 
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-lg hover:shadow-xl transition-all rounded-lg" 
                     disabled={isLoading}
+                    style={{ height: 'clamp(2.5rem, 5vh, 3rem)', fontSize: 'clamp(0.875rem, 1.6vh, 1rem)', marginTop: 'clamp(1rem, 2vh, 1.5rem)' }}
                   >
                     {isLoading ? (
                       <>
-                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                        <Loader2 className="mr-2 animate-spin" style={{ height: 'clamp(1rem, 2vh, 1.25rem)', width: 'clamp(1rem, 2vh, 1.25rem)' }} />
                         Creating account...
                       </>
                     ) : (
@@ -271,8 +280,8 @@ export default function AuthPage() {
         </Card>
 
         {/* Footer */}
-        <div className="text-center space-y-1 sm:space-y-2 px-2">
-          <p className="text-xs sm:text-sm text-blue-600 font-medium">
+        <div className="text-center shrink-0">
+          <p className="text-blue-600 font-medium" style={{ fontSize: 'clamp(0.75rem, 1.4vh, 0.875rem)' }}>
             🔒 Secure authentication powered by Supabase
           </p>
         </div>
