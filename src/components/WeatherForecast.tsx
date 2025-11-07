@@ -2983,10 +2983,11 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                       onDragLeave={handleDragLeave}
                       onDrop={(e) => handleDrop(e, dateStr)}
                       className={`forecast-day-card relative ${
-                        isMobile ? 'mb-8 h-[80vh] overflow-hidden flex flex-col' : 'h-auto w-[280px] shrink-0 flex flex-col'
+                        isMobile ? 'mb-8 h-[80vh] overflow-hidden flex flex-col' : 'h-[75vh] shrink-0 flex flex-col'
                       } shadow-lg rounded-lg overflow-hidden`}
                       style={{
                         scrollSnapAlign: isMobile ? undefined : 'start',
+                        width: isMobile ? undefined : 'calc((100vw - 12rem - 3vw) / 4)', // 4 cards accounting for 2 arrow buttons (6rem each) + gaps
                         background: weatherForDay?.hourlyForecasts && weatherForDay.hourlyForecasts.length > 0
                           ? `linear-gradient(to bottom, ${weatherForDay.hourlyForecasts.map((h, idx) => {
                               const desc = h.description.toLowerCase();
@@ -3113,7 +3114,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                           isMobile ? 'px-1 pb-0 pt-1 flex flex-col' : 'px-[0.4vw] py-[0.8vh] flex flex-col'
                         }`}>
                           
-                          <div className={`relative z-10 ${isMobile ? 'flex-1 flex flex-col min-h-0' : ''}`}>
+                          <div className={`relative z-10 ${isMobile ? 'flex-1 flex flex-col min-h-0' : 'flex-1 flex flex-col min-h-0'}`}>
                             {/* Draggable START Time Bar - At very top before 5am icon */}
                             {(() => {
                               const currentStartTime = dayStartTimes.get(dateStr) || 5;
@@ -3311,8 +3312,8 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                               }
                               
                               return (
-                                <div className={`relative flex flex-col time-slots-container ${
-                                  isMobile ? 'space-y-0 flex-1 justify-between gap-y-[1vh]' : 'space-y-1'
+                                <div className={`relative flex flex-col time-slots-container overflow-y-auto ${
+                                  isMobile ? 'space-y-0 flex-1 justify-between gap-y-[1vh]' : 'space-y-1 flex-1'
                                 }`} data-date={dateStr}>
                                 {/* Blocked time overlays */}
                                 {(() => {
