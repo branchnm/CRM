@@ -2903,6 +2903,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                   scrollBehavior: isMobile ? undefined : 'smooth',
                   width: isMobile ? '100%' : 'calc(100vw - 6.5rem)', // Reduced to 6.5rem for arrows + minimal padding
                   maxWidth: isMobile ? '100%' : '99vw', // Increased to 99vw
+                  scrollPaddingInline: isMobile ? undefined : 'calc(50% - 160px)', // Center alignment: half viewport minus half card width (320px / 2)
                 }}
               >
                 {/* Desktop Instructions */}
@@ -2931,8 +2932,8 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                     gap: isMobile ? undefined : '1.5rem',
                     transform: isMobile && !slideDirection ? `translateX(${swipeOffset}px)` : undefined,
                     transition: isTransitioning && !slideDirection ? 'transform 0.3s ease-out' : 'none',
-                    paddingLeft: isMobile ? undefined : '1rem',
-                    paddingRight: isMobile ? undefined : '1rem',
+                    paddingLeft: isMobile ? undefined : 'calc(50% - 160px)', // Center first card: half viewport minus half card width
+                    paddingRight: isMobile ? undefined : 'calc(50% - 160px)', // Center last card: half viewport minus half card width
                   }}
                   onTouchStart={isMobile ? onTouchStart : undefined}
                   onTouchMove={isMobile ? onTouchMove : undefined}
@@ -2989,7 +2990,8 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                         isMobile ? 'mb-8 h-[85vh] overflow-hidden flex flex-col' : 'h-[90vh] shrink-0 flex flex-col'
                       } shadow-lg rounded-lg overflow-hidden`}
                       style={{
-                        scrollSnapAlign: isMobile ? undefined : 'start',
+                        scrollSnapAlign: isMobile ? undefined : 'center',
+                        scrollSnapStop: isMobile ? undefined : 'always',
                         width: isMobile ? undefined : '320px', // Fixed width for consistent cards
                         minWidth: isMobile ? undefined : '320px',
                         maxWidth: isMobile ? undefined : '320px',
