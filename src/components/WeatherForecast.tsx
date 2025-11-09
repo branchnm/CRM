@@ -65,9 +65,11 @@ interface WeatherForecastProps {
   isOptimizing?: boolean;
   startingAddress?: string;
   onStartingAddressChange?: (address: string) => void;
+  onLocationChange?: (locationName: string, zipCode: string) => void;
+  onEditAddress?: () => void;
 }
 
-export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, onStartTimeChange, onOptimizeRoute, isOptimizing = false, startingAddress = '', onStartingAddressChange }: WeatherForecastProps) {
+export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, onStartTimeChange, onOptimizeRoute, isOptimizing = false, startingAddress = '', onStartingAddressChange, onLocationChange, onEditAddress }: WeatherForecastProps) {
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -157,9 +159,9 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
         return;
       }
 
-      const cardWidth = 320; // Fixed card width in pixels
-      const gapWidth = 24; // 1.5rem = 24px gap between cards
-      const arrowSpace = 104; // 6.5rem = 104px for arrows and padding
+      const cardWidth = 280; // Reduced from 320px to fit 4-5 cards on most screens
+      const gapWidth = 20; // Reduced gap from 24px to 20px
+      const arrowSpace = 200; // Space for arrows positioned outside (100px each side)
       
       const availableWidth = window.innerWidth - arrowSpace;
       
@@ -2425,6 +2427,60 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
     }
   }, [isMobile, next30Days.length, visibleCardCount]); // Re-run when card count changes
 
+  // Notify parent when location changes
+  useEffect(() => {
+    if (locationName && onLocationChange) {
+      const zipCode = getZipCode(locationName) || '';
+      onLocationChange(locationName, zipCode);
+    }
+  }, [locationName, onLocationChange]);
+
+  // Auto-hide optimize button after successful optimization
+  useEffect(() => {
+    if (optimizationStatus === 'optimized') {
+      const timer = setTimeout(() => {
+        setOptimizationStatus('idle');
+        setHasJobChanges(false);
+      }, 2000); // Hide after 2 seconds
+      
+      return () => clearTimeout(timer);
+    }
+  }, [optimizationStatus]);
+
+  // Sync optimization status with parent's isOptimizing prop
+  useEffect(() => {
+    if (isOptimizing && optimizationStatus !== 'optimizing') {
+      setOptimizationStatus('optimizing');
+    } else if (!isOptimizing && optimizationStatus === 'optimizing') {
+      // Optimization just completed
+      setOptimizationStatus('optimized');
+    }
+  }, [isOptimizing, optimizationStatus]);
+
+  // Auto-optimize on initial load when location and jobs are ready
+  useEffect(() => {
+    // Check if we have location, jobs, and haven't optimized yet on initial load
+    const hasInitialOptimized = sessionStorage.getItem('hasInitialOptimized');
+    
+    if (
+      locationName && 
+      jobs.length > 0 && 
+      startingAddress && 
+      !hasInitialOptimized && 
+      onOptimizeRoute &&
+      optimizationStatus === 'idle'
+    ) {
+      // Set optimizing status immediately
+      setOptimizationStatus('optimizing');
+      
+      // Trigger optimization
+      onOptimizeRoute();
+      
+      // Mark that we've done the initial optimization for this session
+      sessionStorage.setItem('hasInitialOptimized', 'true');
+    }
+  }, [locationName, jobs.length, startingAddress, onOptimizeRoute, optimizationStatus]);
+
   return (
     <div className="space-y-4 relative">
       {/* Cancel Selection Button - Floating bottom-right when jobs selected */}
@@ -2777,45 +2833,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
           ) : (
             /* Show clickable location display when location is set and not editing - Icon-only on mobile */
             <div className="flex flex-col md:flex-row items-center gap-3">
-              {/* Location display - hidden on mobile (shown in top-right instead), full display on desktop */}
-              <button
-                onClick={() => setIsEditingAddress(true)}
-                className="hidden md:flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:text-blue-600 transition-colors group"
-                title={locationName}
-              >
-                <MapPin className="h-4 w-4 text-blue-600 group-hover:text-blue-700 shrink-0" />
-                <span className="text-gray-600">Current location:</span>
-                <span className="font-medium">{getShortAddress(locationName)}</span>
-                <span className="text-xs text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
-                  (click to change)
-                </span>
-              </button>
-              
-              {/* Optimize Routes Button - Only show on desktop or when there are changes */}
-              {/* On mobile, shown as floating button when jobs have been moved/modified */}
-              <div className="hidden md:flex items-center gap-3">
-                <Button 
-                  onClick={onOptimizeRoute}
-                  disabled={isOptimizing || !startingAddress}
-                  size="sm"
-                  className="bg-blue-600 hover:bg-blue-700 h-10"
-                >
-                  <Route className="h-3 w-3 mr-1" />
-                  {isOptimizing ? 'Optimizing...' : 'Optimize Routes'}
-                </Button>
-                
-                {/* Today Button - Only show if not already viewing today */}
-                {dayOffset !== 0 && (
-                  <Button
-                    onClick={() => setDayOffset(0)}
-                    size="sm"
-                    variant="outline"
-                    className="h-10 border-blue-600 text-blue-600 hover:bg-blue-50"
-                  >
-                    Today
-                  </Button>
-                )}
-              </div>
+              {/* Location display removed from here - will be in top bar */}
             </div>
           )}
         </div>
@@ -2841,29 +2859,6 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
           >
             <Undo2 className="h-4 w-4 mr-1" />
             Undo
-          </Button>
-        </div>
-      )}
-
-      {/* Mobile Optimize Routes Button - Shows when jobs modified or just optimized */}
-      {isMobile && locationName && !showUndo && (hasJobChanges || optimizationStatus !== 'idle') && (
-        <div className="fixed bottom-20 right-4 z-50">
-          <Button
-            onClick={onOptimizeRoute}
-            disabled={optimizationStatus !== 'idle' || !startingAddress}
-            size="sm"
-            className={`shadow-lg transition-colors ${
-              optimizationStatus === 'optimized' 
-                ? 'bg-green-600 hover:bg-green-700' 
-                : 'bg-blue-600 hover:bg-blue-700'
-            }`}
-          >
-            {optimizationStatus === 'optimizing' && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
-            {optimizationStatus === 'optimized' && <CheckCircle className="h-4 w-4 mr-1" />}
-            {optimizationStatus === 'idle' && <Route className="h-4 w-4 mr-1" />}
-            {optimizationStatus === 'optimizing' && 'Optimizing...'}
-            {optimizationStatus === 'optimized' && 'Optimized'}
-            {optimizationStatus === 'idle' && 'Optimize'}
           </Button>
         </div>
       )}
@@ -2911,6 +2906,29 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
       {/* Combined Weather Forecast & Job Planning Card */}
       {weatherData && (
         <div className="space-y-4">
+            {/* Optimize Routes Button - Top Center of Forecast - Shows during optimization or when changes made */}
+            {locationName && (optimizationStatus !== 'idle' || hasJobChanges) && (
+              <div className="flex justify-center">
+                <Button
+                  onClick={onOptimizeRoute}
+                  disabled={optimizationStatus !== 'idle' || !startingAddress}
+                  size="default"
+                  className={`shadow-lg transition-colors ${
+                    optimizationStatus === 'optimized' 
+                      ? 'bg-green-600 hover:bg-green-700' 
+                      : 'bg-blue-600 hover:bg-blue-700'
+                  }`}
+                >
+                  {optimizationStatus === 'optimizing' && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  {optimizationStatus === 'optimized' && <CheckCircle className="h-4 w-4 mr-2" />}
+                  {optimizationStatus === 'idle' && <Route className="h-4 w-4 mr-2" />}
+                  {optimizationStatus === 'optimizing' && 'Optimizing...'}
+                  {optimizationStatus === 'optimized' && 'Optimized'}
+                  {optimizationStatus === 'idle' && 'Optimize Routes'}
+                </Button>
+              </div>
+            )}
+
             {/* Mobile Instructions - Show at top, outside everything */}
             {isMobile && isTouchDevice.current && cutJobId && (
               <div className="p-2 bg-yellow-50 border-2 border-yellow-400 rounded-lg">
@@ -2927,8 +2945,8 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
             )}
 
             {/* Week View Grid - Droppable Days with Navigation */}
-            <div className="relative flex items-center justify-center min-h-[85vh] w-full px-1">
-              {/* Left Arrow - Desktop Only - Positioned outside container */}
+            <div className="relative flex items-center justify-center min-h-[85vh] w-full">
+              {/* Left Arrow - Desktop Only - Positioned far outside container */}
               {!isMobile && (
                 <button
                   onClick={() => {
@@ -2945,7 +2963,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                       }
                     }
                   }}
-                  className="absolute left-0 top-1/2 -translate-y-1/2 z-15 shrink-0 w-12 h-12 rounded-full bg-blue-600 hover:bg-blue-700 flex items-center justify-center text-white shadow-lg transition-all hover:scale-110"
+                  className="absolute left-4 top-1/2 -translate-y-1/2 z-15 shrink-0 w-12 h-12 rounded-full bg-blue-600 hover:bg-blue-700 flex items-center justify-center text-white shadow-lg transition-all hover:scale-110"
                   aria-label="Previous day"
                 >
                   <ChevronLeft className="w-6 h-6" />
@@ -2989,7 +3007,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                     slideDirection === 'right' ? 'animate-slide-in-left' : ''
                   }`}
                   style={{
-                    gap: isMobile ? undefined : '1.5rem',
+                    gap: isMobile ? undefined : '1.25rem', // Reduced from 1.5rem (24px) to 1.25rem (20px)
                     transform: isMobile && !slideDirection ? `translateX(${swipeOffset}px)` : undefined,
                     transition: isTransitioning && !slideDirection ? 'transform 0.3s ease-out' : 'none',
                     paddingLeft: isMobile ? undefined : '0',
@@ -3052,9 +3070,9 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                       style={{
                         scrollSnapAlign: isMobile ? undefined : 'start',
                         scrollSnapStop: isMobile ? undefined : 'always',
-                        width: isMobile ? undefined : '320px', // Fixed width for consistent cards
-                        minWidth: isMobile ? undefined : '320px',
-                        maxWidth: isMobile ? undefined : '320px',
+                        width: isMobile ? undefined : '280px', // Reduced from 320px to fit 4-5 cards
+                        minWidth: isMobile ? undefined : '280px',
+                        maxWidth: isMobile ? undefined : '280px',
                         background: weatherForDay?.hourlyForecasts && weatherForDay.hourlyForecasts.length > 0
                           ? `linear-gradient(to bottom, ${weatherForDay.hourlyForecasts.map((h, idx) => {
                               const desc = h.description.toLowerCase();
@@ -3851,7 +3869,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                 })}
               </div>
 
-              {/* Right Arrow - Desktop Only - Positioned outside container */}
+              {/* Right Arrow - Desktop Only - Positioned far outside container */}
               {!isMobile && (
                 <button
                   onClick={() => {
@@ -3868,7 +3886,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                       }
                     }
                   }}
-                 className="absolute right-0 top-1/2 -translate-y-1/2 z-15 shrink-0 w-12 h-12 rounded-full bg-blue-600 hover:bg-blue-700 flex items-center justify-center text-white shadow-lg transition-all hover:scale-110"
+                 className="absolute right-4 top-1/2 -translate-y-1/2 z-15 shrink-0 w-12 h-12 rounded-full bg-blue-600 hover:bg-blue-700 flex items-center justify-center text-white shadow-lg transition-all hover:scale-110"
                   aria-label="Next day"
                 >
                   <ChevronRight className="w-6 h-6" />

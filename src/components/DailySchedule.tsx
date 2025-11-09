@@ -24,10 +24,12 @@ interface DailyScheduleProps {
   messageTemplates: MessageTemplate[];
   onRefreshCustomers: () => Promise<void> | void;
   onRefreshJobs?: () => Promise<void> | void;
+  onLocationChange?: (locationName: string, zipCode: string) => void;
+  onEditAddress?: () => void;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messageTemplates, onRefreshCustomers, onRefreshJobs }: DailyScheduleProps) {
+export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messageTemplates, onRefreshCustomers, onRefreshJobs, onLocationChange, onEditAddress }: DailyScheduleProps) {
   const [jobNotes, setJobNotes] = useState('');
   const [elapsedTime, setElapsedTime] = useState<{ [jobId: string]: number }>({});
   const [showStartDialog, setShowStartDialog] = useState(false);
@@ -1086,6 +1088,8 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
         isOptimizing={isOptimizing}
         startingAddress={startingAddress}
         onStartingAddressChange={handleStartingAddressChange}
+        onLocationChange={onLocationChange}
+        onEditAddress={onEditAddress}
       />
 
       {/* Today's Jobs Section Header */}

@@ -13,6 +13,7 @@ import {
   CalendarDays,
   CloudSun,
   LogOut,
+  MapPin,
 } from "lucide-react";
 import { fetchCustomers } from "./services/customers";
 import { fetchJobs } from "./services/jobs";
@@ -84,6 +85,8 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [showBottomNav, setShowBottomNav] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
+  const [locationZipCode, setLocationZipCode] = useState<string>('');
+  const [isEditingAddress, setIsEditingAddress] = useState(false);
 
   // Check auth state on mount and listen for changes
   useEffect(() => {
@@ -342,26 +345,78 @@ function App() {
 
   return (
     <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-yellow-50 pb-20 md:pb-0">
-      <div className="container mx-auto p-2 sm:p-4 md:p-8">
-        {/* Header - Logo style with Logout */}
-        <div className="mb-4 md:mb-6">
-          <div className="flex items-center justify-between mb-2 md:mb-4">
-            <div className="flex-1"></div>
-            <h1 className="text-2xl sm:text-3xl md:text-4xl font-black text-transparent bg-clip-text bg-linear-to-r from-blue-600 via-blue-700 to-blue-800 uppercase tracking-wider drop-shadow-sm">
+      {/* Desktop Top Navigation Bar - Fixed and full width */}
+      <div className="hidden md:block fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 shadow-sm">
+        <div className="w-full px-4 py-3">
+          <div className="flex items-center justify-center gap-8">
+            {/* Logo - Left */}
+            <h1 className="text-xl font-black text-transparent bg-clip-text bg-linear-to-r from-blue-600 via-blue-700 to-blue-800 uppercase tracking-wider">
               Job Flow
             </h1>
-            <div className="flex-1 flex justify-end items-center gap-2">
-              <span className="hidden md:inline text-sm text-blue-600">
-                {user.email}
-              </span>
+            
+            {/* Address - Left of tabs */}
+            {locationZipCode && (
+              <button
+                onClick={() => setIsEditingAddress(true)}
+                className="flex items-center gap-2 px-3 py-2 text-sm bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition-colors"
+                title="Click to change location"
+              >
+                <MapPin className="h-4 w-4 text-blue-600" />
+                <span className="font-medium text-blue-900">{locationZipCode}</span>
+              </button>
+            )}
+            
+            {/* Tab Navigation - Center */}
+            <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
+              {navItems.map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => setActiveTab(item.id)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-md transition-colors ${
+                    activeTab === item.id
+                      ? "bg-white text-blue-700 shadow-sm"
+                      : "text-gray-600 hover:text-gray-900"
+                  }`}
+                >
+                  <item.icon className="h-4 w-4" />
+                  <span className="font-medium text-sm">{item.label}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* User info and logout - Right */}
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-gray-600">{user.email}</span>
               <Button 
                 variant="outline" 
                 size="sm" 
                 onClick={handleLogout}
                 className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 border-blue-200"
               >
-                <LogOut className="h-4 w-4 md:mr-2" />
-                <span className="hidden md:inline">Logout</span>
+                <LogOut className="h-4 w-4 mr-2" />
+                Logout
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="container mx-auto p-2 sm:p-4 md:p-8 md:pt-20">
+        {/* Mobile Header - Logo style with Logout */}
+        <div className="mb-4 md:mb-6 md:hidden">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex-1"></div>
+            <h1 className="text-2xl sm:text-3xl font-black text-transparent bg-clip-text bg-linear-to-r from-blue-600 via-blue-700 to-blue-800 uppercase tracking-wider drop-shadow-sm">
+              Job Flow
+            </h1>
+            <div className="flex-1 flex justify-end">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleLogout}
+                className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 border-blue-200"
+              >
+                <LogOut className="h-4 w-4" />
               </Button>
             </div>
           </div>
@@ -378,6 +433,8 @@ function App() {
               messageTemplates={messageTemplates}
               onRefreshCustomers={refreshCustomers}
               onRefreshJobs={refreshJobs}
+              onLocationChange={(locationName: string, zipCode: string) => setLocationZipCode(zipCode)}
+              onEditAddress={() => setIsEditingAddress(true)}
             />
           )}
           {activeTab === "calendar" && (
@@ -433,26 +490,6 @@ function App() {
             >
               <item.icon className="h-5 w-5 mb-0.5" />
               <span className="text-[10px] leading-tight">{item.label}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Desktop Navigation */}
-      <div className="hidden md:block fixed top-8 right-8 z-100">
-        <div className="flex gap-2 bg-white rounded-lg p-2 shadow-lg">
-          {navItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => setActiveTab(item.id)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-md transition-colors ${
-                activeTab === item.id
-                  ? "bg-blue-100 text-blue-700"
-                  : "text-gray-600 hover:bg-gray-100"
-              }`}
-            >
-              <item.icon className="h-4 w-4" />
-              <span>{item.label}</span>
             </button>
           ))}
         </div>
