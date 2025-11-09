@@ -26,10 +26,28 @@ interface DailyScheduleProps {
   onRefreshJobs?: () => Promise<void> | void;
   onLocationChange?: (locationName: string, zipCode: string) => void;
   onEditAddress?: () => void;
+  optimizationStatus?: 'idle' | 'optimizing' | 'optimized';
+  onOptimizationStatusChange?: (status: 'idle' | 'optimizing' | 'optimized') => void;
+  onJobChangesDetected?: (hasChanges: boolean) => void;
+  scrollToTodayRef?: React.MutableRefObject<(() => void) | null>;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messageTemplates, onRefreshCustomers, onRefreshJobs, onLocationChange, onEditAddress }: DailyScheduleProps) {
+export function DailySchedule({ 
+  customers, 
+  jobs, 
+  equipment, 
+  onUpdateJobs, 
+  messageTemplates, 
+  onRefreshCustomers, 
+  onRefreshJobs, 
+  onLocationChange, 
+  onEditAddress,
+  optimizationStatus = 'idle',
+  onOptimizationStatusChange,
+  onJobChangesDetected,
+  scrollToTodayRef
+}: DailyScheduleProps) {
   const [jobNotes, setJobNotes] = useState('');
   const [elapsedTime, setElapsedTime] = useState<{ [jobId: string]: number }>({});
   const [showStartDialog, setShowStartDialog] = useState(false);
@@ -45,7 +63,9 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
   });
   const [driveTimesCache, setDriveTimesCache] = useState<Map<string, string>>(new Map());
   const [dayStartTimes, setDayStartTimes] = useState<Map<string, number>>(new Map());
-  const [isOptimizing, setIsOptimizing] = useState(false);
+  
+  // Track optimized job order for change detection
+  const [optimizedJobOrder, setOptimizedJobOrder] = useState<Map<string, number>>(new Map());
   
   // Drag and drop state
   const [draggedJobId, setDraggedJobId] = useState<string | null>(null);
@@ -801,7 +821,7 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
 
     try {
       // Set optimizing state - this will show "Calculating..." in the UI
-      setIsOptimizing(true);
+      onOptimizationStatusChange?.('optimizing');
       
       // Clear the cache temporarily to show "Calculating..." state
       setDriveTimesCache(new Map());
@@ -951,9 +971,22 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
       // Update cache with the new route data from all days
       setDriveTimesCache(newDriveTimesCache);
       
-      // Brief delay to show the updated times, then turn off optimizing state
+      // Store the optimized job order for change detection
+      const newOptimizedOrder = new Map<string, number>();
+      allOptimizedJobs.forEach(job => {
+        if (job.order) newOptimizedOrder.set(job.id, job.order);
+      });
+      setOptimizedJobOrder(newOptimizedOrder);
+      
+      // Brief delay to show the updated times, then set optimized state
       await new Promise(resolve => setTimeout(resolve, 500));
-      setIsOptimizing(false);
+      onOptimizationStatusChange?.('optimized');
+      onJobChangesDetected?.(false); // No changes right after optimization
+
+      // After 2 seconds, reset to idle (but keep the optimized state available for change detection)
+      setTimeout(() => {
+        onOptimizationStatusChange?.('idle');
+      }, 2000);
 
       console.log('=== MULTI-DAY ROUTE OPTIMIZATION COMPLETE ===');
       console.log('Optimized jobs with new order:', allOptimizedJobs.map(j => ({ 
@@ -970,13 +1003,41 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
     } catch (error) {
       console.error('=== ROUTE OPTIMIZATION FAILED ===');
       console.error('Error details:', error);
-      setIsOptimizing(false); // Reset state on error
+      onOptimizationStatusChange?.('idle'); // Reset state on error
       toast.error('Failed to optimize route', { 
         id: 'optimize-route',
         description: 'Check console for details'
       });
     }
   };
+
+  // Detect job order changes after optimization
+  useEffect(() => {
+    if (optimizedJobOrder.size === 0) return; // No optimization has occurred yet
+    
+    // Check if any job's order has changed from the optimized order
+    let hasChanges = false;
+    for (const job of jobs) {
+      const optimizedOrder = optimizedJobOrder.get(job.id);
+      if (optimizedOrder !== undefined && job.order !== optimizedOrder) {
+        hasChanges = true;
+        break;
+      }
+    }
+    
+    onJobChangesDetected?.(hasChanges);
+  }, [jobs, optimizedJobOrder, onJobChangesDetected]);
+
+  // Listen for optimize route event from nav bar
+  useEffect(() => {
+    const handleOptimizeEvent = () => {
+      handleOptimizeRoute();
+    };
+    
+    window.addEventListener('optimizeRoute', handleOptimizeEvent);
+    return () => window.removeEventListener('optimizeRoute', handleOptimizeEvent);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startingAddress]); // Only re-attach when starting address changes
 
   // Drag and drop handlers
   const handleDragStart = (e: React.DragEvent, jobId: string) => {
@@ -1085,11 +1146,12 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
         onRescheduleJob={handleRescheduleJob}
         onStartTimeChange={handleStartTimeChange}
         onOptimizeRoute={handleOptimizeRoute}
-        isOptimizing={isOptimizing}
+        optimizationStatus={optimizationStatus}
         startingAddress={startingAddress}
         onStartingAddressChange={handleStartingAddressChange}
         onLocationChange={onLocationChange}
         onEditAddress={onEditAddress}
+        scrollToTodayRef={scrollToTodayRef}
       />
 
       {/* Today's Jobs Section Header */}
@@ -1121,7 +1183,7 @@ export function DailySchedule({ customers, jobs, equipment, onUpdateJobs, messag
               
               // Calculate drive time based on current order
               let driveTime: string;
-              if (isOptimizing) {
+              if (optimizationStatus === 'optimizing') {
                 // Show "Calculating..." during optimization
                 driveTime = 'Calculating...';
               } else if (previousCustomer) {

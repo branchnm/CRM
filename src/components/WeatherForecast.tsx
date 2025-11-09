@@ -62,14 +62,27 @@ interface WeatherForecastProps {
   onUpdateJobTimeSlot?: (jobId: string, timeSlot: number) => void;
   onStartTimeChange?: (date: string, startHour: number) => void;
   onOptimizeRoute?: () => void;
-  isOptimizing?: boolean;
+  optimizationStatus?: 'idle' | 'optimizing' | 'optimized';
   startingAddress?: string;
   onStartingAddressChange?: (address: string) => void;
   onLocationChange?: (locationName: string, zipCode: string) => void;
   onEditAddress?: () => void;
+  scrollToTodayRef?: React.MutableRefObject<(() => void) | null>;
 }
 
-export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, onStartTimeChange, onOptimizeRoute, isOptimizing = false, startingAddress = '', onStartingAddressChange, onLocationChange, onEditAddress }: WeatherForecastProps) {
+export function WeatherForecast({ 
+  jobs = [], 
+  customers = [], 
+  onRescheduleJob, 
+  onStartTimeChange, 
+  onOptimizeRoute, 
+  optimizationStatus = 'idle',
+  startingAddress = '', 
+  onStartingAddressChange, 
+  onLocationChange, 
+  onEditAddress,
+  scrollToTodayRef
+}: WeatherForecastProps) {
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -131,11 +144,30 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
   // Track job changes to show/hide optimize button
   const [lastOptimizedJobState, setLastOptimizedJobState] = useState<string>('');
   const [hasJobChanges, setHasJobChanges] = useState(false);
-  const [optimizationStatus, setOptimizationStatus] = useState<'idle' | 'optimizing' | 'optimized'>('idle');
 
   // Calculate number of visible day cards based on viewport width
   const [visibleCardCount, setVisibleCardCount] = useState(3);
   const [forecastContainerWidth, setForecastContainerWidth] = useState<number>(0);
+
+  // Scroll to top of page - simple and consistent
+  const scrollToTop = useCallback(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
+
+  // Scroll to today function - exposed via ref for nav bar button
+  const scrollToToday = useCallback(() => {
+    setDayOffset(0); // Reset offset to show today
+    
+    // Just scroll to top of page - no dual scroll behavior
+    scrollToTop();
+  }, [scrollToTop]);
+
+  // Expose scrollToToday function via ref
+  useEffect(() => {
+    if (scrollToTodayRef) {
+      scrollToTodayRef.current = scrollToToday;
+    }
+  }, [scrollToToday, scrollToTodayRef]);
 
   // Debounce address input to reduce API calls
   const debouncedAddressInput = useDebounce(addressInput, 500); // 500ms delay
@@ -340,8 +372,9 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
         setTimeout(() => setSlideDirection(null), 300);
       } else if (isRightSwipe) {
         // Swipe right = previous day (day slides in from left)
+        // Allow going back to previous days, but not beyond today (dayOffset 0)
         setSlideDirection('right');
-        setDayOffset(prev => prev - 1);
+        setDayOffset(prev => Math.max(-7, prev - 1)); // Allow up to 7 days in the past for historical view
         setTimeout(() => setSlideDirection(null), 300);
       }
     }
@@ -398,22 +431,45 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
 
     let closestCard: Element | null = null;
     let closestDistance = Infinity;
+    let closestIndex = 0;
 
     // Find card whose left edge is closest to container's left edge
-    cards.forEach((card) => {
+    cards.forEach((card, index) => {
       const cardRect = card.getBoundingClientRect();
       const distance = Math.abs(cardRect.left - containerLeft);
 
       if (distance < closestDistance) {
         closestDistance = distance;
         closestCard = card;
+        closestIndex = index;
       }
     });
 
     if (closestCard) {
-      (closestCard as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
+      const closestElement = closestCard as HTMLElement;
+      closestElement.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
+      
+      // Update dayOffset to match the visible card
+      // closestIndex represents which card in the current view is visible
+      // We need to update dayOffset to reflect this
+      const cardDateStr = closestElement.getAttribute('data-date');
+      const todayStr = new Date().toLocaleDateString('en-CA');
+      
+      if (cardDateStr) {
+        const cardDate = new Date(cardDateStr + 'T00:00:00');
+        const today = new Date(todayStr + 'T00:00:00');
+        const daysDiff = Math.round((cardDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+        
+        // Clamp daysDiff to allowed range: -7 (7 days ago) to 30+ (future)
+        const clampedDaysDiff = Math.max(-7, daysDiff);
+        
+        // Use setTimeout to avoid updating state during render
+        setTimeout(() => {
+          setDayOffset(clampedDaysDiff);
+        }, 0);
+      }
     }
-  }, [isMobile]);
+  }, [isMobile]); // Removed dayOffset from dependencies to prevent infinite loops
 
   // Handle desktop scroll with snap
   useEffect(() => {
@@ -567,36 +623,23 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
     if (lastOptimizedJobState) {
       const hasChanges = currentJobState !== lastOptimizedJobState;
       setHasJobChanges(hasChanges);
-      // Reset optimization status when jobs change after optimization
-      if (hasChanges && optimizationStatus === 'optimized') {
-        setOptimizationStatus('idle');
-      }
     } else {
       // No optimization yet, show button if there are jobs
       setHasJobChanges(jobs.length > 0);
     }
-  }, [jobs, lastOptimizedJobState, optimizationStatus]);
+  }, [jobs, lastOptimizedJobState]);
 
-  // When optimize is triggered, save the current job state
+  // When optimize completes, save the current job state
   useEffect(() => {
-    if (isOptimizing) {
-      setOptimizationStatus('optimizing');
+    if (optimizationStatus === 'optimized') {
       const currentJobState = JSON.stringify(
         jobs.map(j => ({ id: j.id, date: j.date, order: j.order, status: j.status }))
           .sort((a, b) => a.id.localeCompare(b.id))
       );
       setLastOptimizedJobState(currentJobState);
       setHasJobChanges(false);
-    } else if (optimizationStatus === 'optimizing') {
-      // Optimization just finished
-      setOptimizationStatus('optimized');
-      // Hide the button after 2 seconds
-      const timer = setTimeout(() => {
-        setOptimizationStatus('idle');
-      }, 2000);
-      return () => clearTimeout(timer);
     }
-  }, [isOptimizing, jobs, optimizationStatus]);
+  }, [optimizationStatus, jobs]);
 
   const [dayStartTimes, setDayStartTimes] = useState<Map<string, number>>(() => {
     const saved = localStorage.getItem('dayStartTimes');
@@ -2435,28 +2478,6 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
     }
   }, [locationName, onLocationChange]);
 
-  // Auto-hide optimize button after successful optimization
-  useEffect(() => {
-    if (optimizationStatus === 'optimized') {
-      const timer = setTimeout(() => {
-        setOptimizationStatus('idle');
-        setHasJobChanges(false);
-      }, 2000); // Hide after 2 seconds
-      
-      return () => clearTimeout(timer);
-    }
-  }, [optimizationStatus]);
-
-  // Sync optimization status with parent's isOptimizing prop
-  useEffect(() => {
-    if (isOptimizing && optimizationStatus !== 'optimizing') {
-      setOptimizationStatus('optimizing');
-    } else if (!isOptimizing && optimizationStatus === 'optimizing') {
-      // Optimization just completed
-      setOptimizationStatus('optimized');
-    }
-  }, [isOptimizing, optimizationStatus]);
-
   // Auto-optimize on initial load when location and jobs are ready
   useEffect(() => {
     // Check if we have location, jobs, and haven't optimized yet on initial load
@@ -2470,10 +2491,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
       onOptimizeRoute &&
       optimizationStatus === 'idle'
     ) {
-      // Set optimizing status immediately
-      setOptimizationStatus('optimizing');
-      
-      // Trigger optimization
+      // Trigger optimization (status managed by parent)
       onOptimizeRoute();
       
       // Mark that we've done the initial optimization for this session
@@ -2500,31 +2518,6 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
         </div>
       )}
       
-      {/* Today Button - Top Left Corner - Shows when Today card is not visible */}
-      {!isTodayCardVisible && (
-        <button
-          onClick={() => {
-            // Find and scroll to the Today card
-            if (forecastScrollContainerRef.current) {
-              const todayStr = new Date().toLocaleDateString('en-CA');
-              const cards = forecastScrollContainerRef.current.querySelectorAll('.forecast-day-card');
-              
-              cards.forEach((card) => {
-                const dateAttr = card.getAttribute('data-date');
-                if (dateAttr === todayStr) {
-                  (card as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
-                }
-              });
-            }
-          }}
-          className={`${isMobile ? 'fixed top-4 left-4' : 'absolute top-4 left-4'} z-40 flex items-center gap-2 px-3 py-2 bg-white rounded-full shadow-lg border border-blue-200 text-sm hover:bg-blue-50 transition-colors`}
-          title="Go to today"
-        >
-          <Calendar className="h-4 w-4 text-blue-600" />
-          <span className="font-medium text-blue-900">Today</span>
-        </button>
-      )}
-      
       {/* Address Indicator - Top Right Corner - Mobile Only */}
       {locationName && isMobile && !isEditingAddress && (
         <button
@@ -2538,10 +2531,10 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
       )}
 
       {/* Weather Section Header - Hidden on mobile, shown on desktop */}
-      <div className="hidden md:flex items-center gap-3 mt-6 md:mt-8 mb-4">
-        <div className="h-1 flex-1 bg-linear-to-r from-blue-200 to-blue-400 rounded-full"></div>
-        <h2 className="text-lg md:text-2xl font-bold text-blue-900 uppercase tracking-wide">Weather Forecast</h2>
-        <div className="h-1 flex-1 bg-linear-to-l from-blue-200 to-blue-400 rounded-full"></div>
+      <div className="hidden md:flex items-center mt-6 mb-0" style={{ gap: 'clamp(0.25rem, 0.3vw, 0.rem)' }}>
+        <div className="flex-1 bg-linear-to-r from-blue-200 to-blue-400 rounded-full" style={{ height: 'clamp(1px, 0.1vh, 4px)' }}></div>
+        <h2 className="font-bold text-blue-900 uppercase tracking-wide whitespace-nowrap" style={{ fontSize: 'clamp(1.05rem, 2.5vh, 1.5rem)' }}>Weather Forecast</h2>
+        <div className="flex-1 bg-linear-to-l from-blue-200 to-blue-400 rounded-full" style={{ height: 'clamp(1px, 0.1vh, 4px)' }}></div>
       </div>
 
       {/* Weather-Based Job Suggestions - Minimalistic Design */}
@@ -2718,7 +2711,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
       )}
 
       {/* Location Selector - Centered - Single unified address input with autocomplete */}
-      <div className="flex justify-center mb-4">
+      <div className="flex justify-center mb-0">
         <div className="w-full max-w-3xl px-4">
           {/* Show input when editing or no location set */}
           {(isEditingAddress || !locationName) ? (
@@ -2803,32 +2796,6 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                   </div>
                 )}
               </div>
-              
-              <div className="flex items-center gap-3 flex-wrap">
-                {locationName && (
-                  <Button 
-                    onClick={onOptimizeRoute}
-                    disabled={isOptimizing || !startingAddress}
-                    size="sm"
-                    className={`bg-blue-600 hover:bg-blue-700 ${isMobile ? 'h-8 text-xs' : 'h-10'}`}
-                  >
-                    <Route className={`mr-1 ${isMobile ? 'h-3 w-3' : 'h-3 w-3'}`} />
-                    {isOptimizing ? 'Optimizing...' : 'Optimize Routes'}
-                  </Button>
-                )}
-                
-                {/* Today Button - Only show if not already viewing today */}
-                {dayOffset !== 0 && locationName && (
-                  <Button
-                    onClick={() => setDayOffset(0)}
-                    size="sm"
-                    variant="outline"
-                    className="h-10 border-blue-600 text-blue-600 hover:bg-blue-50"
-                  >
-                    Today
-                  </Button>
-                )}
-              </div>
             </div>
           ) : (
             /* Show clickable location display when location is set and not editing - Icon-only on mobile */
@@ -2906,32 +2873,9 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
       {/* Combined Weather Forecast & Job Planning Card */}
       {weatherData && (
         <div className="flex items-center justify-center" style={{
-          minHeight: 'calc(100vh - 6.5rem)', // Full viewport minus nav bar (4rem) and container padding-top (2.5rem average)
+          minHeight: 'calc(100vh - 5vh - 4rem)', // Full viewport minus nav bar (5vh) and container padding
         }}>
-          <div className="space-y-4 w-full">
-            {/* Optimize Routes Button - Top Center of Forecast - Shows during optimization or when changes made */}
-            {locationName && (optimizationStatus !== 'idle' || hasJobChanges) && (
-              <div className="flex justify-center">
-                <Button
-                  onClick={onOptimizeRoute}
-                  disabled={optimizationStatus !== 'idle' || !startingAddress}
-                  size="default"
-                  className={`shadow-lg transition-colors ${
-                    optimizationStatus === 'optimized' 
-                      ? 'bg-green-600 hover:bg-green-700' 
-                      : 'bg-blue-600 hover:bg-blue-700'
-                  }`}
-                >
-                  {optimizationStatus === 'optimizing' && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                  {optimizationStatus === 'optimized' && <CheckCircle className="h-4 w-4 mr-2" />}
-                  {optimizationStatus === 'idle' && <Route className="h-4 w-4 mr-2" />}
-                  {optimizationStatus === 'optimizing' && 'Optimizing...'}
-                  {optimizationStatus === 'optimized' && 'Optimized'}
-                  {optimizationStatus === 'idle' && 'Optimize Routes'}
-                </Button>
-              </div>
-            )}
-
+          <div className="space-y-2 w-full">
             {/* Mobile Instructions - Show at top, outside everything */}
             {isMobile && isTouchDevice.current && cutJobId && (
               <div className="p-2 bg-yellow-50 border-2 border-yellow-400 rounded-lg">
@@ -2953,18 +2897,10 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
               {!isMobile && (
                 <button
                   onClick={() => {
-                    const newOffset = dayOffset - 1; // Allow negative offsets for past days
+                    const newOffset = Math.max(-7, dayOffset - 1); // Allow up to 7 days in the past
                     setDayOffset(newOffset);
-                    // Scroll to the corresponding card
-                    if (forecastScrollContainerRef.current) {
-                      const cards = forecastScrollContainerRef.current.querySelectorAll('.forecast-day-card');
-                      const targetCard = cards[0]; // Always scroll to first card (current offset day)
-                      if (targetCard) {
-                        (targetCard as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
-                        // Check Today visibility after scroll
-                        setTimeout(() => checkTodayCardVisibility(), 300);
-                      }
-                    }
+                    // Just scroll to top of page - no dual scroll behavior
+                    scrollToTop();
                   }}
                   className="absolute left-4 top-1/2 -translate-y-1/2 z-15 shrink-0 w-12 h-12 rounded-full bg-blue-600 hover:bg-blue-700 flex items-center justify-center text-white shadow-lg transition-all hover:scale-110"
                   aria-label="Previous day"
@@ -3068,7 +3004,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                       onDragLeave={handleDragLeave}
                       onDrop={(e) => handleDrop(e, dateStr)}
                       className={`forecast-day-card relative ${ //forecast and day card relation
-                        isMobile ? 'mb-8 h-[92vh] overflow-hidden flex flex-col' : 'h-[92vh] shrink-0 flex flex-col'
+                        isMobile ? 'mb-8 h-[81.6vh] overflow-hidden flex flex-col' : 'h-[81.6vh] shrink-0 flex flex-col'
                       } shadow-lg rounded-lg overflow-hidden`}
                       style={{
                         scrollSnapAlign: isMobile ? undefined : 'start',
@@ -3133,28 +3069,28 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                       }}
                     >
                       {/* Day Header - Improved with work/drive time stats */}
-                      <div className={`bg-white border-b border-gray-200 ${isMobile ? 'px-2 py-[0.3vh]' : 'px-[0.5vh] py-[0.6vh]'}`}>
+                      <div className={`bg-white border-b border-gray-200 ${isMobile ? 'px-2 py-[0.27vh]' : 'px-[0.44vh] py-[0.53vh]'}`}>
                         {/* Day and Date on same line with rain badge - CENTERED */}
-                        <div className={`flex items-center justify-center ${isMobile ? 'mb-[0.2vh]' : 'mb-[0.3vh]'}`}>
-                          <div className="flex items-center gap-[0.5vh]">
-                            <span className={`font-bold text-gray-900 ${isMobile ? 'text-[2.4vh]' : 'text-[2.2vh]'}`}>{dayName}</span>
-                            <span className={`text-gray-500 ${isMobile ? 'text-[2vh]' : 'text-[1.8vh]'}`}>{dayDate}</span>
+                        <div className={`flex items-center justify-center ${isMobile ? 'mb-[0.17vh]' : 'mb-[0.27vh]'}`}>
+                          <div className="flex items-center gap-[0.44vh]">
+                            <span className={`font-bold text-gray-900 ${isMobile ? 'text-[2.04vh]' : 'text-[1.95vh]'}`}>{dayName}</span>
+                            <span className={`text-gray-500 ${isMobile ? 'text-[1.71vh]' : 'text-[1.59vh]'}`}>{dayDate}</span>
                           </div>
                           
                           {/* Rain Chance Badge */}
                           {weatherForDay && rainChance > 0 && !isMobile && (
-                            <div className="inline-flex items-center gap-[0.3vh] px-[0.8vh] py-[0.5vh] ml-[1vh] rounded-full font-semibold bg-blue-100 text-blue-800 text-[1.2vh]">
-                              <CloudRain className="h-[1.5vh] w-[1.5vh]" />
+                            <div className="inline-flex items-center gap-[0.27vh] px-[0.71vh] py-[0.44vh] ml-[0.88vh] rounded-full font-semibold bg-blue-100 text-blue-800 text-[1.07vh]">
+                              <CloudRain className="h-[1.33vh] w-[1.33vh]" />
                               {rainChance}%
                             </div>
                           )}
                         </div>
                         
                         {/* Work Stats Row - Centered - Always show job count - LARGER TEXT */}
-                        <div className={`flex items-center justify-center gap-[0.6vh] ${isMobile ? 'text-[1.5vh]' : 'text-[1.4vh]'}`}>
-                          <div className="flex items-center gap-[0.3vh] text-gray-700">
-                            <span className={`font-bold text-blue-600 ${isMobile ? 'text-[2vh]' : 'text-[1.8vh]'}`}>{totalJobs}</span>
-                            <span className={`text-gray-600 font-medium ${isMobile ? 'text-[1.5vh]' : 'text-[1.4vh]'}`}>job{totalJobs !== 1 ? 's' : ''}</span>
+                        <div className={`flex items-center justify-center gap-[0.53vh] ${isMobile ? 'text-[1.33vh]' : 'text-[1.24vh]'}`}>
+                          <div className="flex items-center gap-[0.27vh] text-gray-700">
+                            <span className={`font-bold text-blue-600 ${isMobile ? 'text-[1.71vh]' : 'text-[1.59vh]'}`}>{totalJobs}</span>
+                            <span className={`text-gray-600 font-medium ${isMobile ? 'text-[1.33vh]' : 'text-[1.24vh]'}`}>job{totalJobs !== 1 ? 's' : ''}</span>
                           </div>
                           {totalJobs > 0 && (() => {
                             const totalWorkMinutes = [...scheduledJobsForDay, ...assignedJobs].reduce((sum, job) => sum + (job.totalTime || 30), 0);
@@ -3168,10 +3104,10 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                               <>
                                 {totalWorkMinutes > 0 && (
                                   <>
-                                    <div className="h-[0.6vh] w-[0.15vh] bg-gray-300"></div>
-                                    <div className="flex items-center gap-[0.3vh] text-gray-700">
-                                      <span className={`${isMobile ? 'text-[1.7vh]' : 'text-[1.5vh]'}`}>⏱</span>
-                                      <span className={`font-semibold ${isMobile ? 'text-[1.5vh]' : 'text-[1.4vh]'}`}>
+                                    <div className="h-[0.53vh] w-[0.13vh] bg-gray-300"></div>
+                                    <div className="flex items-center gap-[0.27vh] text-gray-700">
+                                      <span className={`${isMobile ? 'text-[1.51vh]' : 'text-[1.33vh]'}`}>⏱</span>
+                                      <span className={`font-semibold ${isMobile ? 'text-[1.33vh]' : 'text-[1.24vh]'}`}>
                                         {workHours > 0 && `${workHours}h `}{workMins > 0 && `${workMins}m`}
                                         {!workHours && !workMins && '30m'}
                                       </span>
@@ -3180,10 +3116,10 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                 )}
                                 {totalDriveMinutes > 0 && (
                                   <>
-                                    <div className="h-[0.6vh] w-[0.15vh] bg-gray-300"></div>
-                                    <div className="flex items-center gap-[0.3vh] text-gray-700">
-                                      <span className={`${isMobile ? 'text-[1.7vh]' : 'text-[1.5vh]'}`}>🚗</span>
-                                      <span className={`font-semibold ${isMobile ? 'text-[1.5vh]' : 'text-[1.4vh]'}`}>
+                                    <div className="h-[0.53vh] w-[0.13vh] bg-gray-300"></div>
+                                    <div className="flex items-center gap-[0.27vh] text-gray-700">
+                                      <span className={`${isMobile ? 'text-[1.51vh]' : 'text-[1.33vh]'}`}>🚗</span>
+                                      <span className={`font-semibold ${isMobile ? 'text-[1.33vh]' : 'text-[1.24vh]'}`}>
                                         {driveHours > 0 && `${driveHours}h `}{driveMins}m
                                       </span>
                                     </div>
@@ -3201,7 +3137,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                       }`}>
                         {/* Left: Job Count & Jobs List with day weather icons (5am-6pm) */}
                         <div className={`bg-gray-50/50 relative border-r border-gray-200 overflow-hidden ${
-                          isMobile ? 'px-1 pb-0 pt-0 flex flex-col' : 'px-[0.5vh] py-0 flex flex-col'
+                          isMobile ? 'px-1 pb-0 pt-0 flex flex-col' : 'px-[0.44vh] py-0 flex flex-col'
                         }`}>
                           
                           <div className={`relative z-10 ${isMobile ? 'flex-1 flex flex-col min-h-0' : 'flex-1 flex flex-col min-h-0'}`}>
@@ -3223,10 +3159,10 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                               }
                               
                               return (
-                                <div className={`${isMobile ? 'mb-[0.2vh]' : 'mb-[0.3vh]'}`}>
+                                <div className={`${isMobile ? 'mb-[0.17vh]' : 'mb-[0.27vh]'}`}>
                                   {/* Draggable start time handle - ALWAYS visible at top */}
                                   <div
-                                    className={`relative cursor-ns-resize transition-all group ${isMobile ? 'py-[0.5vh]' : 'py-[0.6vh]'}`}
+                                    className={`relative cursor-ns-resize transition-all group ${isMobile ? 'py-[0.44vh]' : 'py-[0.53vh]'}`}
                                     draggable
                                     onDragStart={(e) => {
                                       e.dataTransfer.effectAllowed = 'move';
@@ -3303,25 +3239,25 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                   }}
                                 >
                                     {/* Visible bar - THICKER */}
-                                    <div className="h-[0.8vh] bg-blue-600 shadow-md rounded"></div>
+                                    <div className="h-[0.71vh] bg-blue-600 shadow-md rounded"></div>
                                     
                                     {/* Drag handle indicator - ALWAYS VISIBLE */}
-                                    <div className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 w-[1.5vh] h-[1.2vh] bg-blue-600 rounded-full flex items-center justify-center shadow-md z-10">
-                                      <svg className="w-[0.7vh] h-[0.7vh] text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <div className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 w-[1.33vh] h-[1.07vh] bg-blue-600 rounded-full flex items-center justify-center shadow-md z-10">
+                                      <svg className="w-[0.62vh] h-[0.62vh] text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
                                       </svg>
                                     </div>
                                     {/* Time label - Always visible - positioned on right side - LARGER TEXT */}
-                                    <div className={`absolute left-full ml-[0.5vh] top-1/2 -translate-y-1/2 bg-blue-600 text-white px-[0.5vh] py-[0.3vh] rounded font-semibold whitespace-nowrap shadow-md z-10 ${
-                                      isMobile ? 'text-[1.4vh]' : 'text-[1.3vh]'
+                                    <div className={`absolute left-full ml-[0.44vh] top-1/2 -translate-y-1/2 bg-blue-600 text-white px-[0.44vh] py-[0.27vh] rounded font-semibold whitespace-nowrap shadow-md z-10 ${
+                                      isMobile ? 'text-[1.24vh]' : 'text-[1.15vh]'
                                     }`}>
                                       Start: {currentStartTime > 12 ? `${currentStartTime - 12}PM` : currentStartTime === 12 ? '12PM' : `${currentStartTime}AM`}
                                     </div>
                                     
                                     {/* Reason label - appears on right */}
                                     {currentStartTime > 5 && (
-                                      <div className={`absolute -right-[0.3vh] top-1/2 -translate-y-1/2 translate-x-full bg-white/95 text-blue-700 px-[0.3vh] py-[0.4vh] rounded shadow-sm font-medium whitespace-nowrap ${
-                                        isMobile ? 'text-[1vh]' : 'text-[1vh]'
+                                      <div className={`absolute -right-[0.27vh] top-1/2 -translate-y-1/2 translate-x-full bg-white/95 text-blue-700 px-[0.27vh] py-[0.36vh] rounded shadow-sm font-medium whitespace-nowrap ${
+                                        isMobile ? 'text-[0.88vh]' : 'text-[0.88vh]'
                                       }`}>
                                         {startReason}
                                       </div>
@@ -3404,7 +3340,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                               
                               return (
                                 <div className={`relative flex flex-col time-slots-container overflow-hidden ${
-                                  isMobile ? 'space-y-0 flex-1 justify-between gap-y-[0.5vh]' : 'flex-1 justify-between'
+                                  isMobile ? 'space-y-0 flex-1 justify-between gap-y-[0.44vh]' : 'flex-1 justify-between'
                                 }`} data-date={dateStr}>
                                 {/* Blocked time overlays */}
                                 {(() => {
@@ -3503,9 +3439,9 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                     const timeLabel = slot.hour > 12 ? `${slot.hour - 12} PM` : slot.hour === 12 ? '12 PM' : `${slot.hour} AM`;
                                     
                                     return (
-                                      <div className="flex flex-col items-center gap-[0.2vh] w-[4vh] shrink-0">
-                                        <HourIcon className={`${isMobile ? 'w-[3vh] h-[3vh]' : 'w-[3.2vh] h-[3.2vh]'} ${hourColor} stroke-[1.5]`} />
-                                        <span className={`text-gray-500 font-medium whitespace-nowrap ${isMobile ? 'text-[1.2vh]' : 'text-[1.1vh]'}`}>
+                                      <div className="flex flex-col items-center gap-[0.19vh] w-[3.84vh] shrink-0">
+                                        <HourIcon className={`${isMobile ? 'w-[2.88vh] h-[2.88vh]' : 'w-[3.07vh] h-[3.07vh]'} ${hourColor} stroke-[1.5]`} />
+                                        <span className={`text-gray-500 font-medium whitespace-nowrap ${isMobile ? 'text-[1.15vh]' : 'text-[1.06vh]'}`}>
                                           {timeLabel}
                                         </span>
                                       </div>
@@ -3518,7 +3454,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                     <div 
                                       key={slot.slotIndex} 
                                       className={`relative flex items-center transition-colors ${
-                                        isMobile ? 'px-[0.5vh] py-[0.3vh] max-h-[2.8vh]' : 'h-[5vh] px-[0.5vh]' //Increased from 4.3vh to 5vh (slot height)
+                                        isMobile ? 'px-[0.48vh] py-[0.29vh] max-h-[2.69vh]' : 'h-[4.8vh] px-[0.48vh]' //Increased from 4.3vh to 5vh (slot height)
                                         
                                       } ${isDropTarget ? 'bg-blue-100 border-l-4 border-blue-500' : ''}`}
                                       data-time-slot="true"
@@ -3526,7 +3462,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                       onDragOver={(e) => handleDragOver(e, dateStr, slot.slotIndex)}
                                       onDrop={(e) => handleSlotDrop(e, dateStr, slot.slotIndex)}
                                     >
-                                      <div className={`flex items-center w-full h-full ${shouldShowWeatherIcon ? 'gap-[0.5vh]' : 'gap-0'}`}>
+                                      <div className={`flex items-center w-full h-full ${shouldShowWeatherIcon ? 'gap-[0.48vh]' : 'gap-0'}`}>
                                         {/* Show weather icon with time, or just empty space for alignment */}
                                         {shouldShowWeatherIcon ? (() => {
                                           const weatherIcon = getWeatherForHour();
@@ -3534,18 +3470,18 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                           // For first slot (5 AM), add wet grass indicator if overnight rain
                                           if (isFirstSlot && hasOvernightRain) {
                                             return (
-                                              <div className="flex items-center gap-[0.15vh]">
+                                              <div className="flex items-center gap-[0.14vh]">
                                                 {weatherIcon}
-                                                <div className="flex flex-col items-center gap-[0.2vh]">
+                                                <div className="flex flex-col items-center gap-[0.19vh]">
                                                   <div className={`relative flex items-center justify-center bg-blue-50 rounded-full border border-blue-200 ${
-                                                    isMobile ? 'w-[3vh] h-[3vh]' : 'w-[3.2vh] h-[3.2vh]'
+                                                    isMobile ? 'w-[2.88vh] h-[2.88vh]' : 'w-[3.07vh] h-[3.07vh]'
                                                   }`}>
-                                                    <svg className={`text-blue-600 ${isMobile ? 'w-[2vh] h-[2vh]' : 'w-[2vh] h-[2vh]'}`} fill="currentColor" viewBox="0 0 20 20">
+                                                    <svg className={`text-blue-600 ${isMobile ? 'w-[1.92vh] h-[1.92vh]' : 'w-[1.92vh] h-[1.92vh]'}`} fill="currentColor" viewBox="0 0 20 20">
                                                       <path fillRule="evenodd" d="M10 2a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0110 2zM10 15a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0110 15zM10 7a3 3 0 100 6 3 3 0 000-6zM15.657 5.404a.75.75 0 10-1.06-1.06l-1.061 1.06a.75.75 0 001.06 1.06l1.06-1.06zM6.464 14.596a.75.75 0 10-1.06-1.06l-1.06 1.06a.75.75 0 001.06 1.06l1.06-1.06zM18 10a.75.75 0 01-.75.75h-1.5a.75.75 0 010-1.5h1.5A.75.75 0 0118 10zM5 10a.75.75 0 01-.75.75h-1.5a.75.75 0 010-1.5h1.5A.75.75 0 015 10zM14.596 15.657a.75.75 0 001.06-1.06l-1.06-1.061a.75.75 0 10-1.06 1.06l1.06 1.06zM5.404 6.464a.75.75 0 001.06-1.06l-1.06-1.06a.75.75 0 10-1.061 1.06l1.06 1.06z" clipRule="evenodd" />
                                                     </svg>
                                                   </div>
                                                   <span className={`text-blue-700 font-bold whitespace-nowrap tracking-tight ${
-                                                    isMobile ? 'text-[1vh]' : 'text-[1vh]'
+                                                    isMobile ? 'text-[0.96vh]' : 'text-[0.96vh]'
                                                   }`}>WET</span>
                                                 </div>
                                               </div>
@@ -3554,7 +3490,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                           
                                           return weatherIcon;
                                         })() : (
-                                          <div className="w-[2vh] shrink-0"></div>
+                                          <div className="w-[1.92vh] shrink-0"></div>
                                         )}
                                         
                                         {/* Job card or empty drop zone */}
@@ -3580,7 +3516,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                               onTouchEnd={isTouchDevice.current && !isCompleted ? handleJobTouchEnd : undefined}
                                               //is where the size of the job cards are adjusted
                                               className={`flex-1 rounded transition-all text-xs group overflow-hidden flex items-center select-none ${
-                                                isMobile ? 'px-[0.8vh] py-[0.5vh] min-h-[4vh] max-h-[4.5vh]' : 'px-[0.6vh] py-[0.5vh] h-[5vh]'
+                                                isMobile ? 'px-[0.77vh] py-[0.48vh] min-h-[3.84vh] max-h-[4.32vh]' : 'px-[0.58vh] py-[0.48vh] h-[4.8vh]'
                                               } ${
                                                 isCompleted
                                                   ? 'bg-gray-100 border border-gray-300 opacity-60 cursor-default'
@@ -3600,24 +3536,24 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                                 WebkitTouchCallout: 'none',
                                               }}
                                             >
-                                              <div className="flex items-center justify-between gap-[0.15vh] w-full overflow-hidden">
+                                              <div className="flex items-center justify-between gap-[0.14vh] w-full overflow-hidden">
                                                 <div className="flex-1 min-w-0">
                                                   <div className={`font-semibold truncate w-full ${
-                                                    isMobile ? 'text-[1.4vh]' : 'text-[1.4vh]'
+                                                    isMobile ? 'text-[1.34vh]' : 'text-[1.34vh]'
                                                   } ${isCompleted ? 'text-gray-500 line-through' : 'text-gray-900'}`}>
                                                     {customer?.name}
                                                     {isSelected && (
-                                                      <span className={`ml-[0.15vh] text-green-700 ${isMobile ? 'text-[1.2vh]' : 'text-[1.2vh]'}`}>✓ Selected</span>
+                                                      <span className={`ml-[0.14vh] text-green-700 ${isMobile ? 'text-[1.15vh]' : 'text-[1.15vh]'}`}>✓ Selected</span>
                                                     )}
                                                     {isCutItem && isTouchDevice.current && !isSelected && (
-                                                      <span className={`ml-[0.15vh] text-yellow-700 ${isMobile ? 'text-[1.2vh]' : 'text-[1.2vh]'}`}>✂️ Cut</span>
+                                                      <span className={`ml-[0.14vh] text-yellow-700 ${isMobile ? 'text-[1.15vh]' : 'text-[1.15vh]'}`}>✂️ Cut</span>
                                                     )}
                                                     {isCompleted && (
-                                                      <span className={`ml-[0.15vh] text-green-600 ${isMobile ? 'text-[1.2vh]' : 'text-[1.2vh]'}`}>✓</span>
+                                                      <span className={`ml-[0.14vh] text-green-600 ${isMobile ? 'text-[1.15vh]' : 'text-[1.15vh]'}`}>✓</span>
                                                     )}
                                                   </div>
                                                   {!isDraggedItem && isAssigned && (
-                                                    <div className={`text-gray-700 font-medium mt-[0.2vh] italic ${isMobile ? 'text-[1.2vh]' : 'text-[1.1vh]'}`}>
+                                                    <div className={`text-gray-700 font-medium mt-[0.19vh] italic ${isMobile ? 'text-[1.15vh]' : 'text-[1.06vh]'}`}>
                                                       Moving here...
                                                     </div>
                                                   )}
@@ -3698,10 +3634,10 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                             }
                             
                             return (
-                              <div className={`${isMobile ? 'mt-[0.2vh]' : 'mt-[0.3vh]'}`}>
+                              <div className={`${isMobile ? 'mt-[0.17vh]' : 'mt-[0.27vh]'}`}>
                                 {/* Draggable end time handle - ALWAYS visible at bottom */}
                                 <div
-                                  className={`relative cursor-ns-resize transition-all group ${isMobile ? 'py-[0.5vh]' : 'py-[0.6vh]'}`}
+                                  className={`relative cursor-ns-resize transition-all group ${isMobile ? 'py-[0.44vh]' : 'py-[0.53vh]'}`}
                                   draggable
                                   onDragStart={(e) => {
                                     e.dataTransfer.effectAllowed = 'move';
@@ -3774,26 +3710,26 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                                   }}
                                 >
                                   {/* Visible bar - THICKER */}
-                                  <div className="h-[0.8vh] bg-blue-600 shadow-md rounded"></div>
+                                  <div className="h-[0.71vh] bg-blue-600 shadow-md rounded"></div>
                                   
                                   {/* Drag handle indicator - ALWAYS VISIBLE */}
-                                  <div className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 w-[1.5vh] h-[1.2vh] bg-blue-600 rounded-full flex items-center justify-center shadow-md z-10">
-                                    <svg className="w-[0.7vh] h-[0.7vh] text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <div className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 w-[1.33vh] h-[1.07vh] bg-blue-600 rounded-full flex items-center justify-center shadow-md z-10">
+                                    <svg className="w-[0.62vh] h-[0.62vh] text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
                                     </svg>
                                   </div>
                                   
                                   {/* Time label - Always visible - positioned on right side - LARGER TEXT */}
-                                  <div className={`absolute left-full ml-[0.5vh] top-1/2 -translate-y-1/2 bg-blue-600 text-white px-[0.5vh] py-[0.3vh] rounded font-semibold whitespace-nowrap shadow-md z-10 ${
-                                    isMobile ? 'text-[1.4vh]' : 'text-[1.3vh]'
+                                  <div className={`absolute left-full ml-[0.44vh] top-1/2 -translate-y-1/2 bg-blue-600 text-white px-[0.44vh] py-[0.27vh] rounded font-semibold whitespace-nowrap shadow-md z-10 ${
+                                    isMobile ? 'text-[1.24vh]' : 'text-[1.15vh]'
                                   }`}>
                                     End: {currentEndTime > 12 ? `${currentEndTime - 12}PM` : currentEndTime === 12 ? '12PM' : `${currentEndTime}AM`}
                                   </div>
                                   
                                   {/* Reason label - appears on right */}
                                   {currentEndTime < 18 && (
-                                    <div className={`absolute -right-[0.3vh] top-1/2 -translate-y-1/2 translate-x-full bg-white/95 text-blue-700 px-[0.3vh] py-[0.4vh] rounded shadow-sm font-medium whitespace-nowrap ${
-                                      isMobile ? 'text-[1vh]' : 'text-[1vh]'
+                                    <div className={`absolute -right-[0.27vh] top-1/2 -translate-y-1/2 translate-x-full bg-white/95 text-blue-700 px-[0.27vh] py-[0.36vh] rounded shadow-sm font-medium whitespace-nowrap ${
+                                      isMobile ? 'text-[0.88vh]' : 'text-[0.88vh]'
                                     }`}>
                                       {endReason}
                                     </div>
@@ -3806,9 +3742,9 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                       </div>
 
                       {/* Right: Night Weather (8pm, 11pm, 2am) aligned with day rows */}
-                      <div className={`bg-slate-800 px-[0.15vh] py-[0.3vh] w-12 h-full ${isMobile ? 'flex flex-col' : ''}`}>
+                      <div className={`bg-slate-800 px-[0.14vh] py-[0.28vh] w-12 h-full ${isMobile ? 'flex flex-col' : ''}`}>
                         {/* Spacer to align with the day header + 5AM row */}
-                        <div className={`${isMobile ? 'h-auto shrink-0' : 'h-[7.5vh]'}`}></div>
+                        <div className={`${isMobile ? 'h-auto shrink-0' : 'h-[6.93vh]'}`}></div>
                         
                         {/* Night weather icons aligned with specific day time slots */}
                         {weatherForDay && (() => {
@@ -3844,18 +3780,18 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                           );
                           
                           return (
-                            <div className={`${isMobile ? 'space-y-0 flex-1 flex flex-col justify-between gap-y-[0.5vh]' : 'flex-1 flex flex-col justify-between'}`}>
+                            <div className={`${isMobile ? 'space-y-0 flex-1 flex flex-col justify-between gap-y-[0.44vh]' : 'flex-1 flex flex-col justify-between'}`}>
                               {nightSlots.map((slot, idx) => (
                                 <div key={idx} className={`flex items-center justify-center ${
                                   //Night weather slot - matches day slot height exactly
-                                  isMobile ? 'px-[.5vh] py-[.3vh] max-h-[2.8vh]' : 'h-[5vh] px-[0.5vh]'
+                                  isMobile ? 'px-[.44vh] py-[.27vh] max-h-[2.49vh]' : 'h-[4.44vh] px-[0.44vh]'
 
                                 }`}>
                                   {slot.show && (
-                                    <div className="flex flex-col items-center gap-[0.2vh]">
-                                      <NightIcon className={`${isMobile ? 'w-[3vh] h-[3vh]' : 'w-[3.2vh] h-[3.2vh]'} ${nightColor} stroke-[1.5]`} />
+                                    <div className="flex flex-col items-center gap-[0.17vh]">
+                                      <NightIcon className={`${isMobile ? 'w-[2.66vh] h-[2.66vh]' : 'w-[2.84vh] h-[2.84vh]'} ${nightColor} stroke-[1.5]`} />
                                       <span className={`text-slate-300 font-medium whitespace-nowrap ${
-                                        isMobile ? 'text-[1.2vh]' : 'text-[1.1vh]'
+                                        isMobile ? 'text-[1.07vh]' : 'text-[0.98vh]'
                                       }`}>
                                         {slot.label}
                                       </span>
@@ -3879,16 +3815,8 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                   onClick={() => {
                     const newOffset = dayOffset + 1;
                     setDayOffset(newOffset);
-                    // Scroll to the corresponding card
-                    if (forecastScrollContainerRef.current) {
-                      const cards = forecastScrollContainerRef.current.querySelectorAll('.forecast-day-card');
-                      const targetCard = cards[0]; // Always scroll to first card (current offset day)
-                      if (targetCard) {
-                        (targetCard as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
-                        // Check Today visibility after scroll
-                        setTimeout(() => checkTodayCardVisibility(), 300);
-                      }
-                    }
+                    // Just scroll to top of page - no dual scroll behavior
+                    scrollToTop();
                   }}
                  className="absolute right-4 top-1/2 -translate-y-1/2 z-15 shrink-0 w-12 h-12 rounded-full bg-blue-600 hover:bg-blue-700 flex items-center justify-center text-white shadow-lg transition-all hover:scale-110"
                   aria-label="Next day"

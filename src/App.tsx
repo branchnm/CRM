@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { DailySchedule } from "./components/DailySchedule";
 import { InsightsDashboard } from "./components/InsightsDashboard";
 import { CustomerView } from "./components/CustomerView";
@@ -14,6 +14,9 @@ import {
   CloudSun,
   LogOut,
   MapPin,
+  Route,
+  CheckCircle,
+  Loader2,
 } from "lucide-react";
 import { fetchCustomers } from "./services/customers";
 import { fetchJobs } from "./services/jobs";
@@ -87,6 +90,9 @@ function App() {
   const [lastScrollY, setLastScrollY] = useState(0);
   const [locationZipCode, setLocationZipCode] = useState<string>('');
   const [isEditingAddress, setIsEditingAddress] = useState(false);
+  const [optimizationStatus, setOptimizationStatus] = useState<'idle' | 'optimizing' | 'optimized'>('idle');
+  const [hasJobChanges, setHasJobChanges] = useState(false);
+  const scrollToTodayRef = useRef<(() => void) | null>(null);
 
   // Check auth state on mount and listen for changes
   useEffect(() => {
@@ -345,12 +351,12 @@ function App() {
 
   return (
     <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-yellow-50 pb-20 md:pb-0">
-      {/* Desktop Top Navigation Bar - Fixed and full width */}
-      <div className="hidden md:block fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 shadow-sm">
-        <div className="w-full px-4 py-3">
-          <div className="flex items-center justify-center gap-8">
+      {/* Desktop Top Navigation Bar - Fixed and full width with vh-based height */}
+      <div className="hidden md:block fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 shadow-sm" style={{ height: '5vh', minHeight: '50px' }}>
+        <div className="w-full px-4 h-full flex items-center">
+          <div className="flex items-center justify-center gap-4 xl:gap-6 w-full">
             {/* Logo - Left */}
-            <h1 className="text-xl font-black text-transparent bg-clip-text bg-linear-to-r from-blue-600 via-blue-700 to-blue-800 uppercase tracking-wider">
+            <h1 className="text-lg xl:text-xl font-black text-transparent bg-clip-text bg-linear-to-r from-blue-600 via-blue-700 to-blue-800 uppercase tracking-wider whitespace-nowrap">
               Job Flow
             </h1>
             
@@ -358,10 +364,10 @@ function App() {
             {locationZipCode && (
               <button
                 onClick={() => setIsEditingAddress(true)}
-                className="flex items-center gap-2 px-3 py-2 text-sm bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition-colors"
+                className="flex items-center gap-2 px-2 xl:px-3 py-2 text-xs xl:text-sm bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition-colors whitespace-nowrap"
                 title="Click to change location"
               >
-                <MapPin className="h-4 w-4 text-blue-600" />
+                <MapPin className="h-3 w-3 xl:h-4 xl:w-4 text-blue-600 shrink-0" />
                 <span className="font-medium text-blue-900">{locationZipCode}</span>
               </button>
             )}
@@ -372,36 +378,83 @@ function App() {
                 <button
                   key={item.id}
                   onClick={() => setActiveTab(item.id)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-md transition-colors ${
+                  className={`flex items-center gap-1 xl:gap-2 px-2 xl:px-4 py-2 rounded-md transition-colors ${
                     activeTab === item.id
                       ? "bg-white text-blue-700 shadow-sm"
                       : "text-gray-600 hover:text-gray-900"
                   }`}
                 >
-                  <item.icon className="h-4 w-4" />
-                  <span className="font-medium text-sm">{item.label}</span>
+                  <item.icon className="h-3 w-3 xl:h-4 xl:w-4 shrink-0" />
+                  <span className="font-medium text-xs xl:text-sm hidden lg:inline">{item.label}</span>
                 </button>
               ))}
             </div>
 
             {/* User info and logout - Right */}
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-gray-600">{user.email}</span>
+            <div className="flex items-center gap-2 xl:gap-3">
+              <span className="text-xs xl:text-sm text-gray-600 hidden xl:inline">{user.email}</span>
               <Button 
                 variant="outline" 
                 size="sm" 
                 onClick={handleLogout}
-                className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 border-blue-200"
+                className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 border-blue-200 px-2 xl:px-4"
               >
-                <LogOut className="h-4 w-4 mr-2" />
-                Logout
+                <LogOut className="h-3 w-3 xl:h-4 xl:w-4 xl:mr-2" />
+                <span className="hidden xl:inline text-xs xl:text-sm">Logout</span>
               </Button>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="container mx-auto p-2 sm:p-4 md:p-8 md:pt-20">
+      {/* Sub Navigation Bar - Only visible when Schedule tab is active on desktop */}
+      {activeTab === "schedule" && (
+        <div className="hidden md:block fixed z-40 left-0 right-0 bg-linear-to-b from-blue-50 to-white border-b border-blue-100 shadow-sm" style={{ top: 'max(5vh, 50px)', height: '3.5vh', minHeight: '40px' }}>
+          <div className="w-full h-full flex items-center justify-center gap-3 px-4">
+            {/* Today Button */}
+            <Button
+              onClick={() => scrollToTodayRef.current?.()}
+              size="sm"
+              variant="outline"
+              className="border-blue-600 text-blue-600 hover:bg-blue-50 px-3"
+            >
+              <Calendar className="h-4 w-4 mr-2 shrink-0" />
+              <span className="text-sm">Today</span>
+            </Button>
+
+            {/* Optimize Button - Shows when there are jobs */}
+            {jobs.length > 0 && (
+              <Button
+                onClick={() => {
+                  // This will be handled by DailySchedule's optimize handler
+                  const event = new CustomEvent('optimizeRoute');
+                  window.dispatchEvent(event);
+                }}
+                disabled={optimizationStatus === 'optimizing'}
+                size="sm"
+                className={`shrink-0 transition-colors ${
+                  optimizationStatus === 'optimized' 
+                    ? 'bg-green-600 hover:bg-green-700' 
+                    : hasJobChanges
+                    ? 'bg-orange-600 hover:bg-orange-700'
+                    : 'bg-blue-600 hover:bg-blue-700'
+                } px-3`}
+              >
+                {optimizationStatus === 'optimizing' && <Loader2 className="h-4 w-4 mr-2 animate-spin shrink-0" />}
+                {optimizationStatus === 'optimized' && <CheckCircle className="h-4 w-4 mr-2 shrink-0" />}
+                {optimizationStatus === 'idle' && <Route className="h-4 w-4 mr-2 shrink-0" />}
+                <span className="text-sm">
+                  {optimizationStatus === 'optimizing' && 'Optimizing'}
+                  {optimizationStatus === 'optimized' && 'Optimized'}
+                  {optimizationStatus === 'idle' && 'Optimize'}
+                </span>
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
+
+      <div className="container mx-auto p-2 sm:p-4 md:p-8" style={{ paddingTop: activeTab === "schedule" ? 'calc(max(5vh, 50px) + max(3.5vh, 40px))' : 'max(5vh, 50px)' }}>
         {/* Mobile Header - Logo style with Logout */}
         <div className="mb-4 md:mb-6 md:hidden">
           <div className="flex items-center justify-between mb-2">
@@ -435,6 +488,10 @@ function App() {
               onRefreshJobs={refreshJobs}
               onLocationChange={(locationName: string, zipCode: string) => setLocationZipCode(zipCode)}
               onEditAddress={() => setIsEditingAddress(true)}
+              optimizationStatus={optimizationStatus}
+              onOptimizationStatusChange={setOptimizationStatus}
+              onJobChangesDetected={setHasJobChanges}
+              scrollToTodayRef={scrollToTodayRef}
             />
           )}
           {activeTab === "calendar" && (
