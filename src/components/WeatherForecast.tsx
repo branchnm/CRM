@@ -131,6 +131,10 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
   const [hasJobChanges, setHasJobChanges] = useState(false);
   const [optimizationStatus, setOptimizationStatus] = useState<'idle' | 'optimizing' | 'optimized'>('idle');
 
+  // Calculate number of visible day cards based on viewport width
+  const [visibleCardCount, setVisibleCardCount] = useState(3);
+  const [forecastContainerWidth, setForecastContainerWidth] = useState<number>(0);
+
   // Debounce address input to reduce API calls
   const debouncedAddressInput = useDebounce(addressInput, 500); // 500ms delay
 
@@ -143,6 +147,40 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
+
+  // Calculate how many full day cards can fit in the viewport
+  useEffect(() => {
+    const calculateVisibleCards = () => {
+      if (isMobile) {
+        setVisibleCardCount(1);
+        setForecastContainerWidth(window.innerWidth);
+        return;
+      }
+
+      const cardWidth = 320; // Fixed card width in pixels
+      const gapWidth = 24; // 1.5rem = 24px gap between cards
+      const arrowSpace = 104; // 6.5rem = 104px for arrows and padding
+      
+      const availableWidth = window.innerWidth - arrowSpace;
+      
+      // Calculate how many cards can fit: (width + gap) * n - gap <= availableWidth
+      // Solving for n: n <= (availableWidth + gap) / (width + gap)
+      let maxCards = Math.floor((availableWidth + gapWidth) / (cardWidth + gapWidth));
+      
+      // Ensure at least 1 card, maximum reasonable is 7-8 cards
+      maxCards = Math.max(1, Math.min(maxCards, 8));
+      
+      // Calculate exact width needed for that many cards
+      const totalWidth = (cardWidth * maxCards) + (gapWidth * (maxCards - 1));
+      
+      setVisibleCardCount(maxCards);
+      setForecastContainerWidth(totalWidth);
+    };
+
+    calculateVisibleCards();
+    window.addEventListener('resize', calculateVisibleCards);
+    return () => window.removeEventListener('resize', calculateVisibleCards);
+  }, [isMobile]);
 
   // Custom scroll snap for day cards on mobile
   useEffect(() => {
@@ -2365,6 +2403,28 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
     return days;
   }, [dayOffset]);
 
+  // Scroll to today card on initial load - position it on the left
+  useEffect(() => {
+    if (!isMobile && forecastScrollContainerRef.current && next30Days.length > 0) {
+      // Small delay to ensure DOM is ready
+      const timer = setTimeout(() => {
+        const todayStr = new Date().toLocaleDateString('en-CA');
+        const cards = forecastScrollContainerRef.current?.querySelectorAll('.forecast-day-card');
+        
+        if (cards) {
+          cards.forEach((card) => {
+            const dateAttr = card.getAttribute('data-date');
+            if (dateAttr === todayStr) {
+              (card as HTMLElement).scrollIntoView({ behavior: 'auto', block: 'nearest', inline: 'start' });
+            }
+          });
+        }
+      }, 100);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [isMobile, next30Days.length, visibleCardCount]); // Re-run when card count changes
+
   return (
     <div className="space-y-4 relative">
       {/* Cancel Selection Button - Floating bottom-right when jobs selected */}
@@ -2901,9 +2961,9 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                 style={{
                   scrollSnapType: isMobile ? undefined : 'x mandatory',
                   scrollBehavior: isMobile ? undefined : 'smooth',
-                  width: isMobile ? '100%' : 'calc(100vw - 6.5rem)', // Reduced to 6.5rem for arrows + minimal padding
-                  maxWidth: isMobile ? '100%' : '99vw', // Increased to 99vw
-                  scrollPaddingInline: isMobile ? undefined : 'calc(50% - 160px)', // Center alignment: half viewport minus half card width (320px / 2)
+                  width: isMobile ? '100%' : `${forecastContainerWidth}px`,
+                  maxWidth: isMobile ? '100%' : `${forecastContainerWidth}px`,
+                  margin: isMobile ? undefined : '0 auto', // Center the container
                 }}
               >
                 {/* Desktop Instructions */}
@@ -2932,8 +2992,8 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                     gap: isMobile ? undefined : '1.5rem',
                     transform: isMobile && !slideDirection ? `translateX(${swipeOffset}px)` : undefined,
                     transition: isTransitioning && !slideDirection ? 'transform 0.3s ease-out' : 'none',
-                    paddingLeft: isMobile ? undefined : 'calc(50% - 160px)', // Center first card: half viewport minus half card width
-                    paddingRight: isMobile ? undefined : 'calc(50% - 160px)', // Center last card: half viewport minus half card width
+                    paddingLeft: isMobile ? undefined : '0',
+                    paddingRight: isMobile ? undefined : '0',
                   }}
                   onTouchStart={isMobile ? onTouchStart : undefined}
                   onTouchMove={isMobile ? onTouchMove : undefined}
@@ -2990,7 +3050,7 @@ export function WeatherForecast({ jobs = [], customers = [], onRescheduleJob, on
                         isMobile ? 'mb-8 h-[85vh] overflow-hidden flex flex-col' : 'h-[90vh] shrink-0 flex flex-col'
                       } shadow-lg rounded-lg overflow-hidden`}
                       style={{
-                        scrollSnapAlign: isMobile ? undefined : 'center',
+                        scrollSnapAlign: isMobile ? undefined : 'start',
                         scrollSnapStop: isMobile ? undefined : 'always',
                         width: isMobile ? undefined : '320px', // Fixed width for consistent cards
                         minWidth: isMobile ? undefined : '320px',
