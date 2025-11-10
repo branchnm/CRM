@@ -1604,6 +1604,67 @@ export function WeatherForecast({
     }
   }, []);
 
+  // Seed localStorage with fake historical data for testing (if no data exists)
+  const seedLocalStorageHistoricalData = () => {
+    const historicalWeather = JSON.parse(localStorage.getItem('historicalWeather') || '{}');
+    
+    // Check if we already have historical data
+    if (Object.keys(historicalWeather).length > 5) {
+      return; // Already seeded
+    }
+    
+    console.log('🌱 Seeding localStorage with fake historical weather data...');
+    
+    const weatherPatterns = [
+      { desc: 'clear sky', icon: '01d', precip: 0, chance: 0 },
+      { desc: 'partly cloudy', icon: '02d', precip: 0, chance: 10 },
+      { desc: 'scattered clouds', icon: '03d', precip: 0, chance: 15 },
+      { desc: 'overcast clouds', icon: '04d', precip: 0.2, chance: 30 },
+      { desc: 'light rain', icon: '10d', precip: 2.5, chance: 65 },
+      { desc: 'moderate rain', icon: '10d', precip: 5.8, chance: 85 },
+    ];
+    
+    const today = new Date();
+    for (let i = 1; i <= 30; i++) {
+      const date = new Date(today);
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toLocaleDateString('en-CA');
+      
+      const pattern = weatherPatterns[Math.floor(Math.random() * weatherPatterns.length)];
+      const baseTempMax = 65 + Math.floor(Math.random() * 20);
+      const tempMin = baseTempMax - (10 + Math.floor(Math.random() * 10));
+      
+      const hourlyForecasts = [8, 11, 14, 17].map(hour => ({
+        time: hour <= 12 ? `${hour} AM` : `${hour - 12} PM`,
+        temp: tempMin + Math.floor(Math.random() * (baseTempMax - tempMin)),
+        precipitation: pattern.chance + Math.floor(Math.random() * 10 - 5),
+        icon: pattern.icon,
+        description: pattern.desc,
+        rainAmount: pattern.precip * (0.5 + Math.random() * 0.5),
+        hour24: hour
+      }));
+      
+      historicalWeather[dateStr] = {
+        daily: [{
+          tempMax: baseTempMax,
+          tempMin: tempMin,
+          precipitation: pattern.precip,
+          precipitationChance: pattern.chance,
+          description: pattern.desc,
+          icon: pattern.icon,
+          windSpeed: 5 + Math.floor(Math.random() * 15),
+          humidity: 40 + Math.floor(Math.random() * 40),
+          hourlyForecasts
+        }],
+        location: locationName,
+        savedAt: new Date().toISOString()
+      };
+    }
+    
+    localStorage.setItem('historicalWeather', JSON.stringify(historicalWeather));
+    console.log(`✅ Seeded ${Object.keys(historicalWeather).length} days of historical weather to localStorage`);
+  };
+
   const loadWeather = async (coords: Coordinates) => {
     setLoading(true);
     setError(null);
@@ -1629,6 +1690,9 @@ export function WeatherForecast({
           // Also set as route starting address
           localStorage.setItem('routeStartingAddress', coords.name);
         }
+        
+        // Seed localStorage with historical data for testing (if needed)
+        seedLocalStorageHistoricalData();
         
         // Extract zipcode from location name
         const zipcode = getZipCode(finalLocationName);
@@ -2594,7 +2658,7 @@ export function WeatherForecast({
     return days;
   }, [dayOffset, isMobile]);
 
-  // Scroll to today card on initial load - position it on the left
+  // Scroll to today card on initial load and when weather data changes - position it on the left
   useEffect(() => {
     if (!isMobile && forecastScrollContainerRef.current && next30Days.length > 0) {
       // Use longer delay and requestAnimationFrame to ensure DOM is fully rendered
@@ -2609,17 +2673,17 @@ export function WeatherForecast({
             if (container) {
               const cardLeft = (todayCard as HTMLElement).offsetLeft;
               container.scrollTo({ left: cardLeft, behavior: 'auto' });
-              console.log(`Scrolled to today's card at ${todayStr}`);
+              console.log(`✅ Scrolled to today's card at ${todayStr}, offset: ${cardLeft}px`);
             }
           } else {
-            console.log(`Today's card not found for ${todayStr}`);
+            console.log(`⚠️ Today's card not found for ${todayStr}`);
           }
         });
-      }, 300);
+      }, 500); // Increased delay to ensure weather data is rendered
       
       return () => clearTimeout(timer);
     }
-  }, [isMobile, next30Days.length]); // Only run when mobile state or days array changes
+  }, [isMobile, next30Days.length, weatherData, historicalWeatherCache]); // Re-run when weather data loads
 
   // Load historical weather data from database
   useEffect(() => {
@@ -2630,6 +2694,8 @@ export function WeatherForecast({
       const today = new Date();
       const cache = new Map<string, any>();
       
+      console.log(`📡 Loading historical weather for location: ${locationName}, zipcode: ${zipcode}`);
+      
       // Load 30 days of historical weather
       for (let i = 1; i <= 30; i++) {
         const date = new Date(today);
@@ -2637,6 +2703,7 @@ export function WeatherForecast({
         const dateStr = date.toLocaleDateString('en-CA');
         
         try {
+          // Try to get from database first
           const weatherRecord = await getHistoricalWeather(dateStr, zipcode);
           if (weatherRecord) {
             // Transform database record to match expected format
@@ -2651,14 +2718,35 @@ export function WeatherForecast({
               humidity: weatherRecord.humidity,
               hourlyForecasts: weatherRecord.hourly_forecasts
             });
+          } else {
+            // Fallback to localStorage
+            const historicalWeather = JSON.parse(localStorage.getItem('historicalWeather') || '{}');
+            const savedWeather = historicalWeather[dateStr];
+            if (savedWeather && savedWeather.daily && savedWeather.daily.length > 0) {
+              cache.set(dateStr, savedWeather.daily[0]);
+            }
           }
         } catch (error) {
           console.error(`Error loading historical weather for ${dateStr}:`, error);
+          // Try localStorage as final fallback
+          try {
+            const historicalWeather = JSON.parse(localStorage.getItem('historicalWeather') || '{}');
+            const savedWeather = historicalWeather[dateStr];
+            if (savedWeather && savedWeather.daily && savedWeather.daily.length > 0) {
+              cache.set(dateStr, savedWeather.daily[0]);
+            }
+          } catch (localError) {
+            console.error(`Error loading from localStorage for ${dateStr}:`, localError);
+          }
         }
       }
       
       setHistoricalWeatherCache(cache);
-      console.log(`📊 Loaded ${cache.size} days of historical weather from database`);
+      if (cache.size > 0) {
+        console.log(`✅ Loaded ${cache.size} days of historical weather`);
+      } else {
+        console.warn(`⚠️ No historical weather data found. Database table may not exist yet. See WEATHER_HISTORY_SETUP.md`);
+      }
     };
     
     loadHistoricalWeather();
@@ -3369,15 +3457,12 @@ export function WeatherForecast({
                   if (isPastDay) {
                     // Try to load historical weather data from database cache
                     weatherForDay = historicalWeatherCache.get(dateStr);
-                    if (weatherForDay) {
-                      console.log(`✅ Loaded historical weather for ${dateStr} from database`);
-                    } else {
+                    if (!weatherForDay) {
                       // Fallback to localStorage for backward compatibility
                       const historicalWeather = JSON.parse(localStorage.getItem('historicalWeather') || '{}');
                       const savedWeather = historicalWeather[dateStr];
                       if (savedWeather && savedWeather.daily && savedWeather.daily.length > 0) {
                         weatherForDay = savedWeather.daily[0];
-                        console.log(`📦 Loaded historical weather for ${dateStr} from localStorage (fallback)`);
                       }
                     }
                   } else {
