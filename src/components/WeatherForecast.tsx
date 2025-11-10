@@ -2940,9 +2940,21 @@ export function WeatherForecast({
               </div>
             </div>
           ) : (
-            /* Show clickable location display when location is set and not editing - Icon-only on mobile */
-            <div className="flex flex-col md:flex-row items-center gap-3">
-              {/* Location display removed from here - will be in top bar */}
+            /* Show clickable location display when location is set and not editing - Desktop only */
+            <div className="hidden md:flex flex-row items-center gap-3">
+              <button
+                onClick={() => setIsEditingAddress(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-white rounded-lg shadow-sm border border-blue-200 text-sm hover:bg-blue-50 transition-colors"
+                title="Click to change location"
+              >
+                <MapPin className="h-4 w-4 text-blue-600" />
+                <div className="flex flex-col items-start">
+                  <span className="font-medium text-blue-900">{getShortAddress(locationName)}</span>
+                  {getZipCode(locationName) && (
+                    <span className="text-xs text-blue-600">{getZipCode(locationName)}</span>
+                  )}
+                </div>
+              </button>
             </div>
           )}
         </div>
@@ -3698,7 +3710,7 @@ export function WeatherForecast({
                                                 isMobile ? 'px-[0.73vh] py-[0.46vh] min-h-[3.65vh] max-h-[4.10vh]' : 'px-[0.58vh] py-[0.48vh] h-[4.8vh]'
                                               } ${
                                                 isCompleted
-                                                  ? 'bg-gray-100 border border-gray-300 opacity-60 cursor-default'
+                                                  ? 'bg-gray-200/80 border border-gray-400 cursor-default'
                                                   : isSelected
                                                   ? 'bg-green-100 border-2 border-green-600 shadow-lg'
                                                   : isCutItem
@@ -3719,7 +3731,7 @@ export function WeatherForecast({
                                                 <div className="flex-1 min-w-0">
                                                   <div className={`font-semibold truncate w-full ${
                                                     isMobile ? 'text-[1.27vh]' : 'text-[1.34vh]'
-                                                  } ${isCompleted ? 'text-gray-500 line-through' : 'text-gray-900'}`}>
+                                                  } ${isCompleted ? 'text-gray-600' : 'text-gray-900'}`}>
                                                     {customer?.name}
                                                     {isSelected && (
                                                       <span className={`ml-[0.14vh] text-green-700 ${isMobile ? 'text-[1.09vh]' : 'text-[1.15vh]'}`}>✓ Selected</span>
@@ -3728,7 +3740,7 @@ export function WeatherForecast({
                                                       <span className={`ml-[0.14vh] text-yellow-700 ${isMobile ? 'text-[1.09vh]' : 'text-[1.15vh]'}`}>✂️ Cut</span>
                                                     )}
                                                     {isCompleted && (
-                                                      <span className={`ml-[0.14vh] text-green-600 ${isMobile ? 'text-[1.09vh]' : 'text-[1.15vh]'}`}>✓</span>
+                                                      <span className={`ml-[0.14vh] text-gray-700 font-bold ${isMobile ? 'text-[1.09vh]' : 'text-[1.15vh]'}`}>✓</span>
                                                     )}
                                                   </div>
                                                   {!isDraggedItem && isAssigned && (
@@ -3737,7 +3749,7 @@ export function WeatherForecast({
                                                     </div>
                                                   )}
                                                   {!isDraggedItem && !isAssigned && !isCutItem && (
-                                                    <div className={`truncate ${isMobile ? 'text-[1.14vh]' : 'text-[1.1vh]'} ${isCompleted ? 'text-gray-400' : 'text-gray-600'}`}>
+                                                    <div className={`truncate ${isMobile ? 'text-[1.14vh]' : 'text-[1.1vh]'} ${isCompleted ? 'text-gray-500' : 'text-gray-600'}`}>
                                                       {scheduledTime && <span className="font-medium">{scheduledTime} • </span>}
                                                       ${customer?.price} • 60 min
                                                     </div>
