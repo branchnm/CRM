@@ -8,7 +8,8 @@
     "dev:host": "vite --host",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "deploy": "powershell -ExecutionPolicy Bypass -File ./auto-commit.ps1"
   },
   "dependencies": {
     "@radix-ui/react-label": "^2.1.7",
