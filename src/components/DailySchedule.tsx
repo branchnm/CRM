@@ -971,8 +971,19 @@ export function DailySchedule({
       
       console.log('All jobs updated in database, refreshing...');
       
-      // Small delay to ensure database propagation
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Store the optimized job order for change detection BEFORE refreshing
+      const newOptimizedOrder = new Map<string, number>();
+      allOptimizedJobs.forEach(job => {
+        if (job.order) newOptimizedOrder.set(job.id, job.order);
+      });
+      setOptimizedJobOrder(newOptimizedOrder);
+      
+      // Set optimized state BEFORE refreshing jobs to prevent race condition
+      onOptimizationStatusChange?.('optimized');
+      onJobChangesDetected?.(false); // No changes right after optimization
+      
+      // Small delay to ensure state updates propagate
+      await new Promise(resolve => setTimeout(resolve, 100));
 
       // Refresh jobs from database - this will trigger WeatherForecast to re-sort
       await onRefreshJobs?.();
@@ -982,17 +993,6 @@ export function DailySchedule({
       
       // Update cache with the new route data from all days
       setDriveTimesCache(newDriveTimesCache);
-      
-      // Store the optimized job order for change detection
-      const newOptimizedOrder = new Map<string, number>();
-      allOptimizedJobs.forEach(job => {
-        if (job.order) newOptimizedOrder.set(job.id, job.order);
-      });
-      setOptimizedJobOrder(newOptimizedOrder);
-      
-      // Set optimized state - this will stay until jobs are manually changed
-      onOptimizationStatusChange?.('optimized');
-      onJobChangesDetected?.(false); // No changes right after optimization
 
       console.log('=== MULTI-DAY ROUTE OPTIMIZATION COMPLETE ===');
       console.log('Optimized jobs with new order:', allOptimizedJobs.map(j => ({ 
@@ -1020,6 +1020,9 @@ export function DailySchedule({
   // Detect job order changes after optimization
   useEffect(() => {
     if (optimizedJobOrder.size === 0) return; // No optimization has occurred yet
+    
+    // Skip change detection if we're currently optimizing (let it complete)
+    if (optimizationStatus === 'optimizing') return;
     
     // Check if any job's order has changed from the optimized order
     let hasChanges = false;
