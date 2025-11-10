@@ -67,6 +67,8 @@ interface WeatherForecastProps {
   onStartingAddressChange?: (address: string) => void;
   onLocationChange?: (locationName: string, zipCode: string) => void;
   onEditAddress?: () => void;
+  onCancelEditAddress?: () => void;
+  isEditingAddress?: boolean;
   scrollToTodayRef?: React.MutableRefObject<(() => void) | null>;
 }
 
@@ -81,6 +83,8 @@ export function WeatherForecast({
   onStartingAddressChange, 
   onLocationChange, 
   onEditAddress,
+  onCancelEditAddress,
+  isEditingAddress: isEditingAddressProp,
   scrollToTodayRef
 }: WeatherForecastProps) {
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
@@ -101,7 +105,7 @@ export function WeatherForecast({
   const [showAddressSuggestions, setShowAddressSuggestions] = useState(false);
   const [addressSuggestions, setAddressSuggestions] = useState<AddressSuggestion[]>([]);
   const [isSearchingAddress, setIsSearchingAddress] = useState(false);
-  const [isEditingAddress, setIsEditingAddress] = useState(false);
+  // Note: isEditingAddress is now passed as a prop (isEditingAddressProp) from parent
   const addressInputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const forecastScrollContainerRef = useRef<HTMLDivElement>(null);
@@ -589,12 +593,12 @@ export function WeatherForecast({
 
   // Auto-focus input and clear it when entering edit mode
   useEffect(() => {
-    if (isEditingAddress && addressInputRef.current) {
+    if (isEditingAddressProp && addressInputRef.current) {
       setAddressInput(''); // Clear the input when entering edit mode
       setShowAddressSuggestions(false);
       addressInputRef.current.focus();
     }
-  }, [isEditingAddress]);
+  }, [isEditingAddressProp]);
 
   // Sync jobTimeSlots with jobs order when jobs prop changes (e.g., after optimization)
   useEffect(() => {
@@ -670,6 +674,34 @@ export function WeatherForecast({
     const saved = localStorage.getItem('dayEndTimes');
     return saved ? new Map(JSON.parse(saved)) : new Map();
   }); // date -> end hour (8-18 for 8am-6pm)
+  
+  // Track the last day start/end times when optimized
+  const [lastOptimizedDayTimes, setLastOptimizedDayTimes] = useState<string>('');
+  
+  // Track changes to day start/end times (delay bars)
+  useEffect(() => {
+    const currentDayTimesState = JSON.stringify({
+      startTimes: Array.from(dayStartTimes.entries()),
+      endTimes: Array.from(dayEndTimes.entries())
+    });
+    
+    // If we have a last optimized state and times have changed, trigger re-optimization need
+    if (lastOptimizedDayTimes && currentDayTimesState !== lastOptimizedDayTimes && optimizationStatus === 'optimized') {
+      // Day times changed after optimization - need to re-optimize
+      setHasJobChanges(true);
+    }
+  }, [dayStartTimes, dayEndTimes, lastOptimizedDayTimes, optimizationStatus]);
+  
+  // Save day times state when optimization completes
+  useEffect(() => {
+    if (optimizationStatus === 'optimized') {
+      const currentDayTimesState = JSON.stringify({
+        startTimes: Array.from(dayStartTimes.entries()),
+        endTimes: Array.from(dayEndTimes.entries())
+      });
+      setLastOptimizedDayTimes(currentDayTimesState);
+    }
+  }, [optimizationStatus, dayStartTimes, dayEndTimes]);
   
   // Track days with overnight rain from previous night (for visual "wet grass" indicator)
   const [daysWithOvernightRain, setDaysWithOvernightRain] = useState<Set<string>>(new Set());
@@ -1788,7 +1820,6 @@ export function WeatherForecast({
     // First, fill in the address and close dropdown
     setAddressInput(suggestion.display_name);
     setShowAddressSuggestions(false);
-    setIsEditingAddress(false); // Exit edit mode after selection
     setLoading(true);
 
     try {
@@ -1806,7 +1837,7 @@ export function WeatherForecast({
 
       console.log('Address saved to localStorage:', suggestion.display_name);
 
-      // Update parent component's starting address
+      // Update parent component's starting address and location
       if (onStartingAddressChange) {
         onStartingAddressChange(suggestion.display_name);
         console.log('Parent component notified of address change');
@@ -2571,9 +2602,13 @@ export function WeatherForecast({
       )}
       
       {/* Address Indicator - Top Right Corner - Mobile Only */}
-      {locationName && isMobile && !isEditingAddress && (
+      {locationName && isMobile && !isEditingAddressProp && (
         <button
-          onClick={() => setIsEditingAddress(true)}
+          onClick={() => {
+            if (onEditAddress) {
+              onEditAddress();
+            }
+          }}
           className="fixed top-4 right-4 z-40 flex items-center gap-2 px-3 py-2 bg-white rounded-full shadow-lg border border-blue-200 text-sm hover:bg-blue-50 transition-colors"
           title="Change location"
         >
@@ -2763,13 +2798,18 @@ export function WeatherForecast({
       )}
 
       {/* Mobile Location Editor - Full screen overlay */}
-      {isMobile && isEditingAddress && (
+      {isMobile && isEditingAddressProp && (
         <div className="fixed inset-0 bg-white z-100 flex flex-col">
           <div className="bg-blue-600 text-white p-4 flex items-center justify-between">
             <h2 className="text-lg font-semibold">Set Location</h2>
             {locationName && (
               <button 
-                onClick={() => setIsEditingAddress(false)}
+                onClick={() => {
+                  // Cancel editing and revert to previous location
+                  if (onCancelEditAddress) {
+                    onCancelEditAddress();
+                  }
+                }}
                 className="p-2 hover:bg-blue-700 rounded-full transition-colors"
               >
                 <X className="w-5 h-5" />
@@ -2793,8 +2833,8 @@ export function WeatherForecast({
                       handleSetAddress();
                     } else if (e.key === 'Escape') {
                       setShowAddressSuggestions(false);
-                      if (locationName) {
-                        setIsEditingAddress(false);
+                      if (locationName && onCancelEditAddress) {
+                        onCancelEditAddress();
                       }
                     }
                   }}

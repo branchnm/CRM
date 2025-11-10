@@ -88,21 +88,23 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [showBottomNav, setShowBottomNav] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
-  const [locationZipCode, setLocationZipCode] = useState<string>('');
+  const [locationZipCode, setLocationZipCode] = useState<string>(() => {
+    // Load location from localStorage on mount
+    const savedLocationName = localStorage.getItem('weatherLocationName');
+    if (savedLocationName) {
+      const zipMatch = savedLocationName.match(/\b\d{5}(?:-\d{4})?\b/);
+      return zipMatch ? zipMatch[0] : '';
+    }
+    return '';
+  });
   const [isEditingAddress, setIsEditingAddress] = useState(false);
+  const [tempLocationName, setTempLocationName] = useState<string>(''); // Store location before editing
   const [optimizationStatus, setOptimizationStatus] = useState<'idle' | 'optimizing' | 'optimized'>('idle');
   const [hasJobChanges, setHasJobChanges] = useState(false);
   const scrollToTodayRef = useRef<(() => void) | null>(null);
 
-  // Auto-hide optimize button after showing "Optimized" for 2 seconds
-  useEffect(() => {
-    if (optimizationStatus === 'optimized') {
-      const timer = setTimeout(() => {
-        setOptimizationStatus('idle');
-      }, 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [optimizationStatus]);
+  // Don't auto-hide optimize button - keep it showing "Optimized" until jobs change
+  // The optimization status is now controlled by job changes detection in DailySchedule
 
   // Check auth state on mount and listen for changes
   useEffect(() => {
@@ -373,8 +375,13 @@ function App() {
             {/* Address - Left of tabs */}
             {locationZipCode && (
               <button
-                onClick={() => setIsEditingAddress(true)}
-                className="flex items-center gap-2 px-2 xl:px-3 py-2 text-xs xl:text-sm bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition-colors whitespace-nowrap"
+                onClick={() => {
+                  // Store current location before editing
+                  const savedLocationName = localStorage.getItem('weatherLocationName');
+                  setTempLocationName(savedLocationName || '');
+                  setIsEditingAddress(true);
+                }}
+                className="flex items-center gap-2 px-2 xl:px-3 py-2 text-xs xl:text-sm bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition-colors whitespace-nowrap cursor-pointer"
                 title="Click to change location"
               >
                 <MapPin className="h-3 w-3 xl:h-4 xl:w-4 text-blue-600 shrink-0" />
@@ -515,7 +522,21 @@ function App() {
               onRefreshCustomers={refreshCustomers}
               onRefreshJobs={refreshJobs}
               onLocationChange={(locationName: string, zipCode: string) => setLocationZipCode(zipCode)}
-              onEditAddress={() => setIsEditingAddress(true)}
+              onEditAddress={() => {
+                const savedLocationName = localStorage.getItem('weatherLocationName');
+                setTempLocationName(savedLocationName || '');
+                setIsEditingAddress(true);
+              }}
+              onCancelEditAddress={() => {
+                // Revert to previous location
+                if (tempLocationName) {
+                  localStorage.setItem('weatherLocationName', tempLocationName);
+                  const zipMatch = tempLocationName.match(/\b\d{5}(?:-\d{4})?\b/);
+                  setLocationZipCode(zipMatch ? zipMatch[0] : '');
+                }
+                setIsEditingAddress(false);
+              }}
+              isEditingAddress={isEditingAddress}
               optimizationStatus={optimizationStatus}
               onOptimizationStatusChange={setOptimizationStatus}
               onJobChangesDetected={setHasJobChanges}

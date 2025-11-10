@@ -26,6 +26,8 @@ interface DailyScheduleProps {
   onRefreshJobs?: () => Promise<void> | void;
   onLocationChange?: (locationName: string, zipCode: string) => void;
   onEditAddress?: () => void;
+  onCancelEditAddress?: () => void;
+  isEditingAddress?: boolean;
   optimizationStatus?: 'idle' | 'optimizing' | 'optimized';
   onOptimizationStatusChange?: (status: 'idle' | 'optimizing' | 'optimized') => void;
   onJobChangesDetected?: (hasChanges: boolean) => void;
@@ -43,6 +45,8 @@ export function DailySchedule({
   onRefreshJobs, 
   onLocationChange, 
   onEditAddress,
+  onCancelEditAddress,
+  isEditingAddress,
   optimizationStatus = 'idle',
   onOptimizationStatusChange,
   onJobChangesDetected,
@@ -1156,6 +1160,8 @@ export function DailySchedule({
         onStartingAddressChange={handleStartingAddressChange}
         onLocationChange={onLocationChange}
         onEditAddress={onEditAddress}
+        onCancelEditAddress={onCancelEditAddress}
+        isEditingAddress={isEditingAddress}
         scrollToTodayRef={scrollToTodayRef}
       />
 
