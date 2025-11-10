@@ -37,6 +37,11 @@ import {
   type Coordinates 
 } from '../services/weather';
 import { getAddressSuggestions, type AddressSuggestion } from '../services/placesAutocomplete';
+import { 
+  saveTodaysWeather, 
+  getHistoricalWeather, 
+  ensureHistoricalWeatherData 
+} from '../services/weatherHistory';
 import { toast } from 'sonner';
 
 // Debounce helper function
@@ -93,6 +98,7 @@ export function WeatherForecast({
   scrollToTodayRef
 }: WeatherForecastProps) {
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
+  const [historicalWeatherCache, setHistoricalWeatherCache] = useState<Map<string, any>>(new Map());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [location, setLocation] = useState<Coordinates | null>(() => {
@@ -1607,14 +1613,56 @@ export function WeatherForecast({
         setWeatherData(data);
         setError(null);
         
-        // Save weather data to localStorage with today's date for historical viewing
+        // Get location name if not already set
+        let finalLocationName = locationName;
+        if (!locationName || !coords.name) {
+          const name = await getLocationName(coords.lat, coords.lon);
+          finalLocationName = name;
+          setLocationName(name);
+          localStorage.setItem('weatherLocationName', name);
+          // Also set as route starting address
+          localStorage.setItem('routeStartingAddress', name);
+        } else if (coords.name) {
+          finalLocationName = coords.name;
+          setLocationName(coords.name);
+          localStorage.setItem('weatherLocationName', coords.name);
+          // Also set as route starting address
+          localStorage.setItem('routeStartingAddress', coords.name);
+        }
+        
+        // Extract zipcode from location name
+        const zipcode = getZipCode(finalLocationName);
+        
+        // Save today's weather to Supabase database
+        try {
+          await saveTodaysWeather(
+            finalLocationName,
+            zipcode,
+            coords.lat,
+            coords.lon,
+            data
+          );
+          
+          // Also ensure we have historical seed data (only runs if table is empty)
+          await ensureHistoricalWeatherData(
+            finalLocationName,
+            zipcode,
+            coords.lat,
+            coords.lon
+          );
+        } catch (dbError) {
+          console.error('Failed to save weather to database:', dbError);
+          // Don't fail the whole operation if DB save fails
+        }
+        
+        // Also save to localStorage as backup
         const today = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
         const historicalWeather = JSON.parse(localStorage.getItem('historicalWeather') || '{}');
         
         // Store today's weather data with the date as key
         historicalWeather[today] = {
           daily: data.daily,
-          location: coords.name || locationName,
+          location: finalLocationName,
           savedAt: new Date().toISOString()
         };
         
@@ -1627,21 +1675,6 @@ export function WeatherForecast({
         }
         
         localStorage.setItem('historicalWeather', JSON.stringify(historicalWeather));
-        console.log('Saved historical weather for', today);
-        
-        // Get location name if not already set
-        if (!locationName || !coords.name) {
-          const name = await getLocationName(coords.lat, coords.lon);
-          setLocationName(name);
-          localStorage.setItem('weatherLocationName', name);
-          // Also set as route starting address
-          localStorage.setItem('routeStartingAddress', name);
-        } else if (coords.name) {
-          setLocationName(coords.name);
-          localStorage.setItem('weatherLocationName', coords.name);
-          // Also set as route starting address
-          localStorage.setItem('routeStartingAddress', coords.name);
-        }
       } else {
         const errorMsg = 'Failed to load weather data - API may not be activated yet';
         setError(errorMsg);
@@ -2588,6 +2621,49 @@ export function WeatherForecast({
     }
   }, [isMobile, next30Days.length]); // Only run when mobile state or days array changes
 
+  // Load historical weather data from database
+  useEffect(() => {
+    const loadHistoricalWeather = async () => {
+      if (!locationName) return;
+      
+      const zipcode = getZipCode(locationName);
+      const today = new Date();
+      const cache = new Map<string, any>();
+      
+      // Load 30 days of historical weather
+      for (let i = 1; i <= 30; i++) {
+        const date = new Date(today);
+        date.setDate(date.getDate() - i);
+        const dateStr = date.toLocaleDateString('en-CA');
+        
+        try {
+          const weatherRecord = await getHistoricalWeather(dateStr, zipcode);
+          if (weatherRecord) {
+            // Transform database record to match expected format
+            cache.set(dateStr, {
+              tempMax: weatherRecord.temp_max,
+              tempMin: weatherRecord.temp_min,
+              precipitation: weatherRecord.precipitation,
+              precipitationChance: weatherRecord.precipitation_chance,
+              description: weatherRecord.description,
+              icon: weatherRecord.icon,
+              windSpeed: weatherRecord.wind_speed,
+              humidity: weatherRecord.humidity,
+              hourlyForecasts: weatherRecord.hourly_forecasts
+            });
+          }
+        } catch (error) {
+          console.error(`Error loading historical weather for ${dateStr}:`, error);
+        }
+      }
+      
+      setHistoricalWeatherCache(cache);
+      console.log(`📊 Loaded ${cache.size} days of historical weather from database`);
+    };
+    
+    loadHistoricalWeather();
+  }, [locationName]); // Reload when location changes
+
   // Notify parent when location changes
   useEffect(() => {
     if (locationName && onLocationChange) {
@@ -3291,15 +3367,18 @@ export function WeatherForecast({
                   let weatherForDay = null;
                   
                   if (isPastDay) {
-                    // Try to load historical weather data
-                    const historicalWeather = JSON.parse(localStorage.getItem('historicalWeather') || '{}');
-                    const savedWeather = historicalWeather[dateStr];
-                    if (savedWeather && savedWeather.daily && savedWeather.daily.length > 0) {
-                      // Use the first day from the saved data (it was saved as "today" on that date)
-                      weatherForDay = savedWeather.daily[0];
-                      console.log(`Loaded historical weather for ${dateStr}`);
+                    // Try to load historical weather data from database cache
+                    weatherForDay = historicalWeatherCache.get(dateStr);
+                    if (weatherForDay) {
+                      console.log(`✅ Loaded historical weather for ${dateStr} from database`);
                     } else {
-                      console.log(`No historical weather found for ${dateStr}`);
+                      // Fallback to localStorage for backward compatibility
+                      const historicalWeather = JSON.parse(localStorage.getItem('historicalWeather') || '{}');
+                      const savedWeather = historicalWeather[dateStr];
+                      if (savedWeather && savedWeather.daily && savedWeather.daily.length > 0) {
+                        weatherForDay = savedWeather.daily[0];
+                        console.log(`📦 Loaded historical weather for ${dateStr} from localStorage (fallback)`);
+                      }
                     }
                   } else {
                     // Future day - use forecast data
