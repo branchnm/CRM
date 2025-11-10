@@ -453,7 +453,7 @@ function App() {
                   optimizationStatus === 'optimizing'
                     ? 'bg-blue-600 hover:bg-blue-700'
                     : optimizationStatus === 'optimized'
-                    ? 'bg-sky-400 hover:bg-sky-500' 
+                    ? 'bg-blue-600 hover:bg-blue-700' 
                     : hasJobChanges
                     ? 'bg-orange-600 hover:bg-orange-700'
                     : 'bg-blue-600 hover:bg-blue-700'
@@ -644,7 +644,7 @@ function App() {
                   optimizationStatus === 'optimizing'
                     ? 'bg-blue-600 hover:bg-blue-700'
                     : optimizationStatus === 'optimized'
-                    ? 'bg-sky-400 hover:bg-sky-500' 
+                    ? 'bg-blue-600 hover:bg-blue-700' 
                     : hasJobChanges
                     ? 'bg-orange-600 hover:bg-orange-700'
                     : 'bg-blue-600 hover:bg-blue-700'

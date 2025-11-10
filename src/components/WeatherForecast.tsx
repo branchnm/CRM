@@ -972,8 +972,8 @@ export function WeatherForecast({
       lastGoodHour?: number;
     }> = [];
 
-    // Analyze each day in the 5-day forecast
-    const forecast = weatherData.daily.slice(0, 5);
+    // Analyze each day in the forecast (typically 5-7 days from API)
+    const forecast = weatherData.daily;
 
     // Map forecast indices to actual calendar dates (use UTC to avoid timezone issues)
     const today = new Date();
@@ -2564,24 +2564,29 @@ export function WeatherForecast({
   // Scroll to today card on initial load - position it on the left
   useEffect(() => {
     if (!isMobile && forecastScrollContainerRef.current && next30Days.length > 0) {
-      // Small delay to ensure DOM is ready
+      // Use longer delay and requestAnimationFrame to ensure DOM is fully rendered
       const timer = setTimeout(() => {
-        const todayStr = new Date().toLocaleDateString('en-CA');
-        const cards = forecastScrollContainerRef.current?.querySelectorAll('.forecast-day-card');
-        
-        if (cards) {
-          cards.forEach((card) => {
-            const dateAttr = card.getAttribute('data-date');
-            if (dateAttr === todayStr) {
-              (card as HTMLElement).scrollIntoView({ behavior: 'auto', block: 'nearest', inline: 'start' });
+        requestAnimationFrame(() => {
+          const todayStr = new Date().toLocaleDateString('en-CA');
+          const todayCard = forecastScrollContainerRef.current?.querySelector(`[data-date="${todayStr}"]`);
+          
+          if (todayCard) {
+            // Calculate scroll position to place today's card at the left edge
+            const container = forecastScrollContainerRef.current;
+            if (container) {
+              const cardLeft = (todayCard as HTMLElement).offsetLeft;
+              container.scrollTo({ left: cardLeft, behavior: 'auto' });
+              console.log(`Scrolled to today's card at ${todayStr}`);
             }
-          });
-        }
-      }, 100);
+          } else {
+            console.log(`Today's card not found for ${todayStr}`);
+          }
+        });
+      }, 300);
       
       return () => clearTimeout(timer);
     }
-  }, [isMobile, next30Days.length, visibleCardCount]); // Re-run when card count changes
+  }, [isMobile, next30Days.length]); // Only run when mobile state or days array changes
 
   // Notify parent when location changes
   useEffect(() => {
@@ -3305,7 +3310,7 @@ export function WeatherForecast({
                       ? actualIndex + dayOffset 
                       : actualIndex - 30 + dayOffset; // Adjust for 30 past days on desktop
                     
-                    // Only use weather data if it's within the 5-day forecast range
+                    // Only use weather data if it's within the forecast range (typically 5-7 days)
                     if (daysFromToday >= 0 && daysFromToday < (weatherData?.daily?.length || 0)) {
                       weatherForDay = weatherData?.daily[daysFromToday];
                     }
