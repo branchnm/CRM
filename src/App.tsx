@@ -450,7 +450,9 @@ function App() {
                 disabled={optimizationStatus === 'optimizing'}
                 size="sm"
                 className={`shrink-0 transition-colors ${
-                  optimizationStatus === 'optimized' || optimizationStatus === 'optimizing'
+                  optimizationStatus === 'optimizing'
+                    ? 'bg-blue-600 hover:bg-blue-700'
+                    : optimizationStatus === 'optimized'
                     ? 'bg-sky-400 hover:bg-sky-500' 
                     : hasJobChanges
                     ? 'bg-orange-600 hover:bg-orange-700'
@@ -639,7 +641,9 @@ function App() {
                 disabled={optimizationStatus === 'optimizing'}
                 size="sm"
                 className={`shrink-0 transition-colors ${
-                  optimizationStatus === 'optimized' || optimizationStatus === 'optimizing'
+                  optimizationStatus === 'optimizing'
+                    ? 'bg-blue-600 hover:bg-blue-700'
+                    : optimizationStatus === 'optimized'
                     ? 'bg-sky-400 hover:bg-sky-500' 
                     : hasJobChanges
                     ? 'bg-orange-600 hover:bg-orange-700'

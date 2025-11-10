@@ -3298,10 +3298,17 @@ export function WeatherForecast({
                     }
                   } else {
                     // Future day - use forecast data
-                    // When dayOffset is 0, index 0 = today (weatherData.daily[0])
-                    // When dayOffset is 1, index 0 = tomorrow (weatherData.daily[1])
-                    const weatherIndex = actualIndex + dayOffset;
-                    weatherForDay = weatherData?.daily[weatherIndex];
+                    // Calculate weather index based on actual day offset from today
+                    // For desktop: startOffset=-30, so actualIndex 30 = today
+                    // For mobile: startOffset=dayOffset, so actualIndex 0 = today+dayOffset
+                    const daysFromToday = isMobile 
+                      ? actualIndex + dayOffset 
+                      : actualIndex - 30 + dayOffset; // Adjust for 30 past days on desktop
+                    
+                    // Only use weather data if it's within the 5-day forecast range
+                    if (daysFromToday >= 0 && daysFromToday < (weatherData?.daily?.length || 0)) {
+                      weatherForDay = weatherData?.daily[daysFromToday];
+                    }
                   }
                   
                   // Get jobs scheduled for this day (including completed jobs to show greyed out)
