@@ -63,6 +63,7 @@ interface WeatherForecastProps {
   onStartTimeChange?: (date: string, startHour: number) => void;
   onOptimizeRoute?: () => void;
   optimizationStatus?: 'idle' | 'optimizing' | 'optimized';
+  onOptimizationStatusChange?: (status: 'idle' | 'optimizing' | 'optimized') => void;
   startingAddress?: string;
   onStartingAddressChange?: (address: string) => void;
   onLocationChange?: (locationName: string, zipCode: string) => void;
@@ -79,6 +80,7 @@ export function WeatherForecast({
   onStartTimeChange, 
   onOptimizeRoute, 
   optimizationStatus = 'idle',
+  onOptimizationStatusChange,
   startingAddress = '', 
   onStartingAddressChange, 
   onLocationChange, 
@@ -647,11 +649,16 @@ export function WeatherForecast({
     if (lastOptimizedJobState) {
       const hasChanges = currentJobState !== lastOptimizedJobState;
       setHasJobChanges(hasChanges);
+      
+      // If there are changes and we're currently optimized, reset to idle
+      if (hasChanges && optimizationStatus === 'optimized') {
+        onOptimizationStatusChange?.('idle');
+      }
     } else {
       // No optimization yet, show button if there are jobs
       setHasJobChanges(jobs.length > 0);
     }
-  }, [jobs, lastOptimizedJobState]);
+  }, [jobs, lastOptimizedJobState, optimizationStatus, onOptimizationStatusChange]);
 
   // When optimize completes, save the current job state
   useEffect(() => {
@@ -689,8 +696,9 @@ export function WeatherForecast({
     if (lastOptimizedDayTimes && currentDayTimesState !== lastOptimizedDayTimes && optimizationStatus === 'optimized') {
       // Day times changed after optimization - need to re-optimize
       setHasJobChanges(true);
+      onOptimizationStatusChange?.('idle');
     }
-  }, [dayStartTimes, dayEndTimes, lastOptimizedDayTimes, optimizationStatus]);
+  }, [dayStartTimes, dayEndTimes, lastOptimizedDayTimes, optimizationStatus, onOptimizationStatusChange]);
   
   // Save day times state when optimization completes
   useEffect(() => {
@@ -1747,6 +1755,12 @@ export function WeatherForecast({
         localStorage.setItem('weatherLocationName', displayName);
         localStorage.setItem('routeStartingAddress', displayName);
         
+        // Update parent component immediately
+        if (onLocationChange) {
+          const zipCode = getZipCode(displayName) || '';
+          onLocationChange(displayName, zipCode);
+        }
+        
         // Show confirmation
         setAddressSaved(true);
         toast.success(`Address set: ${displayName}`, { id: 'set-address' });
@@ -1837,10 +1851,17 @@ export function WeatherForecast({
 
       console.log('Address saved to localStorage:', suggestion.display_name);
 
-      // Update parent component's starting address and location
+      // Update parent component's starting address and location immediately
       if (onStartingAddressChange) {
         onStartingAddressChange(suggestion.display_name);
         console.log('Parent component notified of address change');
+      }
+      
+      // Update the zipcode button in nav bar immediately
+      if (onLocationChange) {
+        const zipCode = getZipCode(suggestion.display_name) || '';
+        onLocationChange(suggestion.display_name, zipCode);
+        console.log('Parent component notified of location change:', zipCode);
       }
 
       // Show confirmation

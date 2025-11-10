@@ -1156,6 +1156,7 @@ export function DailySchedule({
         onStartTimeChange={handleStartTimeChange}
         onOptimizeRoute={handleOptimizeRoute}
         optimizationStatus={optimizationStatus}
+        onOptimizationStatusChange={onOptimizationStatusChange}
         startingAddress={startingAddress}
         onStartingAddressChange={handleStartingAddressChange}
         onLocationChange={onLocationChange}
