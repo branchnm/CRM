@@ -6,7 +6,17 @@ const GEOCODING_API_URL = 'https://api.openweathermap.org/geo/1.0/direct';
 const WEATHER_API_URL = 'https://api.openweathermap.org/data/2.5';
 
 // Enable test mode to demonstrate rainfall tracking features
+// Use zipcode 12345 or address "Test Weather" to trigger test mode
 const USE_TEST_WEATHER = false;
+
+// Check if test mode should be enabled based on location
+export function shouldUseTestWeather(locationName: string): boolean {
+  if (USE_TEST_WEATHER) return true;
+  // Enable test weather for specific test zipcodes/addresses
+  return locationName.includes('12345') || 
+         locationName.toLowerCase().includes('test weather') ||
+         locationName.toLowerCase().includes('demo');
+}
 
 export interface WeatherData {
   current: {
@@ -270,9 +280,10 @@ function getTestWeatherData(): WeatherData {
  * Fetch weather data for coordinates
  */
 export async function getWeatherData(coordinates: Coordinates): Promise<WeatherData | null> {
-  // Use test data if enabled
-  if (USE_TEST_WEATHER) {
+  // Use test data if enabled globally or if location name indicates test mode
+  if (USE_TEST_WEATHER || shouldUseTestWeather(coordinates.name || '')) {
     console.log('🧪 Using test weather data to demonstrate rainfall tracking features');
+    console.log('💡 TIP: Use zipcode 12345 or address "Test Weather" to enable test mode');
     return getTestWeatherData();
   }
 
