@@ -3192,7 +3192,7 @@ export function WeatherForecast({
                         minWidth: isMobile ? '97vw' : '280px',
                         maxWidth: isMobile ? '97vw' : '280px',
                         background: weatherForDay?.hourlyForecasts && weatherForDay.hourlyForecasts.length > 0
-                          ? `linear-gradient(to bottom, ${weatherForDay.hourlyForecasts.map((h, idx) => {
+                          ? `linear-gradient(to bottom, ${weatherForDay.hourlyForecasts.map((h: any, idx: number) => {
                               const desc = h.description.toLowerCase();
                               const amount = h.rainAmount || 0;
                               
