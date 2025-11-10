@@ -984,15 +984,9 @@ export function DailySchedule({
       });
       setOptimizedJobOrder(newOptimizedOrder);
       
-      // Brief delay to show the updated times, then set optimized state
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Set optimized state - this will stay until jobs are manually changed
       onOptimizationStatusChange?.('optimized');
       onJobChangesDetected?.(false); // No changes right after optimization
-
-      // After 2 seconds, reset to idle (but keep the optimized state available for change detection)
-      setTimeout(() => {
-        onOptimizationStatusChange?.('idle');
-      }, 2000);
 
       console.log('=== MULTI-DAY ROUTE OPTIMIZATION COMPLETE ===');
       console.log('Optimized jobs with new order:', allOptimizedJobs.map(j => ({ 
@@ -1031,8 +1025,13 @@ export function DailySchedule({
       }
     }
     
+    // If there are changes and we're currently in optimized state, reset to idle
+    if (hasChanges && optimizationStatus === 'optimized') {
+      onOptimizationStatusChange?.('idle');
+    }
+    
     onJobChangesDetected?.(hasChanges);
-  }, [jobs, optimizedJobOrder, onJobChangesDetected]);
+  }, [jobs, optimizedJobOrder, onJobChangesDetected, optimizationStatus, onOptimizationStatusChange]);
 
   // Listen for optimize route event from nav bar
   useEffect(() => {

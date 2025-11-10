@@ -392,9 +392,9 @@ export function WeatherForecast({
         setTimeout(() => setSlideDirection(null), 300);
       } else if (isRightSwipe) {
         // Swipe right = previous day (day slides in from left)
-        // Allow going back to previous days, but not beyond today (dayOffset 0)
+        // Allow going back to previous days - extended to 30 days for historical view
         setSlideDirection('right');
-        setDayOffset(prev => Math.max(-7, prev - 1)); // Allow up to 7 days in the past for historical view
+        setDayOffset(prev => Math.max(-30, prev - 1)); // Allow up to 30 days in the past
         setTimeout(() => setSlideDirection(null), 300);
       }
     }
@@ -1559,6 +1559,28 @@ export function WeatherForecast({
       if (data) {
         setWeatherData(data);
         setError(null);
+        
+        // Save weather data to localStorage with today's date for historical viewing
+        const today = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
+        const historicalWeather = JSON.parse(localStorage.getItem('historicalWeather') || '{}');
+        
+        // Store today's weather data with the date as key
+        historicalWeather[today] = {
+          daily: data.daily,
+          location: coords.name || locationName,
+          savedAt: new Date().toISOString()
+        };
+        
+        // Keep only last 30 days of historical data to avoid bloating storage
+        const dates = Object.keys(historicalWeather);
+        if (dates.length > 30) {
+          dates.sort().slice(0, dates.length - 30).forEach(oldDate => {
+            delete historicalWeather[oldDate];
+          });
+        }
+        
+        localStorage.setItem('historicalWeather', JSON.stringify(historicalWeather));
+        console.log('Saved historical weather for', today);
         
         // Get location name if not already set
         if (!locationName || !coords.name) {
@@ -3103,14 +3125,33 @@ export function WeatherForecast({
                   const dateStr = day.toLocaleDateString('en-CA'); // YYYY-MM-DD format
                   const todayStr = new Date().toLocaleDateString('en-CA');
                   const isToday = dateStr === todayStr;
+                  const isPastDay = day < new Date(todayStr + 'T00:00:00');
                   const dayName = isToday ? 'Today' : day.toLocaleDateString('en-US', { weekday: 'short' });
                   const dayDate = day.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
                   
-                  // Get weather for this day - adjust index by dayOffset to get correct weather data
-                  // When dayOffset is 0, index 0 = today (weatherData.daily[0])
-                  // When dayOffset is 1, index 0 = tomorrow (weatherData.daily[1])
-                  const weatherIndex = actualIndex + dayOffset;
-                  const weatherForDay = weatherData?.daily[weatherIndex];
+                  // Get weather for this day
+                  // For future days: use weatherData.daily[weatherIndex]
+                  // For past days: try to load from historical data
+                  let weatherForDay = null;
+                  
+                  if (isPastDay) {
+                    // Try to load historical weather data
+                    const historicalWeather = JSON.parse(localStorage.getItem('historicalWeather') || '{}');
+                    const savedWeather = historicalWeather[dateStr];
+                    if (savedWeather && savedWeather.daily && savedWeather.daily.length > 0) {
+                      // Use the first day from the saved data (it was saved as "today" on that date)
+                      weatherForDay = savedWeather.daily[0];
+                      console.log(`Loaded historical weather for ${dateStr}`);
+                    } else {
+                      console.log(`No historical weather found for ${dateStr}`);
+                    }
+                  } else {
+                    // Future day - use forecast data
+                    // When dayOffset is 0, index 0 = today (weatherData.daily[0])
+                    // When dayOffset is 1, index 0 = tomorrow (weatherData.daily[1])
+                    const weatherIndex = actualIndex + dayOffset;
+                    weatherForDay = weatherData?.daily[weatherIndex];
+                  }
                   
                   // Get jobs scheduled for this day (including completed jobs to show greyed out)
                   const scheduledJobsForDay = jobs.filter(j => {
