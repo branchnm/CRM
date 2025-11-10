@@ -3017,7 +3017,8 @@ export function WeatherForecast({
                   value={addressInput}
                   onChange={(e) => handleAddressInputChange(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !showAddressSuggestions) {
+                    if (e.key === 'Enter') {
+                      // Allow Enter to use typed address directly
                       handleSetAddress();
                     } else if (e.key === 'Escape') {
                       setShowAddressSuggestions(false);
@@ -3103,7 +3104,8 @@ export function WeatherForecast({
                   value={addressInput}
                   onChange={(e) => handleAddressInputChange(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !showAddressSuggestions) {
+                    if (e.key === 'Enter') {
+                      // Allow Enter to use typed address directly
                       handleSetAddress();
                       onCloseAddressEditor?.();
                     } else if (e.key === 'Escape') {

@@ -373,21 +373,19 @@ function App() {
             </h1>
             
             {/* Address - Left of tabs */}
-            {locationZipCode && (
-              <button
-                onClick={() => {
-                  // Store current location before editing
-                  const savedLocationName = localStorage.getItem('weatherLocationName');
-                  setTempLocationName(savedLocationName || '');
-                  setIsEditingAddress(true);
-                }}
-                className="flex items-center gap-2 px-2 xl:px-3 py-2 text-xs xl:text-sm bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition-colors whitespace-nowrap cursor-pointer"
-                title="Click to change location"
-              >
-                <MapPin className="h-3 w-3 xl:h-4 xl:w-4 text-blue-600 shrink-0" />
-                <span className="font-medium text-blue-900">{locationZipCode}</span>
-              </button>
-            )}
+            <button
+              onClick={() => {
+                // Store current location before editing
+                const savedLocationName = localStorage.getItem('weatherLocationName');
+                setTempLocationName(savedLocationName || '');
+                setIsEditingAddress(true);
+              }}
+              className="flex items-center gap-2 px-2 xl:px-3 py-2 text-xs xl:text-sm bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition-colors whitespace-nowrap cursor-pointer"
+              title="Click to change location"
+            >
+              <MapPin className="h-3 w-3 xl:h-4 xl:w-4 text-blue-600 shrink-0" />
+              <span className="font-medium text-blue-900">{locationZipCode || 'Set Location'}</span>
+            </button>
             
             {/* Tab Navigation - Center */}
             <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
@@ -597,24 +595,22 @@ function App() {
             minHeight: 'max(5vh, 35px)' // More aggressive scaling with minimum
           }}>
             {/* Location Button - Shows zipcode, opens location editor */}
-            {locationZipCode && (
-              <Button
-                onClick={() => setIsEditingAddress(true)}
-                size="sm"
-                variant="outline"
-                className="border-blue-600 text-blue-600 hover:bg-blue-100 shrink-0"
-                style={{ 
-                  fontSize: 'max(1.4vh, 10px)',
-                  padding: 'max(0.5vh, 3px) max(2vw, 8px)',
-                  maxHeight: 'max(4vh, 28px)',
-                  height: 'auto'
-                }}
-                title="Click to change location"
-              >
-                <MapPin style={{ width: 'max(1.8vh, 14px)', height: 'max(1.8vh, 14px)' }} className="shrink-0" />
-                <span style={{ marginLeft: 'max(0.8vw, 4px)' }}>{locationZipCode}</span>
-              </Button>
-            )}
+            <Button
+              onClick={() => setIsEditingAddress(true)}
+              size="sm"
+              variant="outline"
+              className="border-blue-600 text-blue-600 hover:bg-blue-100 shrink-0"
+              style={{ 
+                fontSize: 'max(1.4vh, 10px)',
+                padding: 'max(0.5vh, 3px) max(2vw, 8px)',
+                maxHeight: 'max(4vh, 28px)',
+                height: 'auto'
+              }}
+              title="Click to change location"
+            >
+              <MapPin style={{ width: 'max(1.8vh, 14px)', height: 'max(1.8vh, 14px)' }} className="shrink-0" />
+              <span style={{ marginLeft: 'max(0.8vw, 4px)' }}>{locationZipCode || 'Set Location'}</span>
+            </Button>
             
             <Button
               onClick={() => scrollToTodayRef.current?.()}
