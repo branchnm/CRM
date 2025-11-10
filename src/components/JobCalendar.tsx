@@ -4,7 +4,8 @@ import { Button } from './ui/button';
 import { ChevronLeft, ChevronRight, GripVertical } from 'lucide-react';
 import type { Job, Customer } from '../App';
 import { updateCustomer } from '../services/customers';
-import { updateJob } from '../services/jobs';
+import { updateJob, addJob } from '../services/jobs';
+import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog';
 import { Label } from './ui/label';
@@ -327,11 +328,19 @@ export function JobCalendar({ jobs, customers, onUpdateJobs, onRefreshCustomers,
     if (!editingJob) return;
 
     try {
+      const wasCompleted = editingJob.status === 'completed';
+      const isNowCompleted = editForm.status === 'completed';
+      
       const updatedJob = {
         ...editingJob,
         scheduledTime: editForm.scheduledTime || undefined,
         notes: editForm.notes || undefined,
-        status: editForm.status
+        status: editForm.status,
+        // If marking as completed, set end time and total time
+        ...(isNowCompleted && !wasCompleted ? {
+          endTime: new Date().toISOString(),
+          totalTime: 60 // Default 60 minutes
+        } : {})
       };
 
       await updateJob(updatedJob);
@@ -346,9 +355,60 @@ export function JobCalendar({ jobs, customers, onUpdateJobs, onRefreshCustomers,
         await onRefreshCustomers?.();
       }
 
+      // If job was just marked as completed, update customer's next cut date and create next job
+      if (isNowCompleted && !wasCompleted && customer) {
+        const completedDate = editingJob.date;
+        
+        // Calculate next cut date based on frequency
+        const nextDate = new Date(completedDate);
+        switch (customer.frequency) {
+          case 'weekly':
+            nextDate.setDate(nextDate.getDate() + 7);
+            break;
+          case 'biweekly':
+            nextDate.setDate(nextDate.getDate() + 14);
+            break;
+          case 'monthly':
+            nextDate.setMonth(nextDate.getMonth() + 1);
+            break;
+        }
+        
+        const nextCutDateStr = `${nextDate.getFullYear()}-${String(nextDate.getMonth() + 1).padStart(2, '0')}-${String(nextDate.getDate()).padStart(2, '0')}`;
+        
+        // Update customer record
+        const updatedCustomer = {
+          ...customer,
+          lastCutDate: completedDate,
+          nextCutDate: nextCutDateStr
+        };
+        
+        await updateCustomer(updatedCustomer);
+        await onRefreshCustomers?.();
+        
+        // Create the next job
+        try {
+          const { data: existingJobs } = await supabase
+            .from('jobs')
+            .select('*')
+            .eq('customer_id', customer.id)
+            .eq('date', nextCutDateStr);
+          
+          if (!existingJobs || existingJobs.length === 0) {
+            await addJob({
+              customerId: customer.id,
+              date: nextCutDateStr,
+              status: 'scheduled'
+            });
+            console.log(`Created next job for ${customer.name} on ${nextCutDateStr}`);
+          }
+        } catch (e) {
+          console.error('Failed to create next job:', e);
+        }
+      }
+
       await onRefreshJobs?.();
       setEditingJob(null);
-      toast.success('Job updated successfully');
+      toast.success(isNowCompleted && !wasCompleted ? 'Job completed! Next job created.' : 'Job updated successfully');
     } catch (error) {
       console.error('Error updating job:', error);
       toast.error('Failed to update job');
