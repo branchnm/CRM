@@ -120,6 +120,7 @@ export function WeatherForecast({
   const addressInputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const forecastScrollContainerRef = useRef<HTMLDivElement>(null);
+  const hasScrolledToTodayRef = useRef(false); // Track if we've scrolled to today on initial load
   const [userGPSLocation, setUserGPSLocation] = useState<{ lat: number; lon: number } | null>(null);
   const [jobAssignments, setJobAssignments] = useState<Map<string, string>>(new Map()); // jobId -> date mapping
   const [jobTimeSlots, setJobTimeSlots] = useState<Map<string, number>>(new Map()); // jobId -> timeSlot (0-11 for 6am-6pm)
@@ -2658,9 +2659,10 @@ export function WeatherForecast({
     return days;
   }, [dayOffset, isMobile]);
 
-  // Scroll to today card on initial load and when weather data changes - position it on the left
+  // Scroll to today card ONLY on initial load (not on page navigation) - position it on the left
   useEffect(() => {
-    if (!isMobile && forecastScrollContainerRef.current && next30Days.length > 0) {
+    // Only scroll if we haven't scrolled yet, and only on desktop
+    if (!isMobile && !hasScrolledToTodayRef.current && forecastScrollContainerRef.current && next30Days.length > 0 && weatherData) {
       // Use longer delay and requestAnimationFrame to ensure DOM is fully rendered
       const timer = setTimeout(() => {
         requestAnimationFrame(() => {
@@ -2674,6 +2676,7 @@ export function WeatherForecast({
               const cardLeft = (todayCard as HTMLElement).offsetLeft;
               container.scrollTo({ left: cardLeft, behavior: 'auto' });
               console.log(`✅ Scrolled to today's card at ${todayStr}, offset: ${cardLeft}px`);
+              hasScrolledToTodayRef.current = true; // Mark that we've scrolled
             }
           } else {
             console.log(`⚠️ Today's card not found for ${todayStr}`);
@@ -2683,7 +2686,7 @@ export function WeatherForecast({
       
       return () => clearTimeout(timer);
     }
-  }, [isMobile, next30Days.length, weatherData]); // Re-run when weather data loads
+  }, [isMobile, next30Days.length, weatherData]); // weatherData ensures we wait for data to load
 
   // Load historical weather data from database
   useEffect(() => {
