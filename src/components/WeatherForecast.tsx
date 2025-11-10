@@ -2683,7 +2683,7 @@ export function WeatherForecast({
       
       return () => clearTimeout(timer);
     }
-  }, [isMobile, next30Days.length, weatherData, historicalWeatherCache]); // Re-run when weather data loads
+  }, [isMobile, next30Days.length, weatherData]); // Re-run when weather data loads
 
   // Load historical weather data from database
   useEffect(() => {
