@@ -1374,7 +1374,11 @@ export function WeatherForecast({
     const suggestions = getWeatherBasedSuggestions();
     setWeatherSuggestions(suggestions);
     setDaysWithOvernightRain(suggestions.overnightRainDays || new Set());
-    setShowSuggestions(suggestions.moveSuggestions.length > 0 || suggestions.startTimeSuggestions.length > 0);
+    // Always show suggestions when there are any (even if previously dismissed)
+    const hasSuggestions = suggestions.moveSuggestions.length > 0 || suggestions.startTimeSuggestions.length > 0;
+    if (hasSuggestions) {
+      setShowSuggestions(true);
+    }
   }, [getWeatherBasedSuggestions]);
 
   // Accept individual move suggestion (handles both single job and multiple jobs)

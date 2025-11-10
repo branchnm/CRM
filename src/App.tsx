@@ -99,7 +99,7 @@ function App() {
   });
   const [isEditingAddress, setIsEditingAddress] = useState(false);
   const [tempLocationName, setTempLocationName] = useState<string>(''); // Store location before editing
-  const [optimizationStatus, setOptimizationStatus] = useState<'idle' | 'optimizing' | 'optimized'>('optimizing');
+  const [optimizationStatus, setOptimizationStatus] = useState<'idle' | 'optimizing' | 'optimized'>('idle');
   const [hasJobChanges, setHasJobChanges] = useState(false);
   const scrollToTodayRef = useRef<(() => void) | null>(null);
 
