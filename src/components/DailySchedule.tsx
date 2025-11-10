@@ -27,6 +27,7 @@ interface DailyScheduleProps {
   onLocationChange?: (locationName: string, zipCode: string) => void;
   onEditAddress?: () => void;
   onCancelEditAddress?: () => void;
+  onCloseAddressEditor?: () => void;
   isEditingAddress?: boolean;
   optimizationStatus?: 'idle' | 'optimizing' | 'optimized';
   onOptimizationStatusChange?: (status: 'idle' | 'optimizing' | 'optimized') => void;
@@ -46,6 +47,7 @@ export function DailySchedule({
   onLocationChange, 
   onEditAddress,
   onCancelEditAddress,
+  onCloseAddressEditor,
   isEditingAddress,
   optimizationStatus = 'idle',
   onOptimizationStatusChange,
@@ -1162,6 +1164,7 @@ export function DailySchedule({
         onLocationChange={onLocationChange}
         onEditAddress={onEditAddress}
         onCancelEditAddress={onCancelEditAddress}
+        onCloseAddressEditor={onCloseAddressEditor}
         isEditingAddress={isEditingAddress}
         scrollToTodayRef={scrollToTodayRef}
       />

@@ -70,6 +70,7 @@ interface WeatherForecastProps {
   onLocationChange?: (locationName: string, zipCode: string) => void;
   onEditAddress?: () => void;
   onCancelEditAddress?: () => void;
+  onCloseAddressEditor?: () => void; // Close without reverting
   isEditingAddress?: boolean;
   scrollToTodayRef?: React.MutableRefObject<(() => void) | null>;
 }
@@ -87,6 +88,7 @@ export function WeatherForecast({
   onLocationChange, 
   onEditAddress,
   onCancelEditAddress,
+  onCloseAddressEditor,
   isEditingAddress: isEditingAddressProp,
   scrollToTodayRef
 }: WeatherForecastProps) {
@@ -2925,7 +2927,7 @@ export function WeatherForecast({
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && !showAddressSuggestions) {
                       handleSetAddress();
-                      onCancelEditAddress?.();
+                      onCloseAddressEditor?.();
                     } else if (e.key === 'Escape') {
                       setShowAddressSuggestions(false);
                       onCancelEditAddress?.();
@@ -2971,7 +2973,8 @@ export function WeatherForecast({
                       type="button"
                       onClick={() => {
                         handleSelectSuggestion(suggestion);
-                        onCancelEditAddress?.();
+                        // Close dialog without reverting (address already saved in handleSelectSuggestion)
+                        onCloseAddressEditor?.();
                       }}
                       className="w-full text-left px-4 py-3 hover:bg-blue-50 transition-colors border-b border-gray-100 last:border-b-0"
                     >
@@ -2987,7 +2990,7 @@ export function WeatherForecast({
               <Button
                 onClick={async () => {
                   await handleUseGPS();
-                  onCancelEditAddress?.();
+                  onCloseAddressEditor?.();
                 }}
                 disabled={loading}
                 className="w-full bg-blue-600 hover:bg-blue-700"

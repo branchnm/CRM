@@ -99,7 +99,7 @@ function App() {
   });
   const [isEditingAddress, setIsEditingAddress] = useState(false);
   const [tempLocationName, setTempLocationName] = useState<string>(''); // Store location before editing
-  const [optimizationStatus, setOptimizationStatus] = useState<'idle' | 'optimizing' | 'optimized'>('idle');
+  const [optimizationStatus, setOptimizationStatus] = useState<'idle' | 'optimizing' | 'optimized'>('optimizing');
   const [hasJobChanges, setHasJobChanges] = useState(false);
   const scrollToTodayRef = useRef<(() => void) | null>(null);
 
@@ -451,7 +451,7 @@ function App() {
                 size="sm"
                 className={`shrink-0 transition-colors ${
                   optimizationStatus === 'optimized' 
-                    ? 'bg-green-600 hover:bg-green-700' 
+                    ? 'bg-sky-400 hover:bg-sky-500' 
                     : hasJobChanges
                     ? 'bg-orange-600 hover:bg-orange-700'
                     : 'bg-blue-600 hover:bg-blue-700'
@@ -534,6 +534,10 @@ function App() {
                   const zipMatch = tempLocationName.match(/\b\d{5}(?:-\d{4})?\b/);
                   setLocationZipCode(zipMatch ? zipMatch[0] : '');
                 }
+                setIsEditingAddress(false);
+              }}
+              onCloseAddressEditor={() => {
+                // Close without reverting - location already saved
                 setIsEditingAddress(false);
               }}
               isEditingAddress={isEditingAddress}
@@ -636,7 +640,7 @@ function App() {
                 size="sm"
                 className={`shrink-0 transition-colors ${
                   optimizationStatus === 'optimized' 
-                    ? 'bg-green-600 hover:bg-green-700' 
+                    ? 'bg-sky-400 hover:bg-sky-500' 
                     : hasJobChanges
                     ? 'bg-orange-600 hover:bg-orange-700'
                     : 'bg-blue-600 hover:bg-blue-700'
