@@ -4,7 +4,7 @@ import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import type { Customer, Job, MessageTemplate, Equipment } from '../App';
 import { updateCustomer } from '../services/customers';
-import { addJob, updateJob } from '../services/jobs';
+import { addJob, updateJob, fetchJobs } from '../services/jobs';
 import { smsService } from '../services/sms';
 import { getDriveTime } from '../services/googleMaps';
 import { optimizeRoute as optimizeRouteWithGoogleMaps } from '../services/routeOptimizer';
@@ -820,6 +820,12 @@ export function DailySchedule({
     }
 
     try {
+      // Fetch fresh jobs from database to ensure we have the latest data
+      // This is critical - if user manually moved jobs, we need the current state
+      console.log('Fetching latest jobs from database...');
+      const freshJobs = await fetchJobs();
+      console.log('Fresh jobs fetched:', freshJobs.length);
+      
       // Set optimizing state - this will show "Calculating..." in the UI
       onOptimizationStatusChange?.('optimizing');
       
@@ -844,9 +850,9 @@ export function DailySchedule({
       const newDriveTimesCache = new Map<string, string>();
       let totalOptimizedDays = 0;
       
-      // Optimize each day's jobs
+      // Optimize each day's jobs - using fresh jobs from database
       for (const dateStr of next30Days) {
-        const dayJobs = jobs.filter(j => j.date === dateStr);
+        const dayJobs = freshJobs.filter(j => j.date === dateStr);
         const scheduledJobs = dayJobs.filter(j => j.status === 'scheduled');
         const nonScheduledJobs = dayJobs.filter(j => j.status !== 'scheduled');
         

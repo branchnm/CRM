@@ -158,9 +158,23 @@ export function WeatherForecast({
   const scrollToToday = useCallback(() => {
     setDayOffset(0); // Reset offset to show today
     
-    // Just scroll to top of page - no dual scroll behavior
-    scrollToTop();
-  }, [scrollToTop]);
+    if (isMobile) {
+      // Mobile: just scroll to top
+      scrollToTop();
+    } else {
+      // Desktop: scroll the forecast container to the Today card
+      if (forecastScrollContainerRef.current) {
+        const todayCard = forecastScrollContainerRef.current.querySelector('[data-date="' + new Date().toLocaleDateString('en-CA') + '"]');
+        if (todayCard) {
+          todayCard.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
+        } else {
+          // If Today card not in DOM yet, scroll to start
+          forecastScrollContainerRef.current.scrollTo({ left: 0, behavior: 'smooth' });
+        }
+      }
+      scrollToTop();
+    }
+  }, [scrollToTop, isMobile]);
 
   // Expose scrollToToday function via ref
   useEffect(() => {
@@ -3022,9 +3036,11 @@ export function WeatherForecast({
               {!isMobile && (
                 <button
                   onClick={() => {
-                    const newOffset = Math.max(-7, dayOffset - 1); // Allow up to 7 days in the past
-                    setDayOffset(newOffset);
-                    // Just scroll to top of page - no dual scroll behavior
+                    // Scroll the forecast container left by one card width
+                    if (forecastScrollContainerRef.current) {
+                      const cardWidth = 280 + 20; // Card width + gap
+                      forecastScrollContainerRef.current.scrollBy({ left: -cardWidth, behavior: 'smooth' });
+                    }
                     scrollToTop();
                   }}
                   className="absolute left-4 top-1/2 -translate-y-1/2 z-15 shrink-0 w-12 h-12 rounded-full bg-blue-600 hover:bg-blue-700 flex items-center justify-center text-white shadow-lg transition-all hover:scale-110"
@@ -3061,10 +3077,11 @@ export function WeatherForecast({
 
                 {/* Forecast Grid with Touch Support and Snap Scrolling */}
                 <div 
-                  key={dayOffset} // Force re-render with animation when day changes
                   className={`${isMobile ? 'grid grid-cols-1 forecast-grid-mobile' : 'flex items-stretch justify-start'} relative ${
-                    slideDirection === 'left' ? 'animate-slide-in-right' : 
-                    slideDirection === 'right' ? 'animate-slide-in-left' : ''
+                    isMobile ? (
+                      slideDirection === 'left' ? 'animate-slide-in-right' : 
+                      slideDirection === 'right' ? 'animate-slide-in-left' : ''
+                    ) : ''
                   }`}
                   style={{
                     gap: isMobile ? undefined : '1.25rem', // Reduced from 1.5rem (24px) to 1.25rem (20px)
@@ -3190,7 +3207,7 @@ export function WeatherForecast({
                       }}
                     >
                       {/* Day Header - Improved with work/drive time stats */}
-                      <div className={`bg-white border-b border-gray-200 ${isMobile ? 'px-2 py-[0.1vh]' : 'px-[0.44vh] py-[0.53vh]'}`}>
+                      <div className={`bg-white border-b border-gray-200 ${isMobile ? 'px-2 py-[0.3vh]' : 'px-[0.44vh] py-[0.53vh]'}`}>
                         {/* Day and Date on same line with rain badge - CENTERED */}
                         <div className={`flex items-center justify-center ${isMobile ? 'mb-0' : 'mb-[0.27vh]'}`}>
                           <div className="flex items-center gap-[0.44vh]">
@@ -3575,7 +3592,7 @@ export function WeatherForecast({
                                     <div 
                                       key={slot.slotIndex} 
                                       className={`relative flex items-center transition-colors ${
-                                        isMobile ? 'px-[0.46vh] py-[0.28vh] max-h-[2.56vh]' : 'h-[4.8vh] px-[0.48vh]' //Increased from 4.3vh to 5vh (slot height)
+                                        isMobile ? 'px-[0.46vh] py-[0.28vh] max-h-[2.65vh]' : 'h-[4.9vh] px-[0.48vh]' //Increased from 4.3vh to 5vh (slot height)
                                         
                                       } ${isDropTarget ? 'bg-blue-100 border-l-4 border-blue-500' : ''}`}
                                       data-time-slot="true"
@@ -3934,9 +3951,11 @@ export function WeatherForecast({
               {!isMobile && (
                 <button
                   onClick={() => {
-                    const newOffset = dayOffset + 1;
-                    setDayOffset(newOffset);
-                    // Just scroll to top of page - no dual scroll behavior
+                    // Scroll the forecast container right by one card width
+                    if (forecastScrollContainerRef.current) {
+                      const cardWidth = 280 + 20; // Card width + gap
+                      forecastScrollContainerRef.current.scrollBy({ left: cardWidth, behavior: 'smooth' });
+                    }
                     scrollToTop();
                   }}
                  className="absolute right-4 top-1/2 -translate-y-1/2 z-15 shrink-0 w-12 h-12 rounded-full bg-blue-600 hover:bg-blue-700 flex items-center justify-center text-white shadow-lg transition-all hover:scale-110"

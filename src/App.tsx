@@ -464,12 +464,14 @@ function App() {
         </div>
       )}
 
-      <div className="container mx-auto md:p-8" style={{ 
+      <div className="container mx-auto md:px-8" style={{ 
         paddingTop: activeTab === "schedule" ? '0' : 'max(5vh, 50px)', // No top padding on mobile schedule
         paddingLeft: activeTab === "schedule" ? '0' : '0.5rem',
         paddingRight: activeTab === "schedule" ? '0' : '0.5rem',
         paddingBottom: '0.5rem'
       }}>
+        {/* Desktop-only top padding for schedule tab */}
+        {activeTab === "schedule" && <div className="hidden md:block" style={{ height: '2rem' }}></div>}
         {/* Mobile Header - Logo style with Logout (only on settings tab) */}
         <div className="md:mb-6 md:hidden" style={{ 
           marginBottom: activeTab === "schedule" ? 'clamp(0.25rem, 1vh, 0.5rem)' : '1rem',
