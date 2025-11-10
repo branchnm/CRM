@@ -2551,13 +2551,15 @@ export function WeatherForecast({
   // Get the next 30 days for the forecast view, including past days based on offset
   const next30Days = useMemo(() => {
     const days = [];
-    for (let i = 0; i < 30; i++) {
+    // Start from 30 days ago to allow viewing past days
+    const startOffset = isMobile ? dayOffset : -30;
+    for (let i = 0; i < 60; i++) { // 60 days total (30 past + 30 future)
       const date = new Date();
-      date.setDate(date.getDate() + dayOffset + i);
+      date.setDate(date.getDate() + startOffset + i);
       days.push(date);
     }
     return days;
-  }, [dayOffset]);
+  }, [dayOffset, isMobile]);
 
   // Scroll to today card on initial load - position it on the left
   useEffect(() => {

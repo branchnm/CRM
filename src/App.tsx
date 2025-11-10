@@ -450,7 +450,7 @@ function App() {
                 disabled={optimizationStatus === 'optimizing'}
                 size="sm"
                 className={`shrink-0 transition-colors ${
-                  optimizationStatus === 'optimized' 
+                  optimizationStatus === 'optimized' || optimizationStatus === 'optimizing'
                     ? 'bg-sky-400 hover:bg-sky-500' 
                     : hasJobChanges
                     ? 'bg-orange-600 hover:bg-orange-700'
@@ -639,7 +639,7 @@ function App() {
                 disabled={optimizationStatus === 'optimizing'}
                 size="sm"
                 className={`shrink-0 transition-colors ${
-                  optimizationStatus === 'optimized' 
+                  optimizationStatus === 'optimized' || optimizationStatus === 'optimizing'
                     ? 'bg-sky-400 hover:bg-sky-500' 
                     : hasJobChanges
                     ? 'bg-orange-600 hover:bg-orange-700'
