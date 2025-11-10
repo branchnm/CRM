@@ -2913,14 +2913,15 @@ export function WeatherForecast({
               <div 
                 ref={forecastScrollContainerRef}
                 className={`forecast-grid-container ${
-                  isMobile ? 'overflow-hidden mx-16' : 'overflow-x-auto overflow-y-visible scrollbar-hide'
+                  isMobile ? 'overflow-y-auto snap-y snap-mandatory' : 'overflow-x-auto overflow-y-visible scrollbar-hide'
                 }`}
                 style={{
-                  scrollSnapType: isMobile ? undefined : 'x mandatory',
-                  scrollBehavior: isMobile ? undefined : 'smooth',
-                  width: isMobile ? '100%' : `${forecastContainerWidth}px`,
-                  maxWidth: isMobile ? '100%' : `${forecastContainerWidth}px`,
-                  margin: isMobile ? undefined : '0 auto', // Center the container
+                  scrollSnapType: isMobile ? 'y mandatory' : 'x mandatory',
+                  scrollBehavior: isMobile ? 'smooth' : 'smooth',
+                  width: isMobile ? '97vw' : `${forecastContainerWidth}px`,
+                  maxWidth: isMobile ? '97vw' : `${forecastContainerWidth}px`,
+                  margin: isMobile ? '0 auto' : '0 auto', // Center on both mobile and desktop
+                  height: isMobile ? 'calc(100vh - var(--header-height, 0px) - var(--footer-height, 0px))' : undefined,
                 }}
               >
                 {/* Desktop Instructions */}
@@ -3004,14 +3005,14 @@ export function WeatherForecast({
                       onDragLeave={handleDragLeave}
                       onDrop={(e) => handleDrop(e, dateStr)}
                       className={`forecast-day-card relative ${ //forecast and day card relation
-                        isMobile ? 'mb-8 h-[81.6vh] overflow-hidden flex flex-col' : 'h-[81.6vh] shrink-0 flex flex-col'
-                      } shadow-lg rounded-lg overflow-hidden`}
+                        isMobile ? 'mb-8 h-[77.52vh] overflow-hidden flex flex-col w-screen snap-end' : 'h-[81.6vh] shrink-0 flex flex-col rounded-lg'
+                      } shadow-lg overflow-hidden`}
                       style={{
-                        scrollSnapAlign: isMobile ? undefined : 'start',
-                        scrollSnapStop: isMobile ? undefined : 'always',
-                        width: isMobile ? undefined : '280px', // Reduced from 320px to fit 4-5 cards
-                        minWidth: isMobile ? undefined : '280px',
-                        maxWidth: isMobile ? undefined : '280px',
+                        scrollSnapAlign: isMobile ? 'end' : 'start',
+                        scrollSnapStop: isMobile ? 'always' : 'always',
+                        width: isMobile ? '97vw' : '280px', // 97vw on mobile to show borders, reduced from 320px on desktop
+                        minWidth: isMobile ? '97vw' : '280px',
+                        maxWidth: isMobile ? '97vw' : '280px',
                         background: weatherForDay?.hourlyForecasts && weatherForDay.hourlyForecasts.length > 0
                           ? `linear-gradient(to bottom, ${weatherForDay.hourlyForecasts.map((h, idx) => {
                               const desc = h.description.toLowerCase();
@@ -3069,12 +3070,12 @@ export function WeatherForecast({
                       }}
                     >
                       {/* Day Header - Improved with work/drive time stats */}
-                      <div className={`bg-white border-b border-gray-200 ${isMobile ? 'px-2 py-[0.27vh]' : 'px-[0.44vh] py-[0.53vh]'}`}>
+                      <div className={`bg-white border-b border-gray-200 ${isMobile ? 'px-2 py-[0.26vh]' : 'px-[0.44vh] py-[0.53vh]'}`}>
                         {/* Day and Date on same line with rain badge - CENTERED */}
-                        <div className={`flex items-center justify-center ${isMobile ? 'mb-[0.17vh]' : 'mb-[0.27vh]'}`}>
+                        <div className={`flex items-center justify-center ${isMobile ? 'mb-[0.16vh]' : 'mb-[0.27vh]'}`}>
                           <div className="flex items-center gap-[0.44vh]">
-                            <span className={`font-bold text-gray-900 ${isMobile ? 'text-[2.04vh]' : 'text-[1.95vh]'}`}>{dayName}</span>
-                            <span className={`text-gray-500 ${isMobile ? 'text-[1.71vh]' : 'text-[1.59vh]'}`}>{dayDate}</span>
+                            <span className={`font-bold text-gray-900 ${isMobile ? 'text-[1.94vh]' : 'text-[1.95vh]'}`}>{dayName}</span>
+                            <span className={`text-gray-500 ${isMobile ? 'text-[1.62vh]' : 'text-[1.59vh]'}`}>{dayDate}</span>
                           </div>
                           
                           {/* Rain Chance Badge */}
@@ -3087,10 +3088,10 @@ export function WeatherForecast({
                         </div>
                         
                         {/* Work Stats Row - Centered - Always show job count - LARGER TEXT */}
-                        <div className={`flex items-center justify-center gap-[0.53vh] ${isMobile ? 'text-[1.33vh]' : 'text-[1.24vh]'}`}>
+                        <div className={`flex items-center justify-center gap-[0.53vh] ${isMobile ? 'text-[1.26vh]' : 'text-[1.24vh]'}`}>
                           <div className="flex items-center gap-[0.27vh] text-gray-700">
-                            <span className={`font-bold text-blue-600 ${isMobile ? 'text-[1.71vh]' : 'text-[1.59vh]'}`}>{totalJobs}</span>
-                            <span className={`text-gray-600 font-medium ${isMobile ? 'text-[1.33vh]' : 'text-[1.24vh]'}`}>job{totalJobs !== 1 ? 's' : ''}</span>
+                            <span className={`font-bold text-blue-600 ${isMobile ? 'text-[1.62vh]' : 'text-[1.59vh]'}`}>{totalJobs}</span>
+                            <span className={`text-gray-600 font-medium ${isMobile ? 'text-[1.26vh]' : 'text-[1.24vh]'}`}>job{totalJobs !== 1 ? 's' : ''}</span>
                           </div>
                           {totalJobs > 0 && (() => {
                             const totalWorkMinutes = [...scheduledJobsForDay, ...assignedJobs].reduce((sum, job) => sum + (job.totalTime || 30), 0);
@@ -3106,8 +3107,8 @@ export function WeatherForecast({
                                   <>
                                     <div className="h-[0.53vh] w-[0.13vh] bg-gray-300"></div>
                                     <div className="flex items-center gap-[0.27vh] text-gray-700">
-                                      <span className={`${isMobile ? 'text-[1.51vh]' : 'text-[1.33vh]'}`}>⏱</span>
-                                      <span className={`font-semibold ${isMobile ? 'text-[1.33vh]' : 'text-[1.24vh]'}`}>
+                                      <span className={`${isMobile ? 'text-[1.43vh]' : 'text-[1.33vh]'}`}>⏱</span>
+                                      <span className={`font-semibold ${isMobile ? 'text-[1.26vh]' : 'text-[1.24vh]'}`}>
                                         {workHours > 0 && `${workHours}h `}{workMins > 0 && `${workMins}m`}
                                         {!workHours && !workMins && '30m'}
                                       </span>
@@ -3159,7 +3160,7 @@ export function WeatherForecast({
                               }
                               
                               return (
-                                <div className={`${isMobile ? 'mb-[0.17vh]' : 'mb-[0.27vh]'}`}>
+                                <div className={`${isMobile ? 'mb-[0.88vh]' : 'mb-[0.80vh]'}`}>
                                   {/* Draggable start time handle - ALWAYS visible at top */}
                                   <div
                                     className={`relative cursor-ns-resize transition-all group ${isMobile ? 'py-[0.44vh]' : 'py-[0.53vh]'}`}

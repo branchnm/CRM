@@ -94,6 +94,16 @@ function App() {
   const [hasJobChanges, setHasJobChanges] = useState(false);
   const scrollToTodayRef = useRef<(() => void) | null>(null);
 
+  // Auto-hide optimize button after showing "Optimized" for 2 seconds
+  useEffect(() => {
+    if (optimizationStatus === 'optimized') {
+      const timer = setTimeout(() => {
+        setOptimizationStatus('idle');
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [optimizationStatus]);
+
   // Check auth state on mount and listen for changes
   useEffect(() => {
     // Check current user
@@ -454,23 +464,39 @@ function App() {
         </div>
       )}
 
-      <div className="container mx-auto p-2 sm:p-4 md:p-8" style={{ paddingTop: activeTab === "schedule" ? 'calc(max(5vh, 50px) + max(3.5vh, 40px))' : 'max(5vh, 50px)' }}>
-        {/* Mobile Header - Logo style with Logout */}
-        <div className="mb-4 md:mb-6 md:hidden">
-          <div className="flex items-center justify-between mb-2">
+      <div className="container mx-auto md:p-8" style={{ 
+        paddingTop: activeTab === "schedule" ? '0' : 'max(5vh, 50px)', // No top padding on mobile schedule
+        paddingLeft: activeTab === "schedule" ? '0' : '0.5rem',
+        paddingRight: activeTab === "schedule" ? '0' : '0.5rem',
+        paddingBottom: '0.5rem'
+      }}>
+        {/* Mobile Header - Logo style with Logout (only on settings tab) */}
+        <div className="md:mb-6 md:hidden" style={{ 
+          marginBottom: activeTab === "schedule" ? 'clamp(0.25rem, 1vh, 0.5rem)' : '1rem',
+          marginTop: activeTab === "schedule" ? '0' : '0.5rem',
+          paddingTop: activeTab === "schedule" ? 'clamp(0.25rem, 0.5vh, 0.5rem)' : '0',
+          paddingLeft: activeTab === "schedule" ? 'clamp(0.5rem, 2vw, 1rem)' : '0.5rem',
+          paddingRight: activeTab === "schedule" ? 'clamp(0.5rem, 2vw, 1rem)' : '0.5rem'
+        }}>
+          <div className="flex items-center justify-between" style={{ marginBottom: 'clamp(0.25rem, 0.5vh, 0.5rem)' }}>
             <div className="flex-1"></div>
-            <h1 className="text-2xl sm:text-3xl font-black text-transparent bg-clip-text bg-linear-to-r from-blue-600 via-blue-700 to-blue-800 uppercase tracking-wider drop-shadow-sm">
+            <h1 className="font-black text-transparent bg-clip-text bg-linear-to-r from-blue-600 via-blue-700 to-blue-800 uppercase tracking-wider drop-shadow-sm" style={{ 
+              fontSize: 'clamp(1rem, 4vh, 2rem)',
+              lineHeight: '1.2'
+            }}>
               Job Flow
             </h1>
             <div className="flex-1 flex justify-end">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={handleLogout}
-                className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 border-blue-200"
-              >
-                <LogOut className="h-4 w-4" />
-              </Button>
+              {activeTab === "settings" && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleLogout}
+                  className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 border-blue-200"
+                >
+                  <LogOut className="h-4 w-4" />
+                </Button>
+              )}
             </div>
           </div>
         </div>
@@ -534,19 +560,87 @@ function App() {
       <div className={`fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 md:hidden transition-transform duration-300 z-50 safe-area-inset ${
         showBottomNav ? 'translate-y-0' : 'translate-y-full'
       }`}>
-        <div className="flex justify-around items-center px-2 py-1 max-w-full overflow-x-auto">
+        {/* Today Button - Shows above tabs when on schedule */}
+        {activeTab === "schedule" && (
+          <div className="flex justify-center items-center border-b border-gray-100 bg-blue-50" style={{ 
+            gap: '1.67vw', 
+            padding: '0.81vh 2.22vw',
+            height: '6.35vh', // Button height (4.73vh) + padding (0.81vh × 2)
+            minHeight: '6.35vh'
+          }}>
+            <Button
+              onClick={() => scrollToTodayRef.current?.()}
+              size="sm"
+              variant="outline"
+              className="border-blue-600 text-blue-600 hover:bg-blue-100 shrink-0"
+              style={{ 
+                fontSize: '1.76vh',
+                padding: '0.81vh 3.33vw',
+                height: '4.73vh'
+              }}
+            >
+              <Calendar style={{ width: '2.16vh', height: '2.16vh' }} className="shrink-0" />
+              <span style={{ marginLeft: '1.11vw' }}>Today</span>
+            </Button>
+            {/* Optimize Button - Shows when there are jobs */}
+            {jobs.length > 0 && optimizationStatus !== 'optimized' && (
+              <Button
+                onClick={() => {
+                  const event = new CustomEvent('optimizeRoute');
+                  window.dispatchEvent(event);
+                }}
+                disabled={optimizationStatus === 'optimizing'}
+                size="sm"
+                className={`shrink-0 transition-colors ${
+                  hasJobChanges
+                    ? 'bg-orange-600 hover:bg-orange-700'
+                    : 'bg-blue-600 hover:bg-blue-700'
+                }`}
+                style={{ 
+                  fontSize: '1.76vh',
+                  padding: '0.81vh 3.33vw',
+                  height: '4.73vh'
+                }}
+              >
+                {optimizationStatus === 'optimizing' && <Loader2 style={{ width: '2.16vh', height: '2.16vh' }} className="animate-spin shrink-0" />}
+                {optimizationStatus !== 'optimizing' && <Route style={{ width: '2.16vh', height: '2.16vh' }} className="shrink-0" />}
+                <span style={{ marginLeft: '1.11vw' }}>
+                  {optimizationStatus === 'optimizing' ? 'Optimizing' : 'Optimize'}
+                </span>
+              </Button>
+            )}
+          </div>
+        )}
+        
+        <div className="flex justify-around items-center max-w-full overflow-x-auto" style={{ 
+          padding: '0.81vh 1.11vw',
+          height: '5.97vh', // Icon height (2.70vh) + text (1.22vh) + padding (0.81vh × 2) + margin (0.27vh)
+          minHeight: '5.97vh'
+        }}>
           {navItems.map((item) => (
             <button
               key={item.id}
               onClick={() => setActiveTab(item.id)}
-              className={`flex flex-col items-center justify-center py-2 px-3 min-w-[60px] shrink-0 ${
+              className={`flex flex-col items-center justify-center shrink-0 ${
                 activeTab === item.id
                   ? "text-blue-600"
                   : "text-gray-500"
               }`}
+              style={{
+                padding: '0.81vh 2.22vw',
+                minWidth: '15.28vw'
+              }}
             >
-              <item.icon className="h-5 w-5 mb-0.5" />
-              <span className="text-[10px] leading-tight">{item.label}</span>
+              <item.icon style={{ 
+                width: '2.70vh', 
+                height: '2.70vh', 
+                marginBottom: '0.27vh' 
+              }} />
+              <span style={{ 
+                fontSize: '1.22vh', 
+                lineHeight: '1.1',
+                whiteSpace: 'nowrap'
+              }}>{item.label}</span>
             </button>
           ))}
         </div>
