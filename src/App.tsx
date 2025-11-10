@@ -563,24 +563,44 @@ function App() {
         {/* Today Button - Shows above tabs when on schedule */}
         {activeTab === "schedule" && (
           <div className="flex justify-center items-center border-b border-gray-100 bg-blue-50" style={{ 
-            gap: '1.67vw', 
-            padding: '0.81vh 2.22vw',
-            height: '6.35vh', // Button height (4.73vh) + padding (0.81vh × 2)
-            minHeight: '6.35vh'
+            gap: 'max(0.5vw, 4px)', 
+            padding: 'max(0.5vh, 3px) max(1vw, 6px)',
+            minHeight: 'max(5vh, 35px)' // More aggressive scaling with minimum
           }}>
+            {/* Location Button - Shows zipcode, opens location editor */}
+            {locationZipCode && (
+              <Button
+                onClick={() => setIsEditingAddress(true)}
+                size="sm"
+                variant="outline"
+                className="border-blue-600 text-blue-600 hover:bg-blue-100 shrink-0"
+                style={{ 
+                  fontSize: 'max(1.4vh, 10px)',
+                  padding: 'max(0.5vh, 3px) max(2vw, 8px)',
+                  maxHeight: 'max(4vh, 28px)',
+                  height: 'auto'
+                }}
+                title="Click to change location"
+              >
+                <MapPin style={{ width: 'max(1.8vh, 14px)', height: 'max(1.8vh, 14px)' }} className="shrink-0" />
+                <span style={{ marginLeft: 'max(0.8vw, 4px)' }}>{locationZipCode}</span>
+              </Button>
+            )}
+            
             <Button
               onClick={() => scrollToTodayRef.current?.()}
               size="sm"
               variant="outline"
               className="border-blue-600 text-blue-600 hover:bg-blue-100 shrink-0"
               style={{ 
-                fontSize: '1.76vh',
-                padding: '0.81vh 3.33vw',
-                height: '4.73vh'
+                fontSize: 'max(1.4vh, 10px)',
+                padding: 'max(0.5vh, 3px) max(2vw, 8px)',
+                maxHeight: 'max(4vh, 28px)',
+                height: 'auto'
               }}
             >
-              <Calendar style={{ width: '2.16vh', height: '2.16vh' }} className="shrink-0" />
-              <span style={{ marginLeft: '1.11vw' }}>Today</span>
+              <Calendar style={{ width: 'max(1.8vh, 14px)', height: 'max(1.8vh, 14px)' }} className="shrink-0" />
+              <span style={{ marginLeft: 'max(0.8vw, 4px)' }}>Today</span>
             </Button>
             {/* Optimize Button - Shows when there are jobs */}
             {jobs.length > 0 && optimizationStatus !== 'optimized' && (
@@ -597,14 +617,15 @@ function App() {
                     : 'bg-blue-600 hover:bg-blue-700'
                 }`}
                 style={{ 
-                  fontSize: '1.76vh',
-                  padding: '0.81vh 3.33vw',
-                  height: '4.73vh'
+                  fontSize: 'max(1.4vh, 10px)',
+                  padding: 'max(0.5vh, 3px) max(2vw, 8px)',
+                  maxHeight: 'max(4vh, 28px)',
+                  height: 'auto'
                 }}
               >
-                {optimizationStatus === 'optimizing' && <Loader2 style={{ width: '2.16vh', height: '2.16vh' }} className="animate-spin shrink-0" />}
-                {optimizationStatus !== 'optimizing' && <Route style={{ width: '2.16vh', height: '2.16vh' }} className="shrink-0" />}
-                <span style={{ marginLeft: '1.11vw' }}>
+                {optimizationStatus === 'optimizing' && <Loader2 style={{ width: 'max(1.8vh, 14px)', height: 'max(1.8vh, 14px)' }} className="animate-spin shrink-0" />}
+                {optimizationStatus !== 'optimizing' && <Route style={{ width: 'max(1.8vh, 14px)', height: 'max(1.8vh, 14px)' }} className="shrink-0" />}
+                <span style={{ marginLeft: 'max(0.8vw, 4px)' }}>
                   {optimizationStatus === 'optimizing' ? 'Optimizing' : 'Optimize'}
                 </span>
               </Button>
@@ -613,9 +634,8 @@ function App() {
         )}
         
         <div className="flex justify-around items-center max-w-full overflow-x-auto" style={{ 
-          padding: '0.81vh 1.11vw',
-          height: '5.97vh', // Icon height (2.70vh) + text (1.22vh) + padding (0.81vh × 2) + margin (0.27vh)
-          minHeight: '5.97vh'
+          padding: 'max(0.5vh, 3px) max(0.5vw, 4px)',
+          minHeight: 'max(5vh, 40px)' // More responsive to height changes
         }}>
           {navItems.map((item) => (
             <button
@@ -627,17 +647,18 @@ function App() {
                   : "text-gray-500"
               }`}
               style={{
-                padding: '0.81vh 2.22vw',
-                minWidth: '15.28vw'
+                padding: 'max(0.5vh, 3px) max(1.5vw, 6px)',
+                minWidth: 'max(12vw, 45px)',
+                height: 'auto'
               }}
             >
               <item.icon style={{ 
-                width: '2.70vh', 
-                height: '2.70vh', 
-                marginBottom: '0.27vh' 
+                width: 'max(2.2vh, 18px)', 
+                height: 'max(2.2vh, 18px)', 
+                marginBottom: 'max(0.2vh, 2px)' 
               }} />
               <span style={{ 
-                fontSize: '1.22vh', 
+                fontSize: 'max(1vh, 8px)', 
                 lineHeight: '1.1',
                 whiteSpace: 'nowrap'
               }}>{item.label}</span>

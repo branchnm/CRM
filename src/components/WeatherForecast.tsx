@@ -135,10 +135,10 @@ export function WeatherForecast({
   const desktopScrollTimeout = useRef<number | undefined>(undefined);
   const [isTodayCardVisible, setIsTodayCardVisible] = useState(true);
   
-  // Track instruction dismissal - hide after 2 uses
-  const [showCutInstruction, setShowCutInstruction] = useState(() => {
-    const cutCount = parseInt(localStorage.getItem('jobCutCount') || '0', 10);
-    return cutCount < 2;
+  // Track tutorial dismissal - show only once for first-time users
+  const [showTutorialBanner, setShowTutorialBanner] = useState(() => {
+    const dismissed = localStorage.getItem('tutorialDismissed');
+    return dismissed !== 'true';
   });
 
   // Track job changes to show/hide optimize button
@@ -168,6 +168,12 @@ export function WeatherForecast({
       scrollToTodayRef.current = scrollToToday;
     }
   }, [scrollToToday, scrollToTodayRef]);
+
+  // Handler to dismiss tutorial banner
+  const dismissTutorial = useCallback(() => {
+    setShowTutorialBanner(false);
+    localStorage.setItem('tutorialDismissed', 'true');
+  }, []);
 
   // Debounce address input to reduce API calls
   const debouncedAddressInput = useDebounce(addressInput, 500); // 500ms delay
@@ -2238,6 +2244,11 @@ export function WeatherForecast({
       setIsSelectionMode(false);
       setSelectedJobIds(new Set());
       
+      // Auto-dismiss tutorial on first paste
+      if (showTutorialBanner) {
+        dismissTutorial();
+      }
+      
       toast.success(`Moved ${jobsToMove.length} job${jobsToMove.length > 1 ? 's' : ''}`);
       return;
     }
@@ -2267,6 +2278,11 @@ export function WeatherForecast({
         // Clear cut mode
         setCutJobId(null);
         
+        // Auto-dismiss tutorial on first paste
+        if (showTutorialBanner) {
+          dismissTutorial();
+        }
+        
         // Show undo button
         setShowUndo(true);
         setTimeout(() => setShowUndo(false), 5000);
@@ -2278,7 +2294,7 @@ export function WeatherForecast({
     } else {
       lastTapTime.current = now;
     }
-  }, [cutJobId, jobs, onRescheduleJob, isSelectionMode, selectedJobIds]);
+  }, [cutJobId, jobs, onRescheduleJob, isSelectionMode, selectedJobIds, showTutorialBanner, dismissTutorial]);
 
   // Remove old touch handlers - replaced with tap handlers
   /*
@@ -2710,8 +2726,98 @@ export function WeatherForecast({
         </div>
       )}
 
-      {/* Location Selector - Centered - Single unified address input with autocomplete */}
-      <div className="flex justify-center mb-0">
+      {/* Mobile Location Editor - Full screen overlay */}
+      {isMobile && isEditingAddress && (
+        <div className="fixed inset-0 bg-white z-100 flex flex-col">
+          <div className="bg-blue-600 text-white p-4 flex items-center justify-between">
+            <h2 className="text-lg font-semibold">Set Location</h2>
+            {locationName && (
+              <button 
+                onClick={() => setIsEditingAddress(false)}
+                className="p-2 hover:bg-blue-700 rounded-full transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            )}
+          </div>
+          <div className="flex-1 p-4 overflow-y-auto">
+            <div className="max-w-md mx-auto">
+              <div className="relative">
+                <Input
+                  ref={addressInputRef}
+                  placeholder={
+                    userGPSLocation 
+                      ? "Search nearby addresses..." 
+                      : "Enter full address"
+                  }
+                  value={addressInput}
+                  onChange={(e) => handleAddressInputChange(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !showAddressSuggestions) {
+                      handleSetAddress();
+                    } else if (e.key === 'Escape') {
+                      setShowAddressSuggestions(false);
+                      if (locationName) {
+                        setIsEditingAddress(false);
+                      }
+                    }
+                  }}
+                  autoComplete="off"
+                  disabled={loading}
+                  className={`h-12 pr-10 text-base ${
+                    addressSaved 
+                      ? 'border-green-500 focus:border-green-500 focus:ring-green-500' 
+                      : userGPSLocation
+                      ? 'border-green-200 focus:border-green-400 focus:ring-green-400'
+                      : 'border-blue-200 focus:border-blue-400 focus:ring-blue-400'
+                  }`}
+                />
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                  {addressSaved && (
+                    <CheckCircle className="h-5 w-5 text-green-600" />
+                  )}
+                  {isSearchingAddress && !addressSaved && (
+                    <Loader2 className="h-5 w-5 text-blue-600 animate-spin" />
+                  )}
+                  {!addressSaved && !isSearchingAddress && userGPSLocation && (
+                    <div title="Using GPS for nearby results">
+                      <Navigation className="h-5 w-5 text-green-600" />
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              {/* Address Suggestions for Mobile */}
+              {showAddressSuggestions && addressSuggestions.length > 0 && (
+                <div className="mt-2 bg-white border border-blue-300 rounded-md shadow-lg max-h-[60vh] overflow-y-auto">
+                  {userGPSLocation && (
+                    <div className="px-4 py-3 bg-green-50 border-b border-green-200 text-sm text-green-700 flex items-center gap-2">
+                      <Navigation className="h-4 w-4" />
+                      <span>Showing nearby addresses</span>
+                    </div>
+                  )}
+                  {addressSuggestions.map((suggestion, index) => (
+                    <button
+                      key={index}
+                      type="button"
+                      onClick={() => handleSelectSuggestion(suggestion)}
+                      className="w-full text-left px-4 py-3 hover:bg-blue-50 transition-colors border-b border-gray-100 last:border-b-0"
+                    >
+                      <div className="flex items-start gap-3">
+                        <MapPin className="h-5 w-5 text-blue-600 mt-0.5 shrink-0" />
+                        <span className="text-sm text-gray-900">{suggestion.display_name}</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Location Selector - Centered - Desktop only */}
+      <div className="hidden md:flex justify-center mb-0">
         <div className="w-full max-w-3xl px-4">
           {/* Show input when editing or no location set */}
           {(isEditingAddress || !locationName) ? (
@@ -2876,18 +2982,37 @@ export function WeatherForecast({
           minHeight: 'calc(100vh - 5vh - 4rem)', // Full viewport minus nav bar (5vh) and container padding
         }}>
           <div className="space-y-2 w-full">
-            {/* Mobile Instructions - Show at top, outside everything */}
+            {/* Floating Tutorial Banner - Shows once for new users */}
+            {showTutorialBanner && jobs.length > 0 && isTouchDevice.current && (
+              <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 max-w-md mx-4 animate-in slide-in-from-top duration-300">
+                <div className="bg-linear-to-r from-blue-500 to-blue-600 text-white rounded-lg shadow-2xl p-4 border-2 border-blue-400">
+                  <div className="flex items-start gap-3">
+                    <div className="text-2xl">📱</div>
+                    <div className="flex-1">
+                      <h3 className="font-bold text-sm mb-1">Quick Tip!</h3>
+                      <p className="text-xs leading-relaxed">
+                        Hold a job to cut it, then double-tap any slot to paste. Swipe between days to reschedule.
+                      </p>
+                    </div>
+                    <button 
+                      onClick={dismissTutorial}
+                      className="shrink-0 hover:bg-white/20 rounded-full p-1 transition-colors"
+                      aria-label="Dismiss tutorial"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Mobile Cut Job Active Banner */}
             {isMobile && isTouchDevice.current && cutJobId && (
               <div className="p-2 bg-yellow-50 border-2 border-yellow-400 rounded-lg">
                 <div className="flex items-center gap-2 text-xs text-yellow-800 font-medium">
                   <span className="text-lg">✂️</span>
                   <span>Job cut! Double-tap any slot to paste. Swipe to change days.</span>
                 </div>
-              </div>
-            )}
-            {isMobile && isTouchDevice.current && !cutJobId && showCutInstruction && (
-              <div className="p-2 bg-blue-50 border border-blue-300 rounded text-xs text-blue-700 text-center">
-                📱 Hold a job to cut it, then double-tap a slot to paste
               </div>
             )}
 
@@ -2924,18 +3049,13 @@ export function WeatherForecast({
                   height: isMobile ? 'calc(100vh - var(--header-height, 0px) - var(--footer-height, 0px))' : undefined,
                 }}
               >
-                {/* Desktop Instructions */}
+                {/* Desktop Cut Job Active Banner */}
                 {!isMobile && isTouchDevice.current && cutJobId && (
                   <div className="p-2 bg-yellow-50 border-2 border-yellow-400 rounded-lg mb-2">
                     <div className="flex items-center gap-2 text-xs text-yellow-800 font-medium">
                       <span className="text-lg">✂️</span>
                       <span>Job cut! Double-tap any slot to paste. Swipe to change days.</span>
                     </div>
-                  </div>
-                )}
-                {!isMobile && isTouchDevice.current && !cutJobId && showCutInstruction && (
-                  <div className="p-2 bg-blue-50 border border-blue-300 rounded text-xs text-blue-700 text-center mb-2">
-                    📱 Hold a job to cut it, then double-tap a slot to paste
                   </div>
                 )}
 
@@ -3070,9 +3190,9 @@ export function WeatherForecast({
                       }}
                     >
                       {/* Day Header - Improved with work/drive time stats */}
-                      <div className={`bg-white border-b border-gray-200 ${isMobile ? 'px-2 py-[0.26vh]' : 'px-[0.44vh] py-[0.53vh]'}`}>
+                      <div className={`bg-white border-b border-gray-200 ${isMobile ? 'px-2 py-[0.1vh]' : 'px-[0.44vh] py-[0.53vh]'}`}>
                         {/* Day and Date on same line with rain badge - CENTERED */}
-                        <div className={`flex items-center justify-center ${isMobile ? 'mb-[0.16vh]' : 'mb-[0.27vh]'}`}>
+                        <div className={`flex items-center justify-center ${isMobile ? 'mb-0' : 'mb-[0.27vh]'}`}>
                           <div className="flex items-center gap-[0.44vh]">
                             <span className={`font-bold text-gray-900 ${isMobile ? 'text-[1.94vh]' : 'text-[1.95vh]'}`}>{dayName}</span>
                             <span className={`text-gray-500 ${isMobile ? 'text-[1.62vh]' : 'text-[1.59vh]'}`}>{dayDate}</span>
@@ -3119,8 +3239,8 @@ export function WeatherForecast({
                                   <>
                                     <div className="h-[0.53vh] w-[0.13vh] bg-gray-300"></div>
                                     <div className="flex items-center gap-[0.27vh] text-gray-700">
-                                      <span className={`${isMobile ? 'text-[1.51vh]' : 'text-[1.33vh]'}`}>🚗</span>
-                                      <span className={`font-semibold ${isMobile ? 'text-[1.33vh]' : 'text-[1.24vh]'}`}>
+                                      <span className={`${isMobile ? 'text-[1.43vh]' : 'text-[1.33vh]'}`}>🚗</span>
+                                      <span className={`font-semibold ${isMobile ? 'text-[1.26vh]' : 'text-[1.24vh]'}`}>
                                         {driveHours > 0 && `${driveHours}h `}{driveMins}m
                                       </span>
                                     </div>
@@ -3160,10 +3280,10 @@ export function WeatherForecast({
                               }
                               
                               return (
-                                <div className={`${isMobile ? 'mb-[0.88vh]' : 'mb-[0.80vh]'}`}>
+                                <div className={`${isMobile ? 'mb-[2vh]' : 'mb-[0.80vh]'}`}>
                                   {/* Draggable start time handle - ALWAYS visible at top */}
                                   <div
-                                    className={`relative cursor-ns-resize transition-all group ${isMobile ? 'py-[0.44vh]' : 'py-[0.53vh]'}`}
+                                    className={`relative cursor-ns-resize transition-all group ${isMobile ? 'py-[0.42vh]' : 'py-[0.53vh]'}`}
                                     draggable
                                     onDragStart={(e) => {
                                       e.dataTransfer.effectAllowed = 'move';
@@ -3250,7 +3370,7 @@ export function WeatherForecast({
                                     </div>
                                     {/* Time label - Always visible - positioned on right side - LARGER TEXT */}
                                     <div className={`absolute left-full ml-[0.44vh] top-1/2 -translate-y-1/2 bg-blue-600 text-white px-[0.44vh] py-[0.27vh] rounded font-semibold whitespace-nowrap shadow-md z-10 ${
-                                      isMobile ? 'text-[1.24vh]' : 'text-[1.15vh]'
+                                      isMobile ? 'text-[1.18vh]' : 'text-[1.15vh]'
                                     }`}>
                                       Start: {currentStartTime > 12 ? `${currentStartTime - 12}PM` : currentStartTime === 12 ? '12PM' : `${currentStartTime}AM`}
                                     </div>
@@ -3258,7 +3378,7 @@ export function WeatherForecast({
                                     {/* Reason label - appears on right */}
                                     {currentStartTime > 5 && (
                                       <div className={`absolute -right-[0.27vh] top-1/2 -translate-y-1/2 translate-x-full bg-white/95 text-blue-700 px-[0.27vh] py-[0.36vh] rounded shadow-sm font-medium whitespace-nowrap ${
-                                        isMobile ? 'text-[0.88vh]' : 'text-[0.88vh]'
+                                        isMobile ? 'text-[0.84vh]' : 'text-[0.88vh]'
                                       }`}>
                                         {startReason}
                                       </div>
@@ -3341,7 +3461,7 @@ export function WeatherForecast({
                               
                               return (
                                 <div className={`relative flex flex-col time-slots-container overflow-hidden ${
-                                  isMobile ? 'space-y-0 flex-1 justify-between gap-y-[0.44vh]' : 'flex-1 justify-between'
+                                  isMobile ? 'space-y-0 flex-1 justify-between gap-y-[0.42vh]' : 'flex-1 justify-between'
                                 }`} data-date={dateStr}>
                                 {/* Blocked time overlays */}
                                 {(() => {
@@ -3441,8 +3561,8 @@ export function WeatherForecast({
                                     
                                     return (
                                       <div className="flex flex-col items-center gap-[0.19vh] w-[3.84vh] shrink-0">
-                                        <HourIcon className={`${isMobile ? 'w-[2.88vh] h-[2.88vh]' : 'w-[3.07vh] h-[3.07vh]'} ${hourColor} stroke-[1.5]`} />
-                                        <span className={`text-gray-500 font-medium whitespace-nowrap ${isMobile ? 'text-[1.15vh]' : 'text-[1.06vh]'}`}>
+                                        <HourIcon className={`${isMobile ? 'w-[2.74vh] h-[2.74vh]' : 'w-[3.07vh] h-[3.07vh]'} ${hourColor} stroke-[1.5]`} />
+                                        <span className={`text-gray-500 font-medium whitespace-nowrap ${isMobile ? 'text-[1.09vh]' : 'text-[1.06vh]'}`}>
                                           {timeLabel}
                                         </span>
                                       </div>
@@ -3455,7 +3575,7 @@ export function WeatherForecast({
                                     <div 
                                       key={slot.slotIndex} 
                                       className={`relative flex items-center transition-colors ${
-                                        isMobile ? 'px-[0.48vh] py-[0.29vh] max-h-[2.69vh]' : 'h-[4.8vh] px-[0.48vh]' //Increased from 4.3vh to 5vh (slot height)
+                                        isMobile ? 'px-[0.46vh] py-[0.28vh] max-h-[2.56vh]' : 'h-[4.8vh] px-[0.48vh]' //Increased from 4.3vh to 5vh (slot height)
                                         
                                       } ${isDropTarget ? 'bg-blue-100 border-l-4 border-blue-500' : ''}`}
                                       data-time-slot="true"
@@ -3475,14 +3595,14 @@ export function WeatherForecast({
                                                 {weatherIcon}
                                                 <div className="flex flex-col items-center gap-[0.19vh]">
                                                   <div className={`relative flex items-center justify-center bg-blue-50 rounded-full border border-blue-200 ${
-                                                    isMobile ? 'w-[2.88vh] h-[2.88vh]' : 'w-[3.07vh] h-[3.07vh]'
+                                                    isMobile ? 'w-[2.74vh] h-[2.74vh]' : 'w-[3.07vh] h-[3.07vh]'
                                                   }`}>
-                                                    <svg className={`text-blue-600 ${isMobile ? 'w-[1.92vh] h-[1.92vh]' : 'w-[1.92vh] h-[1.92vh]'}`} fill="currentColor" viewBox="0 0 20 20">
+                                                    <svg className={`text-blue-600 ${isMobile ? 'w-[1.82vh] h-[1.82vh]' : 'w-[1.92vh] h-[1.92vh]'}`} fill="currentColor" viewBox="0 0 20 20">
                                                       <path fillRule="evenodd" d="M10 2a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0110 2zM10 15a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0110 15zM10 7a3 3 0 100 6 3 3 0 000-6zM15.657 5.404a.75.75 0 10-1.06-1.06l-1.061 1.06a.75.75 0 001.06 1.06l1.06-1.06zM6.464 14.596a.75.75 0 10-1.06-1.06l-1.06 1.06a.75.75 0 001.06 1.06l1.06-1.06zM18 10a.75.75 0 01-.75.75h-1.5a.75.75 0 010-1.5h1.5A.75.75 0 0118 10zM5 10a.75.75 0 01-.75.75h-1.5a.75.75 0 010-1.5h1.5A.75.75 0 015 10zM14.596 15.657a.75.75 0 001.06-1.06l-1.06-1.061a.75.75 0 10-1.06 1.06l1.06 1.06zM5.404 6.464a.75.75 0 001.06-1.06l-1.06-1.06a.75.75 0 10-1.061 1.06l1.06 1.06z" clipRule="evenodd" />
                                                     </svg>
                                                   </div>
                                                   <span className={`text-blue-700 font-bold whitespace-nowrap tracking-tight ${
-                                                    isMobile ? 'text-[0.96vh]' : 'text-[0.96vh]'
+                                                    isMobile ? 'text-[0.91vh]' : 'text-[0.96vh]'
                                                   }`}>WET</span>
                                                 </div>
                                               </div>
@@ -3517,7 +3637,7 @@ export function WeatherForecast({
                                               onTouchEnd={isTouchDevice.current && !isCompleted ? handleJobTouchEnd : undefined}
                                               //is where the size of the job cards are adjusted
                                               className={`flex-1 rounded transition-all text-xs group overflow-hidden flex items-center select-none ${
-                                                isMobile ? 'px-[0.77vh] py-[0.48vh] min-h-[3.84vh] max-h-[4.32vh]' : 'px-[0.58vh] py-[0.48vh] h-[4.8vh]'
+                                                isMobile ? 'px-[0.73vh] py-[0.46vh] min-h-[3.65vh] max-h-[4.10vh]' : 'px-[0.58vh] py-[0.48vh] h-[4.8vh]'
                                               } ${
                                                 isCompleted
                                                   ? 'bg-gray-100 border border-gray-300 opacity-60 cursor-default'
@@ -3540,32 +3660,32 @@ export function WeatherForecast({
                                               <div className="flex items-center justify-between gap-[0.14vh] w-full overflow-hidden">
                                                 <div className="flex-1 min-w-0">
                                                   <div className={`font-semibold truncate w-full ${
-                                                    isMobile ? 'text-[1.34vh]' : 'text-[1.34vh]'
+                                                    isMobile ? 'text-[1.27vh]' : 'text-[1.34vh]'
                                                   } ${isCompleted ? 'text-gray-500 line-through' : 'text-gray-900'}`}>
                                                     {customer?.name}
                                                     {isSelected && (
-                                                      <span className={`ml-[0.14vh] text-green-700 ${isMobile ? 'text-[1.15vh]' : 'text-[1.15vh]'}`}>✓ Selected</span>
+                                                      <span className={`ml-[0.14vh] text-green-700 ${isMobile ? 'text-[1.09vh]' : 'text-[1.15vh]'}`}>✓ Selected</span>
                                                     )}
                                                     {isCutItem && isTouchDevice.current && !isSelected && (
-                                                      <span className={`ml-[0.14vh] text-yellow-700 ${isMobile ? 'text-[1.15vh]' : 'text-[1.15vh]'}`}>✂️ Cut</span>
+                                                      <span className={`ml-[0.14vh] text-yellow-700 ${isMobile ? 'text-[1.09vh]' : 'text-[1.15vh]'}`}>✂️ Cut</span>
                                                     )}
                                                     {isCompleted && (
-                                                      <span className={`ml-[0.14vh] text-green-600 ${isMobile ? 'text-[1.15vh]' : 'text-[1.15vh]'}`}>✓</span>
+                                                      <span className={`ml-[0.14vh] text-green-600 ${isMobile ? 'text-[1.09vh]' : 'text-[1.15vh]'}`}>✓</span>
                                                     )}
                                                   </div>
                                                   {!isDraggedItem && isAssigned && (
-                                                    <div className={`text-gray-700 font-medium mt-[0.19vh] italic ${isMobile ? 'text-[1.15vh]' : 'text-[1.06vh]'}`}>
+                                                    <div className={`text-gray-700 font-medium mt-[0.18vh] italic ${isMobile ? 'text-[1.09vh]' : 'text-[1.06vh]'}`}>
                                                       Moving here...
                                                     </div>
                                                   )}
                                                   {!isDraggedItem && !isAssigned && !isCutItem && (
-                                                    <div className={`truncate ${isMobile ? 'text-[1.2vh]' : 'text-[1.1vh]'} ${isCompleted ? 'text-gray-400' : 'text-gray-600'}`}>
+                                                    <div className={`truncate ${isMobile ? 'text-[1.14vh]' : 'text-[1.1vh]'} ${isCompleted ? 'text-gray-400' : 'text-gray-600'}`}>
                                                       {scheduledTime && <span className="font-medium">{scheduledTime} • </span>}
                                                       ${customer?.price} • 60 min
                                                     </div>
                                                   )}
                                                   {isCutItem && isTouchDevice.current && (
-                                                    <div className={`text-yellow-700 font-medium mt-[0.2vh] ${isMobile ? 'text-[1.2vh]' : 'text-[1.1vh]'}`}>
+                                                    <div className={`text-yellow-700 font-medium mt-[0.19vh] ${isMobile ? 'text-[1.14vh]' : 'text-[1.1vh]'}`}>
                                                       Double-tap slot to paste or hold to cancel
                                                     </div>
                                                   )}
@@ -3635,10 +3755,10 @@ export function WeatherForecast({
                             }
                             
                             return (
-                              <div className={`${isMobile ? 'mt-[0.17vh]' : 'mt-[0.27vh]'}`}>
+                              <div className={`${isMobile ? 'mt-[0.16vh]' : 'mt-[0.27vh]'}`}>
                                 {/* Draggable end time handle - ALWAYS visible at bottom */}
                                 <div
-                                  className={`relative cursor-ns-resize transition-all group ${isMobile ? 'py-[0.44vh]' : 'py-[0.53vh]'}`}
+                                  className={`relative cursor-ns-resize transition-all group ${isMobile ? 'py-[0.42vh]' : 'py-[0.53vh]'}`}
                                   draggable
                                   onDragStart={(e) => {
                                     e.dataTransfer.effectAllowed = 'move';
@@ -3722,7 +3842,7 @@ export function WeatherForecast({
                                   
                                   {/* Time label - Always visible - positioned on right side - LARGER TEXT */}
                                   <div className={`absolute left-full ml-[0.44vh] top-1/2 -translate-y-1/2 bg-blue-600 text-white px-[0.44vh] py-[0.27vh] rounded font-semibold whitespace-nowrap shadow-md z-10 ${
-                                    isMobile ? 'text-[1.24vh]' : 'text-[1.15vh]'
+                                    isMobile ? 'text-[1.18vh]' : 'text-[1.15vh]'
                                   }`}>
                                     End: {currentEndTime > 12 ? `${currentEndTime - 12}PM` : currentEndTime === 12 ? '12PM' : `${currentEndTime}AM`}
                                   </div>
@@ -3730,7 +3850,7 @@ export function WeatherForecast({
                                   {/* Reason label - appears on right */}
                                   {currentEndTime < 18 && (
                                     <div className={`absolute -right-[0.27vh] top-1/2 -translate-y-1/2 translate-x-full bg-white/95 text-blue-700 px-[0.27vh] py-[0.36vh] rounded shadow-sm font-medium whitespace-nowrap ${
-                                      isMobile ? 'text-[0.88vh]' : 'text-[0.88vh]'
+                                      isMobile ? 'text-[0.84vh]' : 'text-[0.88vh]'
                                     }`}>
                                       {endReason}
                                     </div>
@@ -3781,18 +3901,18 @@ export function WeatherForecast({
                           );
                           
                           return (
-                            <div className={`${isMobile ? 'space-y-0 flex-1 flex flex-col justify-between gap-y-[0.44vh]' : 'flex-1 flex flex-col justify-between'}`}>
+                            <div className={`${isMobile ? 'space-y-0 flex-1 flex flex-col justify-between gap-y-[0.42vh]' : 'flex-1 flex flex-col justify-between'}`}>
                               {nightSlots.map((slot, idx) => (
                                 <div key={idx} className={`flex items-center justify-center ${
                                   //Night weather slot - matches day slot height exactly
-                                  isMobile ? 'px-[.44vh] py-[.27vh] max-h-[2.49vh]' : 'h-[4.44vh] px-[0.44vh]'
+                                  isMobile ? 'px-[.42vh] py-[.26vh] max-h-[2.37vh]' : 'h-[4.44vh] px-[0.44vh]'
 
                                 }`}>
                                   {slot.show && (
                                     <div className="flex flex-col items-center gap-[0.17vh]">
-                                      <NightIcon className={`${isMobile ? 'w-[2.66vh] h-[2.66vh]' : 'w-[2.84vh] h-[2.84vh]'} ${nightColor} stroke-[1.5]`} />
+                                      <NightIcon className={`${isMobile ? 'w-[2.53vh] h-[2.53vh]' : 'w-[2.84vh] h-[2.84vh]'} ${nightColor} stroke-[1.5]`} />
                                       <span className={`text-slate-300 font-medium whitespace-nowrap ${
-                                        isMobile ? 'text-[1.07vh]' : 'text-[0.98vh]'
+                                        isMobile ? 'text-[1.02vh]' : 'text-[0.98vh]'
                                       }`}>
                                         {slot.label}
                                       </span>
