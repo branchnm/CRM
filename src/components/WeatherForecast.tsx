@@ -2852,6 +2852,107 @@ export function WeatherForecast({
         </div>
       )}
 
+      {/* Location Input - Show when no location is set (Desktop & Mobile) */}
+      {!loading && !location && !error && (
+        <div className="max-w-2xl mx-auto px-4">
+          <Card className="bg-white/80 backdrop-blur border-blue-200">
+            <CardContent className="pt-6 pb-6">
+              <div className="text-center mb-6">
+                <MapPin className="h-12 w-12 text-blue-600 mx-auto mb-3" />
+                <h3 className="text-lg font-medium text-blue-900 mb-2">Set Your Location</h3>
+                <p className="text-blue-700 text-sm">
+                  Enter your business address to view weather forecasts and optimize routes
+                </p>
+              </div>
+              
+              <div className="relative">
+                <Input
+                  ref={addressInputRef}
+                  placeholder="Enter full address (e.g., 123 Main St, Homewood, AL)"
+                  value={addressInput}
+                  onChange={(e) => handleAddressInputChange(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !showAddressSuggestions) {
+                      handleSetAddress();
+                    } else if (e.key === 'Escape') {
+                      setShowAddressSuggestions(false);
+                    }
+                  }}
+                  autoComplete="off"
+                  disabled={loading}
+                  className={`h-12 pr-10 text-base ${
+                    addressSaved 
+                      ? 'border-green-500 focus:border-green-500 focus:ring-green-500' 
+                      : userGPSLocation
+                      ? 'border-green-200 focus:border-green-400 focus:ring-green-400'
+                      : 'border-blue-200 focus:border-blue-400 focus:ring-blue-400'
+                  }`}
+                />
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                  {addressSaved && (
+                    <CheckCircle className="h-5 w-5 text-green-600" />
+                  )}
+                  {isSearchingAddress && !addressSaved && (
+                    <Loader2 className="h-5 w-5 text-blue-600 animate-spin" />
+                  )}
+                  {!addressSaved && !isSearchingAddress && userGPSLocation && (
+                    <div title="Using GPS for nearby results">
+                      <Navigation className="h-5 w-5 text-green-600" />
+                    </div>
+                  )}
+                </div>
+                
+                {/* Address Suggestions Dropdown */}
+                {showAddressSuggestions && addressSuggestions.length > 0 && (
+                  <div 
+                    ref={dropdownRef}
+                    className="absolute top-full left-0 right-0 mt-2 bg-white border border-blue-300 rounded-md shadow-lg max-h-60 overflow-y-auto z-50"
+                  >
+                    {userGPSLocation && (
+                      <div className="px-4 py-2 bg-green-50 border-b border-green-200 text-xs text-green-700 flex items-center gap-2">
+                        <Navigation className="h-3 w-3" />
+                        <span>Showing nearby addresses based on your location</span>
+                      </div>
+                    )}
+                    {addressSuggestions.map((suggestion, index) => (
+                      <button
+                        key={index}
+                        type="button"
+                        onClick={() => handleSelectSuggestion(suggestion)}
+                        className="w-full text-left px-4 py-3 hover:bg-blue-50 transition-colors border-b border-gray-100 last:border-b-0 cursor-pointer"
+                      >
+                        <div className="flex items-start gap-2">
+                          <MapPin className="h-4 w-4 text-blue-600 mt-0.5 shrink-0" />
+                          <span className="text-sm text-gray-900">{suggestion.display_name}</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              
+              <div className="flex items-center gap-3 mt-4">
+                <div className="flex-1 h-px bg-gray-200"></div>
+                <span className="text-xs text-gray-500">or</span>
+                <div className="flex-1 h-px bg-gray-200"></div>
+              </div>
+              
+              <Button
+                onClick={handleUseGPS}
+                variant="outline"
+                className="w-full mt-4 border-blue-200 text-blue-700 hover:bg-blue-50"
+                disabled={loading}
+              >
+                <Navigation className="h-4 w-4 mr-2" />
+                Use My Current Location
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* No Location Set - Removed (replaced with input UI above) */}
+
       {/* Undo Button - Bottom Right - Shows briefly after moving a job */}
       {showUndo && lastAction && (
         <div className="fixed bottom-20 md:bottom-6 right-4 md:right-6 z-50 animate-in slide-in-from-bottom-4">
@@ -2903,17 +3004,6 @@ export function WeatherForecast({
             </div>
           </CardContent>
         </Card>
-      )}
-
-      {/* No Location Set */}
-      {!loading && !location && !error && (
-        <div className="text-center py-8 bg-blue-50/50 border border-blue-200 rounded-lg">
-          <MapPin className="h-12 w-12 text-blue-600 mx-auto mb-3" />
-          <h3 className="text-lg font-medium text-blue-900 mb-2">No Location Set</h3>
-          <p className="text-blue-700 mb-4">
-            Enter an address or use your current location to view the weather forecast
-          </p>
-        </div>
       )}
 
       {/* Combined Weather Forecast & Job Planning Card */}
