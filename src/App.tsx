@@ -626,7 +626,7 @@ function App() {
               <span style={{ marginLeft: 'max(0.8vw, 4px)' }}>Today</span>
             </Button>
             {/* Optimize Button - Shows when there are jobs */}
-            {jobs.length > 0 && optimizationStatus !== 'optimized' && (
+            {jobs.length > 0 && (
               <Button
                 onClick={() => {
                   const event = new CustomEvent('optimizeRoute');
@@ -635,7 +635,9 @@ function App() {
                 disabled={optimizationStatus === 'optimizing'}
                 size="sm"
                 className={`shrink-0 transition-colors ${
-                  hasJobChanges
+                  optimizationStatus === 'optimized' 
+                    ? 'bg-green-600 hover:bg-green-700' 
+                    : hasJobChanges
                     ? 'bg-orange-600 hover:bg-orange-700'
                     : 'bg-blue-600 hover:bg-blue-700'
                 }`}
@@ -647,9 +649,12 @@ function App() {
                 }}
               >
                 {optimizationStatus === 'optimizing' && <Loader2 style={{ width: 'max(1.8vh, 14px)', height: 'max(1.8vh, 14px)' }} className="animate-spin shrink-0" />}
-                {optimizationStatus !== 'optimizing' && <Route style={{ width: 'max(1.8vh, 14px)', height: 'max(1.8vh, 14px)' }} className="shrink-0" />}
+                {optimizationStatus === 'optimized' && <CheckCircle style={{ width: 'max(1.8vh, 14px)', height: 'max(1.8vh, 14px)' }} className="shrink-0" />}
+                {optimizationStatus === 'idle' && <Route style={{ width: 'max(1.8vh, 14px)', height: 'max(1.8vh, 14px)' }} className="shrink-0" />}
                 <span style={{ marginLeft: 'max(0.8vw, 4px)' }}>
-                  {optimizationStatus === 'optimizing' ? 'Optimizing' : 'Optimize'}
+                  {optimizationStatus === 'optimizing' && 'Optimizing'}
+                  {optimizationStatus === 'optimized' && 'Optimized'}
+                  {optimizationStatus === 'idle' && 'Optimize'}
                 </span>
               </Button>
             )}

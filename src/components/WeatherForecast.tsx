@@ -3,6 +3,7 @@ import { Card, CardContent } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import type { Job, Customer } from '../App';
 import { 
   CloudRain, 
@@ -2622,21 +2623,7 @@ export function WeatherForecast({
         </div>
       )}
       
-      {/* Address Indicator - Top Right Corner - Mobile Only */}
-      {locationName && isMobile && !isEditingAddressProp && (
-        <button
-          onClick={() => {
-            if (onEditAddress) {
-              onEditAddress();
-            }
-          }}
-          className="fixed top-4 right-4 z-40 flex items-center gap-2 px-3 py-2 bg-white rounded-full shadow-lg border border-blue-200 text-sm hover:bg-blue-50 transition-colors"
-          title="Change location"
-        >
-          <MapPin className="h-4 w-4 text-blue-600" />
-          <span className="font-medium text-blue-900">{getZipCode(locationName) || 'Location Set'}</span>
-        </button>
-      )}
+      {/* Mobile top-right location bubble removed - location button now only in bottom nav bar */}
 
       {/* Weather Section Header - Hidden on mobile, shown on desktop */}
       <div className="hidden md:flex items-center mt-6 mb-0" style={{ gap: 'clamp(0.25rem, 0.3vw, 0.rem)' }}>
@@ -2911,6 +2898,106 @@ export function WeatherForecast({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Desktop Location Editor - Dialog Modal */}
+      {!isMobile && isEditingAddressProp && (
+        <Dialog open={isEditingAddressProp} onOpenChange={(open) => {
+          if (!open && onCancelEditAddress) {
+            onCancelEditAddress();
+          }
+        }}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Change Location</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="relative">
+                <Input
+                  ref={addressInputRef}
+                  placeholder={
+                    userGPSLocation 
+                      ? "Search nearby addresses..." 
+                      : "Enter full address"
+                  }
+                  value={addressInput}
+                  onChange={(e) => handleAddressInputChange(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !showAddressSuggestions) {
+                      handleSetAddress();
+                      onCancelEditAddress?.();
+                    } else if (e.key === 'Escape') {
+                      setShowAddressSuggestions(false);
+                      onCancelEditAddress?.();
+                    }
+                  }}
+                  autoComplete="off"
+                  disabled={loading}
+                  className={`h-12 pr-10 text-base ${
+                    addressSaved 
+                      ? 'border-green-500 focus:border-green-500 focus:ring-green-500' 
+                      : userGPSLocation
+                      ? 'border-green-200 focus:border-green-400 focus:ring-green-400'
+                      : 'border-blue-200 focus:border-blue-400 focus:ring-blue-400'
+                  }`}
+                />
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                  {addressSaved && (
+                    <CheckCircle className="h-5 w-5 text-green-600" />
+                  )}
+                  {isSearchingAddress && !addressSaved && (
+                    <Loader2 className="h-5 w-5 text-blue-600 animate-spin" />
+                  )}
+                  {!addressSaved && !isSearchingAddress && userGPSLocation && (
+                    <div title="Using GPS for nearby results">
+                      <Navigation className="h-5 w-5 text-green-600" />
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              {/* Address Suggestions for Desktop */}
+              {showAddressSuggestions && addressSuggestions.length > 0 && (
+                <div className="bg-white border border-blue-300 rounded-md shadow-lg max-h-[300px] overflow-y-auto">
+                  {userGPSLocation && (
+                    <div className="px-4 py-3 bg-green-50 border-b border-green-200 text-sm text-green-700 flex items-center gap-2">
+                      <Navigation className="h-4 w-4" />
+                      <span>Showing nearby addresses</span>
+                    </div>
+                  )}
+                  {addressSuggestions.map((suggestion, index) => (
+                    <button
+                      key={index}
+                      type="button"
+                      onClick={() => {
+                        handleSelectSuggestion(suggestion);
+                        onCancelEditAddress?.();
+                      }}
+                      className="w-full text-left px-4 py-3 hover:bg-blue-50 transition-colors border-b border-gray-100 last:border-b-0"
+                    >
+                      <div className="flex items-start gap-3">
+                        <MapPin className="h-5 w-5 text-blue-600 mt-0.5 shrink-0" />
+                        <span className="text-sm text-gray-900">{suggestion.display_name}</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+              
+              <Button
+                onClick={async () => {
+                  await handleUseGPS();
+                  onCancelEditAddress?.();
+                }}
+                disabled={loading}
+                className="w-full bg-blue-600 hover:bg-blue-700"
+              >
+                <Navigation className="h-4 w-4 mr-2" />
+                Use My Current Location
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
 
       {/* Location Input - Show when no location is set (Desktop & Mobile) */}
