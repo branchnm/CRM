@@ -330,12 +330,12 @@ export function CustomerManagement({ customers, onUpdateCustomers, onRefreshCust
               frequency = 'monthly';
             }
 
-            // Parse status
-            let status: 'active' | 'inactive' | 'complete' | 'incomplete' = 'active';
-            const statusValue = (row.status || 'active').toLowerCase();
+            // Parse status - database only accepts 'incomplete', 'complete', 'inactive'
+            let status: 'inactive' | 'complete' | 'incomplete' = 'incomplete';
+            const statusValue = (row.status || 'incomplete').toLowerCase();
             if (statusValue === 'inactive') status = 'inactive';
             else if (statusValue === 'complete') status = 'complete';
-            else if (statusValue === 'incomplete') status = 'incomplete';
+            else if (statusValue === 'incomplete' || statusValue === 'active') status = 'incomplete';
 
             // Calculate next cut date if last cut date provided
             let nextCutDate = row.nextcutdate || '';

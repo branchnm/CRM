@@ -18,7 +18,7 @@ You can now import multiple customers at once using a CSV (Comma-Separated Value
 - `notes` - Additional notes
 - `lastCutDate` - Last cut date in YYYY-MM-DD format
 - `nextCutDate` - Next cut date in YYYY-MM-DD format (auto-calculated if not provided)
-- `status` - Customer status: active, inactive, complete, or incomplete (default: active)
+- `status` - Customer status: **incomplete**, **complete**, or **inactive** (default: incomplete)
 
 ### Sample CSV File
 
@@ -27,8 +27,8 @@ A sample CSV file `test-customers-homewood.csv` is included in the project root 
 ### CSV Format Example
 ```csv
 name,address,phone,email,notes,propertySize,price,serviceFrequency,lastCutDate,nextCutDate,status
-Michael Thompson,425 Woodvale Ln Homewood AL 35209,205-555-0101,michael.t@example.com,Corner lot with oak trees,5800,65,weekly,2025-11-04,2025-11-11,active
-Sarah Martinez,418 Woodvale Ln Homewood AL 35209,205-555-0102,sarah.m@example.com,Fenced backyard,4200,55,weekly,2025-11-04,2025-11-11,active
+Michael Thompson,425 Woodvale Ln Homewood AL 35209,205-555-0101,michael.t@example.com,Corner lot with oak trees,5800,65,weekly,2025-11-04,2025-11-11,incomplete
+Sarah Martinez,418 Woodvale Ln Homewood AL 35209,205-555-0102,sarah.m@example.com,Fenced backyard,4200,55,weekly,2025-11-04,2025-11-11,incomplete
 ```
 
 ## How to Import

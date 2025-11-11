@@ -1,14 +1,14 @@
 name,address,phone,email,notes,propertySize,price,serviceFrequency,lastCutDate,nextCutDate,status
-Michael Thompson,425 Woodvale Ln Homewood AL 35209,205-555-0101,michael.t@example.com,Corner lot with oak trees,5800,65,weekly,2025-11-04,2025-11-11,active
-Sarah Martinez,418 Woodvale Ln Homewood AL 35209,205-555-0102,sarah.m@example.com,Fenced backyard,4200,55,weekly,2025-11-04,2025-11-11,active
-David Chen,507 Saulter Rd Homewood AL 35209,205-555-0103,david.c@example.com,Steep slope in back,6500,75,weekly,2025-11-04,2025-11-11,active
-Jennifer Williams,512 Saulter Rd Homewood AL 35209,205-555-0104,jennifer.w@example.com,Mulch beds need edging,5200,60,weekly,2025-11-05,2025-11-12,active
-Robert Johnson,523 Woodland Dr Homewood AL 35209,205-555-0105,robert.j@example.com,Large magnolia tree,7200,80,weekly,2025-11-05,2025-11-12,active
-Amanda Davis,530 Woodland Dr Homewood AL 35209,205-555-0106,amanda.d@example.com,Prefers bagging clippings,4800,58,weekly,2025-11-05,2025-11-12,active
-Christopher Lee,415 Rosemont Dr Homewood AL 35209,205-555-0107,chris.l@example.com,Dog in backyard - call first,5500,62,weekly,2025-11-04,2025-11-11,active
-Emily Rodriguez,422 Rosemont Dr Homewood AL 35209,205-555-0108,emily.r@example.com,Extra trimming around flower beds,6000,68,weekly,2025-11-04,2025-11-11,active
-James Anderson,308 Delcris Dr Homewood AL 35209,205-555-0109,james.a@example.com,Gate code 1234,5000,58,weekly,2025-11-05,2025-11-12,active
-Lisa Taylor,315 Delcris Dr Homewood AL 35209,205-555-0110,lisa.t@example.com,Sprinkler system - careful,4500,55,weekly,2025-11-04,2025-11-11,active
-Daniel White,2816 Central Ave Homewood AL 35209,205-555-0111,daniel.w@example.com,Two levels - front and back,8200,90,weekly,2025-11-05,2025-11-12,active
-Patricia Moore,2823 Central Ave Homewood AL 35209,205-555-0112,patricia.m@example.com,Compost pile in corner,5400,60,weekly,2025-11-04,2025-11-11,active
-Kevin Harris,412 Saulter Rd Homewood AL 35209,205-555-0113,kevin.h@example.com,Pine straw preferred,4900,57,weekly,2025-11-05,2025-11-12,active
+Michael Thompson,425 Woodvale Ln Homewood AL 35209,205-555-0101,michael.t@example.com,Corner lot with oak trees,5800,65,weekly,2025-11-04,2025-11-11,incomplete
+Sarah Martinez,418 Woodvale Ln Homewood AL 35209,205-555-0102,sarah.m@example.com,Fenced backyard,4200,55,weekly,2025-11-04,2025-11-11,incomplete
+David Chen,507 Saulter Rd Homewood AL 35209,205-555-0103,david.c@example.com,Steep slope in back,6500,75,weekly,2025-11-04,2025-11-11,incomplete
+Jennifer Williams,512 Saulter Rd Homewood AL 35209,205-555-0104,jennifer.w@example.com,Mulch beds need edging,5200,60,weekly,2025-11-05,2025-11-12,incomplete
+Robert Johnson,523 Woodland Dr Homewood AL 35209,205-555-0105,robert.j@example.com,Large magnolia tree,7200,80,weekly,2025-11-05,2025-11-12,incomplete
+Amanda Davis,530 Woodland Dr Homewood AL 35209,205-555-0106,amanda.d@example.com,Prefers bagging clippings,4800,58,weekly,2025-11-05,2025-11-12,incomplete
+Christopher Lee,415 Rosemont Dr Homewood AL 35209,205-555-0107,chris.l@example.com,Dog in backyard - call first,5500,62,weekly,2025-11-04,2025-11-11,incomplete
+Emily Rodriguez,422 Rosemont Dr Homewood AL 35209,205-555-0108,emily.r@example.com,Extra trimming around flower beds,6000,68,weekly,2025-11-04,2025-11-11,incomplete
+James Anderson,308 Delcris Dr Homewood AL 35209,205-555-0109,james.a@example.com,Gate code 1234,5000,58,weekly,2025-11-05,2025-11-12,incomplete
+Lisa Taylor,315 Delcris Dr Homewood AL 35209,205-555-0110,lisa.t@example.com,Sprinkler system - careful,4500,55,weekly,2025-11-04,2025-11-11,incomplete
+Daniel White,2816 Central Ave Homewood AL 35209,205-555-0111,daniel.w@example.com,Two levels - front and back,8200,90,weekly,2025-11-05,2025-11-12,incomplete
+Patricia Moore,2823 Central Ave Homewood AL 35209,205-555-0112,patricia.m@example.com,Compost pile in corner,5400,60,weekly,2025-11-04,2025-11-11,incomplete
+Kevin Harris,412 Saulter Rd Homewood AL 35209,205-555-0113,kevin.h@example.com,Pine straw preferred,4900,57,weekly,2025-11-05,2025-11-12,incomplete
