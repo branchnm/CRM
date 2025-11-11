@@ -3240,6 +3240,7 @@ export function WeatherForecast({
                   maxWidth: isMobile ? '97vw' : `${forecastContainerWidth}px`,
                   margin: isMobile ? '0 auto' : '0 auto', // Center on both mobile and desktop
                   height: isMobile ? 'calc(100vh - var(--header-height, 0px) - var(--footer-height, 0px))' : undefined,
+                  paddingTop: isMobile ? '0' : '1rem', // Add spacing at top for desktop to prevent overlap
                 }}
               >
                 {/* Desktop Cut Job Active Banner */}
@@ -3355,6 +3356,16 @@ export function WeatherForecast({
                     }
                   });
                   
+                  // Also mark jobs affected by time adjustments (delays/early ends)
+                  if (suggestionsForDay.timeSuggestions.length > 0) {
+                    // All jobs on this day are affected by time adjustments
+                    scheduledJobsForDay.forEach(job => {
+                      if (job.status === 'scheduled') {
+                        affectedJobIds.add(job.id);
+                      }
+                    });
+                  }
+                  
                   return (
                     <div
                       key={dateStr}
@@ -3372,7 +3383,7 @@ export function WeatherForecast({
                       {showSuggestions && hasSuggestions && (
                         <div className={`mb-2 ${isMobile ? 'mx-1' : ''}`}>
                           {suggestionsForDay.moveSuggestions.map((suggestion, idx) => (
-                            <div key={`move-${idx}`} className="bg-blue-600 rounded-lg overflow-hidden shadow-md mb-2">
+                            <div key={`move-${idx}`} className="bg-white border-2 border-blue-500 rounded-lg overflow-hidden shadow-md mb-2">
                               <div className="px-3 py-2">
                                 <div className="flex items-start justify-between gap-2 mb-1.5">
                                   <div className="flex items-center gap-1.5 flex-1">
@@ -3381,18 +3392,18 @@ export function WeatherForecast({
                                         Heavy Rain
                                       </span>
                                     ) : (
-                                      <span className="text-xs bg-orange-500 text-white px-2 py-0.5 rounded font-medium whitespace-nowrap">
+                                      <span className="text-xs bg-blue-500 text-white px-2 py-0.5 rounded font-medium whitespace-nowrap">
                                         Rain
                                       </span>
                                     )}
-                                    <span className="text-xs text-white/90">
+                                    <span className="text-xs text-gray-600 font-medium">
                                       {suggestion.jobCount || 1} job{(suggestion.jobCount || 1) !== 1 ? 's' : ''}
                                     </span>
                                   </div>
                                   <Button
                                     onClick={() => acceptMoveSuggestion(suggestion, suggestion.suggestedDate)}
                                     size="sm"
-                                    className="bg-white hover:bg-blue-50 text-blue-600 text-xs px-2 py-0.5 h-6"
+                                    className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-2 py-0.5 h-6"
                                   >
                                     Move to {(() => {
                                       const [year, month, day] = suggestion.suggestedDate.split('-').map(Number);
@@ -3406,14 +3417,14 @@ export function WeatherForecast({
                           ))}
                           
                           {suggestionsForDay.timeSuggestions.map((suggestion, idx) => (
-                            <div key={`time-${idx}`} className="bg-blue-600 rounded-lg overflow-hidden shadow-md mb-2">
+                            <div key={`time-${idx}`} className="bg-white border-2 border-blue-500 rounded-lg overflow-hidden shadow-md mb-2">
                               <div className="px-3 py-2">
                                 <div className="flex items-start justify-between gap-2 mb-1.5">
                                   <div className="flex items-center gap-1.5 flex-1">
                                     <span className="text-xs bg-blue-500 text-white px-2 py-0.5 rounded font-medium whitespace-nowrap">
                                       {suggestion.type === 'delay' ? 'Delay' : 'End Early'}
                                     </span>
-                                    <span className="text-xs text-white/90">
+                                    <span className="text-xs text-gray-600 font-medium">
                                       {(() => {
                                         const formatTime = (hour: number) => {
                                           const period = hour < 12 ? 'AM' : 'PM';
@@ -3427,7 +3438,7 @@ export function WeatherForecast({
                                   <Button
                                     onClick={() => acceptStartTimeSuggestion(suggestion.date, suggestion.suggestedStartTime, suggestion.suggestedEndTime)}
                                     size="sm"
-                                    className="bg-white hover:bg-blue-50 text-blue-600 text-xs px-2 py-0.5 h-6"
+                                    className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-2 py-0.5 h-6"
                                   >
                                     Apply
                                   </Button>
