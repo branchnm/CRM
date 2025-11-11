@@ -2812,11 +2812,11 @@ export function WeatherForecast({
         <div className="flex-1 bg-linear-to-l from-blue-200 to-blue-400 rounded-full" style={{ height: 'clamp(1px, 0.1vh, 4px)' }}></div>
       </div>
 
-      {/* Weather-Based Job Suggestions - Minimalistic Design */}
+      {/* Weather-Based Job Suggestions - Grouped and Uniform Design */}
       {showSuggestions && (weatherSuggestions.moveSuggestions.length > 0 || weatherSuggestions.startTimeSuggestions.length > 0) && (
-        <div className="bg-slate-50 border border-slate-200 rounded-lg shadow-sm overflow-hidden">
+        <div className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-lg shadow-sm overflow-hidden">
           {/* Header */}
-          <div className="bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between">
+          <div className="bg-white border-b border-amber-200 px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-amber-500" />
               <h3 className="font-semibold text-slate-900 text-sm">Weather Recommendations</h3>
@@ -2832,145 +2832,197 @@ export function WeatherForecast({
           </div>
 
           <div className="p-4 space-y-3">
-            {/* Jobs to Reschedule */}
-            {weatherSuggestions.moveSuggestions.length > 0 && (
-              <div className="space-y-2">
-                {weatherSuggestions.moveSuggestions.map((suggestion, idx) => (
-                  <div key={idx} className="bg-white border border-slate-200 rounded-lg p-3 shadow-sm">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                      {/* Job Info */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          {/* Show job count if multiple jobs, or job name if single */}
-                          <span className="font-medium text-slate-900 text-sm truncate">
-                            {suggestion.jobCount ? `${suggestion.jobCount} Jobs` : suggestion.jobName}
+            {/* Group all suggestions by date and type */}
+            {(() => {
+              // Create a unified list of all suggestions with normalized structure
+              const allSuggestions: Array<{
+                type: 'move' | 'delay' | 'start-early';
+                date: string;
+                jobCount: number;
+                reason: string;
+                currentDate?: string;
+                suggestedDate?: string;
+                currentStartTime?: number;
+                suggestedStartTime?: number;
+                suggestedEndTime?: number;
+                weatherSeverity?: 'heavy' | 'moderate';
+                lastGoodHour?: number;
+                jobNames?: string[];
+                originalSuggestion: any;
+              }> = [];
+
+              // Add move suggestions
+              weatherSuggestions.moveSuggestions.forEach(suggestion => {
+                allSuggestions.push({
+                  type: 'move',
+                  date: suggestion.currentDate,
+                  jobCount: suggestion.jobCount || 1,
+                  reason: suggestion.reason,
+                  currentDate: suggestion.currentDate,
+                  suggestedDate: suggestion.suggestedDate,
+                  weatherSeverity: suggestion.weatherSeverity,
+                  jobNames: suggestion.jobNames,
+                  originalSuggestion: suggestion
+                });
+              });
+
+              // Add start time suggestions
+              weatherSuggestions.startTimeSuggestions.forEach(suggestion => {
+                allSuggestions.push({
+                  type: suggestion.type || 'delay',
+                  date: suggestion.date,
+                  jobCount: suggestion.jobCount,
+                  reason: suggestion.reason,
+                  currentStartTime: suggestion.currentStartTime,
+                  suggestedStartTime: suggestion.suggestedStartTime,
+                  suggestedEndTime: suggestion.suggestedEndTime,
+                  lastGoodHour: suggestion.lastGoodHour,
+                  originalSuggestion: suggestion
+                });
+              });
+
+              // Sort by date, then by type priority (move > delay > start-early)
+              const typePriority = { move: 0, delay: 1, 'start-early': 2 };
+              allSuggestions.sort((a, b) => {
+                if (a.date !== b.date) return a.date.localeCompare(b.date);
+                return typePriority[a.type] - typePriority[b.type];
+              });
+
+              // Render all suggestions with uniform format
+              return allSuggestions.map((suggestion, idx) => {
+                const formatDate = (dateStr: string) => {
+                  const [year, month, day] = dateStr.split('-').map(Number);
+                  const date = new Date(year, month - 1, day);
+                  return date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+                };
+
+                const formatTime = (hour: number) => {
+                  const period = hour < 12 ? 'AM' : 'PM';
+                  const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+                  return `${displayHour}:00 ${period}`;
+                };
+
+                return (
+                  <div key={idx} className="bg-white border border-slate-200 rounded-lg shadow-sm overflow-hidden">
+                    {/* Date Header - Always at top */}
+                    <div className="bg-gradient-to-r from-slate-700 to-slate-600 px-4 py-2 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4 text-white" />
+                        <span className="font-semibold text-white text-sm">
+                          {formatDate(suggestion.date)}
+                        </span>
+                      </div>
+                      <span className="text-xs bg-white/20 text-white px-2 py-1 rounded-full font-medium">
+                        {suggestion.jobCount} job{suggestion.jobCount !== 1 ? 's' : ''}
+                      </span>
+                    </div>
+
+                    {/* Content */}
+                    <div className="p-4">
+                      {/* Type Badge */}
+                      <div className="flex items-center gap-2 mb-2">
+                        {suggestion.type === 'move' && (
+                          <>
+                            {suggestion.weatherSeverity === 'heavy' ? (
+                              <span className="text-xs bg-red-100 text-red-700 px-2.5 py-1 rounded-full font-medium">
+                                Heavy Rain - Move Jobs
+                              </span>
+                            ) : (
+                              <span className="text-xs bg-orange-100 text-orange-700 px-2.5 py-1 rounded-full font-medium">
+                                Moderate Rain - Move Jobs
+                              </span>
+                            )}
+                          </>
+                        )}
+                        {suggestion.type === 'delay' && (
+                          <span className="text-xs bg-blue-100 text-blue-700 px-2.5 py-1 rounded-full font-medium">
+                            Delay Start Time
                           </span>
-                          {suggestion.weatherSeverity === 'heavy' && (
-                            <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full">Heavy Rain</span>
-                          )}
-                        </div>
-                        <p className="text-xs text-slate-500 mb-2">{suggestion.reason}</p>
-                        
-                        {/* Show list of job names if multiple */}
-                        {suggestion.jobNames && suggestion.jobNames.length > 1 && (
-                          <p className="text-xs text-slate-600 mb-2">
+                        )}
+                        {suggestion.type === 'start-early' && (
+                          <span className="text-xs bg-purple-100 text-purple-700 px-2.5 py-1 rounded-full font-medium">
+                            End Early
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Reason/Description */}
+                      <p className="text-sm text-slate-700 mb-3 leading-relaxed">
+                        {suggestion.reason}
+                      </p>
+
+                      {/* Job Names (if available) */}
+                      {suggestion.jobNames && suggestion.jobNames.length > 0 && (
+                        <div className="mb-3 p-2 bg-slate-50 rounded border border-slate-200">
+                          <p className="text-xs text-slate-600 font-medium mb-1">Affected customers:</p>
+                          <p className="text-xs text-slate-700">
                             {suggestion.jobNames.join(', ')}
                           </p>
-                        )}
-                        
-                        {/* Current Day Card Reference */}
-                        <div className="flex items-center gap-2 text-xs">
-                          <span className="text-slate-600">Scheduled on:</span>
-                          <span className="px-2 py-1 bg-slate-100 text-slate-700 rounded font-medium">
-                            {(() => {
-                              // Parse YYYY-MM-DD string without timezone issues
-                              const [year, month, day] = suggestion.currentDate.split('-').map(Number);
-                              const date = new Date(year, month - 1, day);
-                              return date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
-                            })()}
-                          </span>
                         </div>
+                      )}
+
+                      {/* Details Section */}
+                      <div className="space-y-2 mb-3">
+                        {suggestion.type === 'move' && (
+                          <div className="flex items-center gap-2 text-sm flex-wrap">
+                            <span className="text-slate-600">Move to:</span>
+                            <span className="px-2.5 py-1 bg-green-50 text-green-700 rounded border border-green-200 font-medium">
+                              {formatDate(suggestion.suggestedDate!)}
+                            </span>
+                          </div>
+                        )}
+
+                        {(suggestion.type === 'delay' || suggestion.type === 'start-early') && (
+                          <div className="flex items-center gap-2 text-sm flex-wrap">
+                            <span className="text-slate-600">Current start:</span>
+                            <span className="px-2.5 py-1 bg-slate-100 text-slate-700 rounded font-medium">
+                              {formatTime(suggestion.currentStartTime!)}
+                            </span>
+                            <span className="text-slate-400">→</span>
+                            <span className="px-2.5 py-1 bg-green-50 text-green-700 rounded border border-green-200 font-medium">
+                              {formatTime(suggestion.suggestedStartTime!)}
+                              {suggestion.suggestedEndTime && (
+                                <> - {formatTime(suggestion.suggestedEndTime)}</>
+                              )}
+                            </span>
+                          </div>
+                        )}
                       </div>
 
                       {/* Action Button */}
-                      <Button
-                        onClick={() => acceptMoveSuggestion(suggestion, suggestion.suggestedDate)}
-                        size="sm"
-                        className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 h-8 whitespace-nowrap"
-                      >
-                        Move to {(() => {
-                          // Parse YYYY-MM-DD string without timezone issues
-                          const [year, month, day] = suggestion.suggestedDate.split('-').map(Number);
-                          const date = new Date(year, month - 1, day);
-                          return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-                        })()}
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Start Time Adjustments */}
-            {weatherSuggestions.startTimeSuggestions.length > 0 && (
-              <div className="space-y-2">
-                {weatherSuggestions.startTimeSuggestions.map((suggestion, idx) => (
-                  <div key={idx} className="bg-white border border-slate-200 rounded-lg p-3 shadow-sm">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                      {/* Info */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-medium text-slate-900 text-sm">
-                            {(() => {
-                              // Parse YYYY-MM-DD string without timezone issues
-                              const [year, month, day] = suggestion.date.split('-').map(Number);
-                              const date = new Date(year, month - 1, day);
-                              return date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
-                            })()}
-                          </span>
-                          <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">
-                            {suggestion.jobCount} job{suggestion.jobCount !== 1 ? 's' : ''}
-                          </span>
-                          {suggestion.type === 'delay' && (
-                            <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">Delay Start</span>
-                          )}
-                          {suggestion.type === 'start-early' && (
-                            <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">End Early</span>
-                          )}
-                        </div>
-                        <p className="text-xs text-slate-500 mb-2">{suggestion.reason}</p>
-                        
-                        {/* Scheduled Day Reference */}
-                        <div className="flex items-center gap-2 text-xs mb-2">
-                          <span className="text-slate-600">Scheduled on:</span>
-                          <span className="px-2 py-1 bg-slate-100 text-slate-700 rounded font-medium">
-                            {(() => {
-                              const [year, month, day] = suggestion.date.split('-').map(Number);
-                              const date = new Date(year, month - 1, day);
-                              return date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
-                            })()}
-                          </span>
-                        </div>
-
-                        {/* Time Change */}
-                        <div className="flex items-center gap-2 text-xs flex-wrap">
-                          <span className="text-slate-600">
-                            {suggestion.type === 'delay' ? 'Delay from:' : 'Adjust to:'}
-                          </span>
-                          <span className="px-2 py-1 bg-slate-100 text-slate-700 rounded font-medium">
-                            {suggestion.currentStartTime}:00 {suggestion.currentStartTime < 12 ? 'AM' : 'PM'}
-                          </span>
-                          <span className="text-slate-400">→</span>
-                          <span className="px-2 py-1 bg-green-50 text-green-700 rounded border border-green-200 font-medium">
-                            {suggestion.suggestedStartTime}:00 {suggestion.suggestedStartTime < 12 ? 'AM' : 'PM'}
-                            {suggestion.suggestedEndTime && (
-                              <> - {suggestion.suggestedEndTime}:00 {suggestion.suggestedEndTime < 12 ? 'AM' : 'PM'}</>
+                      <div className="flex justify-end">
+                        {suggestion.type === 'move' && (
+                          <Button
+                            onClick={() => acceptMoveSuggestion(suggestion.originalSuggestion, suggestion.suggestedDate!)}
+                            size="sm"
+                            className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-4 h-8"
+                          >
+                            Move {suggestion.jobCount} Job{suggestion.jobCount !== 1 ? 's' : ''}
+                          </Button>
+                        )}
+                        {(suggestion.type === 'delay' || suggestion.type === 'start-early') && (
+                          <Button
+                            onClick={() => acceptStartTimeSuggestion(
+                              suggestion.date,
+                              suggestion.suggestedStartTime!,
+                              suggestion.suggestedEndTime
                             )}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Action Button */}
-                      <Button
-                        onClick={() => acceptStartTimeSuggestion(
-                          suggestion.date, 
-                          suggestion.suggestedStartTime,
-                          suggestion.suggestedEndTime
+                            size="sm"
+                            className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-4 h-8"
+                          >
+                            {suggestion.type === 'delay' ? 'Delay Start' : 'Adjust Time'}
+                          </Button>
                         )}
-                        size="sm"
-                        className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 h-8 whitespace-nowrap"
-                      >
-                        {suggestion.type === 'delay' ? 'Delay Start' : 'End Early'}
-                      </Button>
+                      </div>
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
+                );
+              });
+            })()}
 
             {/* Apply All Button */}
             {(weatherSuggestions.moveSuggestions.length + weatherSuggestions.startTimeSuggestions.length) > 1 && (
-              <div className="pt-2 border-t border-slate-200">
+              <div className="pt-2 border-t border-amber-200">
                 <Button 
                   onClick={acceptAllSuggestions}
                   size="sm"
