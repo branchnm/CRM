@@ -8,7 +8,7 @@ import { addJob, updateJob, fetchJobs } from '../services/jobs';
 import { smsService } from '../services/sms';
 import { getDriveTime } from '../services/googleMaps';
 import { optimizeRoute as optimizeRouteWithGoogleMaps } from '../services/routeOptimizer';
-import { Clock, MapPin, Navigation, CheckCircle, Play, Phone, StopCircle, MessageSquare, Send } from 'lucide-react';
+import { Clock, MapPin, Navigation, CheckCircle, Play, Phone, StopCircle, MessageSquare, Send, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { Textarea } from './ui/textarea';
 import { Label } from './ui/label';
@@ -81,25 +81,33 @@ export function DailySchedule({
   // Track job creation to prevent race conditions
   const creatingJobsRef = useRef<Set<string>>(new Set());
 
+  // Day navigation state (0 = today, 1 = tomorrow, 2 = day after, etc.)
+  const [currentDayIndex, setCurrentDayIndex] = useState(0);
+
   // Use local date (YYYY-MM-DD) to match stored nextCutDate values
   const today = new Date().toLocaleDateString('en-CA');
   
-  // Calculate tomorrow's date
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  const tomorrowDate = tomorrow.toLocaleDateString('en-CA');
+  // Calculate the currently viewed date based on currentDayIndex
+  const currentViewDate = (() => {
+    const date = new Date();
+    date.setDate(date.getDate() + currentDayIndex);
+    return date.toLocaleDateString('en-CA');
+  })();
+
+  // Get readable date string for display
+  const getDateLabel = (dayIndex: number): string => {
+    if (dayIndex === 0) return "Today";
+    if (dayIndex === 1) return "Tomorrow";
+    const date = new Date();
+    date.setDate(date.getDate() + dayIndex);
+    return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  };
   
-  // Get customers who need service today based on their nextCutDate
-  const customersDueToday = customers.filter(c => c.nextCutDate === today);
+  // Get customers who need service on the current viewed date
+  const customersDueOnDate = customers.filter(c => c.nextCutDate === currentViewDate);
   
-  // Get customers who need service tomorrow based on their nextCutDate
-  const customersDueTomorrow = customers.filter(c => c.nextCutDate === tomorrowDate);
-  
-  // Get jobs scheduled for tomorrow
-  const tomorrowJobs = jobs.filter(j => j.date === tomorrowDate);
-  
-  // Combine existing jobs with customers due today - sort by order, then by scheduled time
-  const todayJobs = jobs.filter(j => j.date === today).sort((a, b) => {
+  // Get jobs scheduled for the currently viewed date - sort by order, then by scheduled time
+  const displayedJobs = jobs.filter(j => j.date === currentViewDate).sort((a, b) => {
     // Primary sort: by order field (lower numbers first)
     const orderA = a.order || 999;
     const orderB = b.order || 999;
@@ -118,36 +126,36 @@ export function DailySchedule({
     }
   }, []); // Run once on mount
 
-  // Auto-create jobs for customers due today who don't have a job yet (in Supabase)
+  // Auto-create jobs for customers due on the currently viewed date who don't have a job yet (in Supabase)
   useEffect(() => {
     const ensureJobs = async () => {
-      if (customersDueToday.length === 0) return;
+      if (customersDueOnDate.length === 0) return;
       
       // Get current job IDs to avoid re-creating
-      const existingJobCustomerIds = new Set(jobs.filter(j => j.date === today).map(j => j.customerId));
-      const missing = customersDueToday.filter(c => {
-        const key = `${c.id}-${today}`;
+      const existingJobCustomerIds = new Set(jobs.filter(j => j.date === currentViewDate).map(j => j.customerId));
+      const missing = customersDueOnDate.filter(c => {
+        const key = `${c.id}-${currentViewDate}`;
         // Skip if already exists OR currently being created
         return !existingJobCustomerIds.has(c.id) && !creatingJobsRef.current.has(key);
       });
       
       if (missing.length === 0) return;
       
-      console.log(`🔄 Auto-creating jobs for ${missing.length} customers`);
+      console.log(`🔄 Auto-creating jobs for ${missing.length} customers on ${currentViewDate}`);
       
       // Mark these jobs as being created
-      missing.forEach(c => creatingJobsRef.current.add(`${c.id}-${today}`));
+      missing.forEach(c => creatingJobsRef.current.add(`${c.id}-${currentViewDate}`));
       
       try {
-        // Calculate next order number based on ALL jobs (not just today's filtered list)
-        const todayJobsList = jobs.filter(j => j.date === today);
-        const maxOrder = Math.max(0, ...todayJobsList.map(j => j.order || 0));
+        // Calculate next order number based on ALL jobs (not just displayed filtered list)
+        const dateJobsList = jobs.filter(j => j.date === currentViewDate);
+        const maxOrder = Math.max(0, ...dateJobsList.map(j => j.order || 0));
         
         const results = await Promise.allSettled(
           missing.map((c, index) =>
             addJob({ 
               customerId: c.id, 
-              date: today, 
+              date: currentViewDate, 
               status: 'scheduled',
               order: maxOrder + index + 1
             })
@@ -173,14 +181,14 @@ export function DailySchedule({
         }
       } catch (e) {
         console.error('Failed to create jobs in Supabase:', e);
-        toast.error('Failed to create today\'s jobs.');
+        toast.error('Failed to create jobs for this date.');
       } finally {
         // Clear the creation flags after attempt
-        missing.forEach(c => creatingJobsRef.current.delete(`${c.id}-${today}`));
+        missing.forEach(c => creatingJobsRef.current.delete(`${c.id}-${currentViewDate}`));
       }
     };
     ensureJobs();
-  }, [customersDueToday.length, today]); // Removed jobs.length to avoid infinite loops
+  }, [customersDueOnDate.length, currentViewDate]); // Removed jobs.length to avoid infinite loops
 
   // Auto-create jobs for ALL customers with nextCutDate (for calendar view)
   useEffect(() => {
@@ -256,76 +264,13 @@ export function DailySchedule({
     ensureAllScheduledJobs();
   }, [customers.length, jobs.length]); // Run when customers or jobs change
 
-  // Auto-create jobs for customers due tomorrow who don't have a job yet (in Supabase)
-  useEffect(() => {
-    const ensureTomorrowJobs = async () => {
-      if (customersDueTomorrow.length === 0) return;
-      
-      // Get current job IDs to avoid re-creating
-      const existingJobCustomerIds = new Set(jobs.filter(j => j.date === tomorrowDate).map(j => j.customerId));
-      const missing = customersDueTomorrow.filter(c => {
-        const key = `${c.id}-${tomorrowDate}`;
-        // Skip if already exists OR currently being created
-        return !existingJobCustomerIds.has(c.id) && !creatingJobsRef.current.has(key);
-      });
-      
-      if (missing.length === 0) return;
-      
-      console.log(`🔄 Auto-creating ${missing.length} jobs for tomorrow`);
-      
-      // Mark these jobs as being created
-      missing.forEach(c => creatingJobsRef.current.add(`${c.id}-${tomorrowDate}`));
-      
-      try {
-        // Calculate next order number based on tomorrow's jobs
-        const tomorrowJobsList = jobs.filter(j => j.date === tomorrowDate);
-        const maxOrder = Math.max(0, ...tomorrowJobsList.map(j => j.order || 0));
-        
-        const results = await Promise.allSettled(
-          missing.map((c, index) =>
-            addJob({ 
-              customerId: c.id, 
-              date: tomorrowDate, 
-              status: 'scheduled',
-              order: maxOrder + index + 1
-            })
-          )
-        );
-        
-        const created = results.filter(r => r.status === 'fulfilled').length;
-        const duplicates = results.filter(r => 
-          r.status === 'rejected' && 
-          (r.reason?.message?.includes('duplicate key') || r.reason?.message?.includes('409'))
-        ).length;
-        const errors = results.filter(r => 
-          r.status === 'rejected' && 
-          !(r.reason?.message?.includes('duplicate key') || r.reason?.message?.includes('409'))
-        ).length;
-        
-        console.log(`✅ Created: ${created}, ⏭️ Duplicates: ${duplicates}, ❌ Errors: ${errors}`);
-        
-        // Only refresh if we actually created jobs
-        if (created > 0) {
-          await onRefreshJobs?.();
-        }
-      } catch (e) {
-        console.error('Failed to create tomorrow\'s jobs in Supabase:', e);
-        toast.error('Failed to create tomorrow\'s jobs.');
-      } finally {
-        // Clear the creation flags after attempt
-        missing.forEach(c => creatingJobsRef.current.delete(`${c.id}-${tomorrowDate}`));
-      }
-    };
-    ensureTomorrowJobs();
-  }, [customersDueTomorrow.length, jobs.length, tomorrowDate]); // Only run when counts change, not on every job update
-
-  // Calculate daily stats
-  const totalDueToday = todayJobs.length; // Total jobs scheduled for today
-  const completedToday = todayJobs.filter(j => j.status === 'completed').length;
-  const totalWorkTime = todayJobs
+  // Calculate daily stats for currently viewed date
+  const totalDueToday = displayedJobs.length; // Total jobs scheduled for this date
+  const completedToday = displayedJobs.filter(j => j.status === 'completed').length;
+  const totalWorkTime = displayedJobs
     .filter(j => j.status === 'completed' && j.totalTime)
     .reduce((sum, j) => sum + (j.totalTime || 0), 0);
-  const totalDriveTime = todayJobs
+  const totalDriveTime = displayedJobs
     .filter(j => j.status === 'completed' && j.driveTime)
     .reduce((sum, j) => sum + (j.driveTime || 0), 0);
 
@@ -425,12 +370,12 @@ export function DailySchedule({
   useEffect(() => {
     didDriveTimeRefresh.current = false; // Reset when jobs or address changes
     const fetchDriveTimes = async () => {
-      if (todayJobs.length === 0) return;
+      if (displayedJobs.length === 0) return;
 
       const pairs: Array<{ from: string; to: string }> = [];
 
       // Collect all address pairs that need drive time calculation
-      todayJobs.forEach((job, index) => {
+      displayedJobs.forEach((job, index) => {
         const customer = getCustomer(job.customerId);
         if (!customer) return;
 
@@ -439,7 +384,7 @@ export function DailySchedule({
           pairs.push({ from: startingAddress, to: customer.address });
         } else if (index > 0) {
           // Subsequent jobs - from previous job
-          const prevJob = todayJobs[index - 1];
+          const prevJob = displayedJobs[index - 1];
           const prevCustomer = getCustomer(prevJob.customerId);
           if (prevCustomer) {
             pairs.push({ from: prevCustomer.address, to: customer.address });
@@ -479,7 +424,7 @@ export function DailySchedule({
     };
 
     fetchDriveTimes();
-  }, [todayJobs.length, startingAddress]); // Re-fetch when jobs or starting address changes
+  }, [displayedJobs.length, startingAddress]); // Re-fetch when jobs or starting address changes
 
   // Fallback estimation method (improved estimation)
   const estimateDriveTimeFallback = (address1: string, address2: string): string => {
@@ -634,7 +579,7 @@ export function DailySchedule({
     const endIso = new Date().toISOString();
     
     // Calculate drive time for this job
-    const jobIndex = todayJobs.findIndex(j => j.id === job.id);
+    const jobIndex = displayedJobs.findIndex(j => j.id === job.id);
     let calculatedDriveTime = 0;
     
     if (jobIndex === 0 && startingAddress) {
@@ -647,7 +592,7 @@ export function DailySchedule({
       }
     } else if (jobIndex > 0) {
       // Subsequent jobs - drive from previous job
-      const prevJob = todayJobs[jobIndex - 1];
+      const prevJob = displayedJobs[jobIndex - 1];
       const prevCustomer = customers.find(c => c.id === prevJob.customerId);
       const currentCustomer = customers.find(c => c.id === job.customerId);
       if (prevCustomer && currentCustomer) {
@@ -764,8 +709,8 @@ export function DailySchedule({
     }
 
     // Check for next job and prompt to notify
-    const currentJobIndex = todayJobs.findIndex(j => j.id === job.id);
-    const nextJob = todayJobs[currentJobIndex + 1];
+    const currentJobIndex = displayedJobs.findIndex(j => j.id === job.id);
+    const nextJob = displayedJobs[currentJobIndex + 1];
     if (nextJob && nextJob.status === 'scheduled') {
       setNextJobToNotify(nextJob);
       setShowNextJobDialog(true);
@@ -1113,7 +1058,7 @@ export function DailySchedule({
     e.preventDefault();
     if (!draggedJobId) return;
 
-    const sourceIndex = todayJobs.findIndex(j => j.id === draggedJobId);
+    const sourceIndex = displayedJobs.findIndex(j => j.id === draggedJobId);
     if (sourceIndex === -1 || sourceIndex === targetIndex) {
       setDraggedJobId(null);
       setDragPosition(null);
@@ -1122,7 +1067,7 @@ export function DailySchedule({
     }
 
     // Reorder jobs
-    const reorderedJobs = [...todayJobs];
+    const reorderedJobs = [...displayedJobs];
     const [movedJob] = reorderedJobs.splice(sourceIndex, 1);
     reorderedJobs.splice(targetIndex, 0, movedJob);
 
@@ -1204,31 +1149,72 @@ export function DailySchedule({
         scrollToTodayRef={scrollToTodayRef}
       />
 
-      {/* Today's Jobs Section Header */}
-      {todayJobs.length > 0 && (
-        <div className="flex items-center gap-3 mb-4">
-          <div className="h-1 flex-1 bg-linear-to-r from-blue-200 via-yellow-200 to-blue-200 rounded-full"></div>
-          <h2 className="text-2xl font-bold text-blue-900 uppercase tracking-wide">Today's Jobs</h2>
-          <div className="h-1 flex-1 bg-linear-to-l from-blue-200 via-yellow-200 to-blue-200 rounded-full"></div>
+      {/* Jobs Section Header with Day Navigation */}
+      {displayedJobs.length > 0 && (
+        <div className="space-y-3 mb-4">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentDayIndex(Math.max(0, currentDayIndex - 1))}
+              disabled={currentDayIndex === 0}
+              className="shrink-0"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <div className="h-1 flex-1 bg-linear-to-r from-blue-200 via-yellow-200 to-blue-200 rounded-full"></div>
+            <h2 className="text-2xl font-bold text-blue-900 uppercase tracking-wide whitespace-nowrap">
+              {getDateLabel(currentDayIndex)}'s Jobs
+            </h2>
+            <div className="h-1 flex-1 bg-linear-to-l from-blue-200 via-yellow-200 to-blue-200 rounded-full"></div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentDayIndex(currentDayIndex + 1)}
+              className="shrink-0"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+          
+          {/* Navigate Full Route Button */}
+          {startingAddress && displayedJobs.length > 0 && (
+            <div className="flex justify-center">
+              <Button
+                onClick={() => {
+                  const routeUrl = generateRouteUrl(displayedJobs);
+                  if (routeUrl) {
+                    window.open(routeUrl, '_blank');
+                  } else {
+                    toast.error('Unable to generate route - missing addresses');
+                  }
+                }}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2"
+              >
+                <Navigation className="h-4 w-4 mr-2" />
+                Navigate Full Route ({displayedJobs.length} stops)
+              </Button>
+            </div>
+          )}
         </div>
       )}
 
       {/* Job List */}
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
-        {customersDueToday.length === 0 && todayJobs.length === 0 && tomorrowJobs.length === 0 ? (
+        {customersDueOnDate.length === 0 && displayedJobs.length === 0 ? (
           <Card className="bg-white/80 backdrop-blur col-span-full">
             <CardContent className="pt-6">
-              <p className="text-center text-gray-600">No customers scheduled for today or tomorrow.</p>
+              <p className="text-center text-gray-600">No customers scheduled for {getDateLabel(currentDayIndex).toLowerCase()}.</p>
             </CardContent>
           </Card>
         ) : (
           <>
-            {todayJobs.map((job, index) => {
+            {displayedJobs.map((job, index) => {
               const customer = getCustomer(job.customerId);
               if (!customer) return null;
               
               // Get previous job for drive time calculation
-              const previousJob = index > 0 ? todayJobs[index - 1] : null;
+              const previousJob = index > 0 ? displayedJobs[index - 1] : null;
               const previousCustomer = previousJob ? getCustomer(previousJob.customerId) : null;
               
               // Calculate drive time based on current order
@@ -1302,23 +1288,13 @@ export function DailySchedule({
                   <div className="flex gap-1 w-full">
 
                       {job.status === 'scheduled' && (
-                        <>
-                          <Button
-                            onClick={() => handleStartJobClick(job)}
-                            className="bg-blue-600 hover:bg-blue-700 flex-1 h-8 text-xs px-2"
-                          >
-                            <Play className="h-3 w-3 mr-0.5" />
-                            Start
-                          </Button>
-                          <Button
-                            variant="outline"
-                            className="flex-1 h-8 text-xs px-2 border-blue-300 text-blue-700 hover:bg-blue-50 hover:border-blue-400"
-                            onClick={() => window.open(`https://maps.google.com/?q=${encodeURIComponent(customer.address)}`, '_blank')}
-                          >
-                            <Navigation className="h-3 w-3 mr-0.5" />
-                            Navigate
-                          </Button>
-                        </>
+                        <Button
+                          onClick={() => handleStartJobClick(job)}
+                          className="bg-blue-600 hover:bg-blue-700 w-full h-8 text-xs px-2"
+                        >
+                          <Play className="h-3 w-3 mr-0.5" />
+                          Start
+                        </Button>
                       )}
                       {job.status === 'in-progress' && (
                         <>
@@ -1513,94 +1489,6 @@ export function DailySchedule({
               </Card>
             );
           })}
-
-          {/* Display tomorrow's jobs at the bottom */}
-          {tomorrowJobs.length > 0 && (
-            <div className="col-span-full">
-              {/* Tomorrow's Jobs Section Header */}
-              <div className="flex items-center gap-3 mt-8 mb-4">
-                <div className="h-1 flex-1 bg-linear-to-r from-yellow-200 to-yellow-400 rounded-full"></div>
-                <h2 className="text-2xl font-bold text-yellow-900 uppercase tracking-wide">Tomorrow's Jobs</h2>
-                <div className="h-1 flex-1 bg-linear-to-l from-yellow-200 to-yellow-400 rounded-full"></div>
-              </div>
-              
-              {/* Navigate Route Button */}
-              {startingAddress && tomorrowJobs.length > 0 && (
-                <div className="flex justify-center mb-4">
-                  <Button
-                    onClick={() => {
-                      const routeUrl = generateRouteUrl(tomorrowJobs);
-                      if (routeUrl) {
-                        window.open(routeUrl, '_blank');
-                      } else {
-                        toast.error('Unable to generate route - missing addresses');
-                      }
-                    }}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2"
-                  >
-                    <Navigation className="h-4 w-4 mr-2" />
-                    Navigate Full Route ({tomorrowJobs.length} stops)
-                  </Button>
-                </div>
-              )}
-              
-              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
-              {tomorrowJobs.map((job, index) => {
-                const customer = customers.find(c => c.id === job.customerId);
-                if (!customer) return null;
-
-                // Get previous job for drive time calculation
-                const previousJob = index > 0 ? tomorrowJobs[index - 1] : null;
-                const previousCustomer = previousJob ? customers.find(c => c.id === previousJob.customerId) : null;
-                const driveTime = previousCustomer 
-                  ? estimateDriveTime(previousCustomer.address, customer.address)
-                  : startingAddress 
-                    ? estimateDriveTime(startingAddress, customer.address)
-                    : 'Start';
-
-                return (
-                  <Card key={`tomorrow-${job.id}`} className="bg-yellow-50/80 backdrop-blur border-yellow-300">
-                    <CardContent className="p-1.5 flex flex-col">
-                      <div className="flex flex-col items-center text-center gap-1">
-                        <div className="w-full">
-                          <h3 className="text-orange-800 text-xs font-medium">{customer.name}</h3>
-                          <div className="flex items-center justify-center gap-1 text-gray-600 text-[10px] mt-0.5">
-                            <MapPin className="h-2.5 w-2.5" />
-                            <span>{customer.address}</span>
-                          </div>
-                          <div className="flex items-center justify-center gap-1 text-yellow-600 text-[10px] mt-0.5">
-                            <Clock className="h-2.5 w-2.5" />
-                            <span>{driveTime} drive</span>
-                          </div>
-                        </div>
-                        
-                        <div className="flex flex-wrap gap-0.5 justify-center mb-0.5">
-                          {customer.isHilly && <Badge variant="secondary" className="text-[9px] py-0 px-1">Hilly</Badge>}
-                          {customer.hasFencing && <Badge variant="secondary" className="text-[9px] py-0 px-1">Fenced</Badge>}
-                          {customer.hasObstacles && <Badge variant="secondary" className="text-[9px] py-0 px-1">Obstacles</Badge>}
-                          <Badge variant="outline" className="text-[9px] py-0 px-1">{customer.squareFootage.toLocaleString()} sq ft</Badge>
-                          <Badge variant="outline" className="text-[9px] py-0 px-1">${customer.price}</Badge>
-                          <Badge variant="outline" className="text-[9px] py-0 px-1">{customer.frequency}</Badge>
-                        </div>
-
-                        {customer.phone && (
-                          <Button
-                            variant="outline"
-                            className="w-full h-7 text-[10px]"
-                            onClick={() => window.open(`tel:${customer.phone}`, '_self')}
-                          >
-                            <Phone className="h-3 w-3 mr-1" />
-                            Call
-                          </Button>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-              </div>
-            </div>
-          )}
           </>
         )}
       </div>
@@ -1673,7 +1561,7 @@ export function DailySchedule({
 
       {/* Drag Preview - Shows the job being dragged */}
       {draggedJobId && dragPosition && (() => {
-        const draggedJob = todayJobs.find(j => j.id === draggedJobId);
+        const draggedJob = displayedJobs.find(j => j.id === draggedJobId);
         const customer = draggedJob ? getCustomer(draggedJob.customerId) : null;
         if (!draggedJob || !customer) return null;
         
