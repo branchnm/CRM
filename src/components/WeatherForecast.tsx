@@ -3945,6 +3945,8 @@ export function WeatherForecast({
                                         {/* Job card or empty drop zone */}
                                         {jobInSlot ? (() => {
                                           const customer = customers.find(c => c.id === jobInSlot.customerId);
+                                          const customerGroup = customer?.group;
+                                          
                                           // eslint-disable-next-line @typescript-eslint/no-unused-vars
                                           const isScheduled = scheduledJobsForDay.some(j => j.id === jobInSlot.id);
                                           const isAssigned = assignedJobs.some(j => j.id === jobInSlot.id);
@@ -3980,6 +3982,8 @@ export function WeatherForecast({
                                                   ? 'bg-gray-100 border-2 border-gray-400 animate-pulse cursor-move hover:shadow-md'
                                                   : isAffectedByRain
                                                   ? 'bg-blue-50 border-2 border-blue-300 cursor-move hover:shadow-md'
+                                                  : customerGroup
+                                                  ? 'bg-purple-50 border-2 border-purple-300 cursor-move hover:shadow-md hover:border-purple-400'
                                                   : 'bg-white border border-gray-300 cursor-move hover:shadow-md active:bg-blue-50 active:border-blue-400'
                                               }`}
                                               style={{
@@ -3995,7 +3999,12 @@ export function WeatherForecast({
                                                 <div className="flex-1 min-w-0">
                                                   <div className={`font-semibold truncate w-full ${
                                                     isMobile ? 'text-[1.27vh]' : 'text-[1.34vh]'
-                                                  } ${isCompleted ? 'text-gray-600' : 'text-gray-900'}`}>
+                                                  } ${isCompleted ? 'text-gray-600' : customerGroup ? 'text-purple-900' : 'text-gray-900'}`}>
+                                                    {customerGroup && (
+                                                      <span className={`inline-block px-1 py-0.5 rounded text-white bg-purple-600 mr-1 ${isMobile ? 'text-[0.9vh]' : 'text-[1.0vh]'}`}>
+                                                        GROUP
+                                                      </span>
+                                                    )}
                                                     {customer?.name}
                                                     {isSelected && (
                                                       <span className={`ml-[0.14vh] text-green-700 ${isMobile ? 'text-[1.09vh]' : 'text-[1.15vh]'}`}>✓ Selected</span>
@@ -4007,13 +4016,18 @@ export function WeatherForecast({
                                                       <span className={`ml-[0.14vh] text-gray-700 font-bold ${isMobile ? 'text-[1.09vh]' : 'text-[1.15vh]'}`}>✓</span>
                                                     )}
                                                   </div>
+                                                  {customerGroup && !isDraggedItem && !isAssigned && !isCutItem && (
+                                                    <div className={`truncate ${isMobile ? 'text-[1.0vh]' : 'text-[1.0vh]'} text-purple-700 font-medium`}>
+                                                      {customerGroup}
+                                                    </div>
+                                                  )}
                                                   {!isDraggedItem && isAssigned && (
                                                     <div className={`text-gray-700 font-medium mt-[0.18vh] italic ${isMobile ? 'text-[1.09vh]' : 'text-[1.06vh]'}`}>
                                                       Moving here...
                                                     </div>
                                                   )}
                                                   {!isDraggedItem && !isAssigned && !isCutItem && (
-                                                    <div className={`truncate ${isMobile ? 'text-[1.14vh]' : 'text-[1.1vh]'} ${isCompleted ? 'text-gray-500' : 'text-gray-600'}`}>
+                                                    <div className={`truncate ${isMobile ? 'text-[1.14vh]' : 'text-[1.1vh]'} ${isCompleted ? 'text-gray-500' : customerGroup ? 'text-purple-600' : 'text-gray-600'}`}>
                                                       {scheduledTime && <span className="font-medium">{scheduledTime} • </span>}
                                                       ${customer?.price} • 60 min
                                                     </div>
