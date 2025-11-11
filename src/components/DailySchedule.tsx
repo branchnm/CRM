@@ -372,6 +372,41 @@ export function DailySchedule({
     return `${displayHour}:${displayMinute} ${period}`;
   };
 
+  // Generate Google Maps route URL with waypoints
+  const generateRouteUrl = (jobsForRoute: Job[]): string => {
+    if (jobsForRoute.length === 0) return '';
+    
+    // Sort jobs by order to ensure correct route sequence
+    const sortedJobs = [...jobsForRoute].sort((a, b) => (a.order || 0) - (b.order || 0));
+    
+    // Get addresses for each job
+    const addresses = sortedJobs.map(job => {
+      const customer = customers.find(c => c.id === job.customerId);
+      return customer?.address || '';
+    }).filter(addr => addr !== '');
+    
+    if (addresses.length === 0) return '';
+    
+    // Google Maps directions URL format:
+    // https://www.google.com/maps/dir/?api=1&origin=START&destination=END&waypoints=WAYPOINT1|WAYPOINT2|...
+    const origin = startingAddress || addresses[0];
+    const destination = addresses[addresses.length - 1];
+    const waypoints = addresses.slice(0, -1).join('|');
+    
+    const params = new URLSearchParams({
+      api: '1',
+      origin: origin,
+      destination: destination,
+      travelmode: 'driving'
+    });
+    
+    if (waypoints) {
+      params.append('waypoints', waypoints);
+    }
+    
+    return `https://www.google.com/maps/dir/?${params.toString()}`;
+  };
+
   // Estimate drive time between two addresses (with Google Maps API integration)
   const estimateDriveTime = (address1: string, address2: string): string => {
     // Check cache first
@@ -1488,6 +1523,26 @@ export function DailySchedule({
                 <h2 className="text-2xl font-bold text-yellow-900 uppercase tracking-wide">Tomorrow's Jobs</h2>
                 <div className="h-1 flex-1 bg-linear-to-l from-yellow-200 to-yellow-400 rounded-full"></div>
               </div>
+              
+              {/* Navigate Route Button */}
+              {startingAddress && tomorrowJobs.length > 0 && (
+                <div className="flex justify-center mb-4">
+                  <Button
+                    onClick={() => {
+                      const routeUrl = generateRouteUrl(tomorrowJobs);
+                      if (routeUrl) {
+                        window.open(routeUrl, '_blank');
+                      } else {
+                        toast.error('Unable to generate route - missing addresses');
+                      }
+                    }}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2"
+                  >
+                    <Navigation className="h-4 w-4 mr-2" />
+                    Navigate Full Route ({tomorrowJobs.length} stops)
+                  </Button>
+                </div>
+              )}
               
               <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
               {tomorrowJobs.map((job, index) => {
