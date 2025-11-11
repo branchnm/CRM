@@ -1254,22 +1254,23 @@ export function WeatherForecast({
                 }
               });
               
-              // Suggest moving the overflow jobs
-              jobsOnDay.slice(-jobsToMove).forEach(job => {
-                const customer = customers.find(c => c.id === job.customerId);
-                const jobName = customer ? customer.name : 'Unknown Customer';
-                
-                moveSuggestions.push({
-                  jobId: job.id,
-                  jobName,
-                  currentDate: dateStr,
-                  suggestedDate: bestDay,
-                  reason: `Not enough time after delaying start to ${weatherInfo.clearsByHour}:00. Only ${maxJobsAfterDelay} job${maxJobsAfterDelay !== 1 ? 's' : ''} can fit.`,
-                  weatherSeverity: 'moderate'
-                });
-                
-                workloadByDay.set(bestDay, (workloadByDay.get(bestDay) || 0) + 1);
-              });
+              // Suggest moving the overflow jobs - COMBINE into single suggestion
+              const jobsToMoveArray = jobsOnDay.slice(-jobsToMove);
+              
+              moveSuggestions.push({
+                jobIds: jobsToMoveArray.map(j => j.id), // Array of all job IDs
+                jobNames: jobsToMoveArray.map(j => {
+                  const customer = customers.find(c => c.id === j.customerId);
+                  return customer ? customer.name : 'Unknown Customer';
+                }),
+                currentDate: dateStr,
+                suggestedDate: bestDay,
+                reason: `Not enough time after delaying start to ${weatherInfo.clearsByHour}:00. Only ${maxJobsAfterDelay} job${maxJobsAfterDelay !== 1 ? 's' : ''} can fit.`,
+                weatherSeverity: 'moderate',
+                jobCount: jobsToMove
+              } as any);
+              
+              workloadByDay.set(bestDay, (workloadByDay.get(bestDay) || 0) + jobsToMove);
             }
 
             // Only suggest start time adjustment if user hasn't already adjusted it
@@ -1322,22 +1323,23 @@ export function WeatherForecast({
               }
             });
             
-            // Suggest moving the jobs that won't fit
-            jobsOnDay.slice(-jobsToMove).forEach(job => {
-              const customer = customers.find(c => c.id === job.customerId);
-              const jobName = customer ? customer.name : 'Unknown Customer';
-              
-              moveSuggestions.push({
-                jobId: job.id,
-                jobName,
-                currentDate: dateStr,
-                suggestedDate: bestDay,
-                reason: `Rain starts at ${lastGoodHour}:00. Only ${maxJobsBeforeRain} job${maxJobsBeforeRain !== 1 ? 's' : ''} can be completed before rain.`,
-                weatherSeverity: 'moderate'
-              });
-              
-              workloadByDay.set(bestDay, (workloadByDay.get(bestDay) || 0) + 1);
-            });
+            // Suggest moving the jobs that won't fit - COMBINE into single suggestion
+            const jobsToMoveArray = jobsOnDay.slice(-jobsToMove);
+            
+            moveSuggestions.push({
+              jobIds: jobsToMoveArray.map(j => j.id), // Array of all job IDs
+              jobNames: jobsToMoveArray.map(j => {
+                const customer = customers.find(c => c.id === j.customerId);
+                return customer ? customer.name : 'Unknown Customer';
+              }),
+              currentDate: dateStr,
+              suggestedDate: bestDay,
+              reason: `Rain starts at ${lastGoodHour}:00. Only ${maxJobsBeforeRain} job${maxJobsBeforeRain !== 1 ? 's' : ''} can be completed before rain.`,
+              weatherSeverity: 'moderate',
+              jobCount: jobsToMove
+            } as any);
+            
+            workloadByDay.set(bestDay, (workloadByDay.get(bestDay) || 0) + jobsToMove);
           }
           
           // Only suggest end time adjustment if user hasn't already set one
