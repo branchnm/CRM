@@ -977,19 +977,16 @@ export function DailySchedule({
         if (job.order) newOptimizedOrder.set(job.id, job.order);
       });
       setOptimizedJobOrder(newOptimizedOrder);
-      
-      // Set optimized state BEFORE refreshing jobs to prevent race condition
-      onOptimizationStatusChange?.('optimized');
-      onJobChangesDetected?.(false); // No changes right after optimization
-      
-      // Small delay to ensure state updates propagate
-      await new Promise(resolve => setTimeout(resolve, 100));
 
-      // Refresh jobs from database - this will trigger WeatherForecast to re-sort
+      // Refresh jobs from database FIRST - this will trigger WeatherForecast to re-sort
       await onRefreshJobs?.();
       
-      // Wait a bit for the refresh to propagate through React
+      // Wait for the refresh to propagate through React
       await new Promise(resolve => setTimeout(resolve, 300));
+      
+      // Set optimized state AFTER refresh completes to prevent race condition
+      onOptimizationStatusChange?.('optimized');
+      onJobChangesDetected?.(false); // No changes right after optimization
       
       // Update cache with the new route data from all days
       setDriveTimesCache(newDriveTimesCache);

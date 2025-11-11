@@ -447,15 +447,7 @@ function App() {
                 }}
                 disabled={optimizationStatus === 'optimizing'}
                 size="sm"
-                className={`shrink-0 transition-colors ${
-                  optimizationStatus === 'optimizing'
-                    ? 'bg-blue-600 hover:bg-blue-700'
-                    : optimizationStatus === 'optimized'
-                    ? 'bg-blue-600 hover:bg-blue-700' 
-                    : hasJobChanges
-                    ? 'bg-orange-600 hover:bg-orange-700'
-                    : 'bg-blue-600 hover:bg-blue-700'
-                } px-3`}
+                className="shrink-0 transition-colors bg-blue-600 hover:bg-blue-700 px-3"
               >
                 {optimizationStatus === 'optimizing' && <Loader2 className="h-4 w-4 mr-2 animate-spin shrink-0" />}
                 {optimizationStatus === 'optimized' && <CheckCircle className="h-4 w-4 mr-2 shrink-0" />}
@@ -636,15 +628,7 @@ function App() {
                 }}
                 disabled={optimizationStatus === 'optimizing'}
                 size="sm"
-                className={`shrink-0 transition-colors ${
-                  optimizationStatus === 'optimizing'
-                    ? 'bg-blue-600 hover:bg-blue-700'
-                    : optimizationStatus === 'optimized'
-                    ? 'bg-blue-600 hover:bg-blue-700' 
-                    : hasJobChanges
-                    ? 'bg-orange-600 hover:bg-orange-700'
-                    : 'bg-blue-600 hover:bg-blue-700'
-                }`}
+                className="shrink-0 transition-colors bg-blue-600 hover:bg-blue-700"
                 style={{ 
                   fontSize: 'max(1.4vh, 10px)',
                   padding: 'max(0.5vh, 3px) max(2vw, 8px)',
