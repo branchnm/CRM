@@ -360,6 +360,7 @@ export function CustomerManagement({ customers, onUpdateCustomers, onRefreshCust
               lastCutDate: row.lastcutdate || '',
               nextCutDate: nextCutDate,
               status: status as any,
+              group: row.group || undefined, // Import group field for nearby property clustering
             };
 
             await addCustomer(newCustomer);

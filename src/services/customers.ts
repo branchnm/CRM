@@ -110,6 +110,7 @@ export async function fetchCustomers(): Promise<Customer[]> {
       lastCutDate: lastCut,
       nextCutDate: resolvedNext,
       status: row.status || "incomplete",
+      group: row.group || undefined, // Group name for nearby property clustering
     } as Customer;
   });
 }
@@ -138,6 +139,7 @@ export async function addCustomer(customer: Omit<Customer, "id">): Promise<Custo
     last_cut_date: customer.lastCutDate || null,
     next_cut_date: customer.nextCutDate || null,
     status: customer.status || "incomplete",
+    group: customer.group || null, // Group name for nearby property clustering
   };
 
   const { data, error } = await supabase
@@ -169,6 +171,7 @@ export async function addCustomer(customer: Omit<Customer, "id">): Promise<Custo
     lastCutDate: data.last_cut_date,
     nextCutDate: data.next_cut_date,
     status: data.status || "incomplete",
+    group: data.group || undefined,
   };
 }
 
@@ -193,6 +196,7 @@ export async function updateCustomer(customer: Customer): Promise<Customer> {
     last_cut_date: customer.lastCutDate || null,
     next_cut_date: customer.nextCutDate || null,
     status: customer.status || "incomplete",
+    group: customer.group || null,
   };
 
   const { data, error } = await supabase
@@ -225,5 +229,6 @@ export async function updateCustomer(customer: Customer): Promise<Customer> {
     lastCutDate: data.last_cut_date,
     nextCutDate: data.next_cut_date,
     status: data.status || "incomplete",
+    group: data.group || undefined,
   };
 }
