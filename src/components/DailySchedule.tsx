@@ -141,6 +141,12 @@ export function DailySchedule({
     const items: DisplayItem[] = [];
     const processedJobIds = new Set<string>();
 
+    // Debug: Log customers with groups
+    const customersWithGroups = customers.filter(c => c.group);
+    if (customersWithGroups.length > 0) {
+      console.log('🔍 Customers with groups:', customersWithGroups.map(c => ({ name: c.name, group: c.group })));
+    }
+
     displayedJobs.forEach((job) => {
       if (processedJobIds.has(job.id)) return;
 
@@ -189,6 +195,14 @@ export function DailySchedule({
         processedJobIds.add(job.id);
       }
     });
+
+    // Debug: Log what displayItems were created
+    console.log('📊 DisplayItems created:', items.length, 'items');
+    console.log('📊 Groups:', items.filter(i => i.isGroup).length);
+    console.log('📊 Singles:', items.filter(i => !i.isGroup).length);
+    if (items.some(i => i.isGroup)) {
+      console.log('📊 Group details:', items.filter(i => i.isGroup).map(i => i.isGroup ? { name: i.groupName, jobs: i.jobs.length } : null));
+    }
 
     return items;
   })();

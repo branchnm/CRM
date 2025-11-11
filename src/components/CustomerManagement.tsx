@@ -360,8 +360,10 @@ export function CustomerManagement({ customers, onUpdateCustomers, onRefreshCust
               lastCutDate: row.lastcutdate || '',
               nextCutDate: nextCutDate,
               status: status as any,
-              group: row.group || undefined, // Import group field for nearby property clustering
+              group: row.group && row.group.trim() ? row.group.trim() : undefined, // Import group field, ensure it's not empty string
             };
+
+            console.log('📥 Importing customer:', newCustomer.name, 'Group:', newCustomer.group || 'none');
 
             await addCustomer(newCustomer);
             successCount++;
