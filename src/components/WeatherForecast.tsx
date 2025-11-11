@@ -3787,6 +3787,56 @@ export function WeatherForecast({
                                 }
                               }
                               
+                              // Group detection: identify which slots belong to groups and should be rendered as single tall cards
+                              const groupSpans = new Map<number, { groupName: string; jobCount: number; totalTime: number; firstJobId: string; jobs: any[] }>();
+                              const slotsToSkip = new Set<number>();
+                              
+                              // Sort slots to process in order
+                              const sortedSlots = Object.keys(jobsBySlot).map(Number).sort((a, b) => a - b);
+                              
+                              sortedSlots.forEach((slotIndex) => {
+                                const job = jobsBySlot[slotIndex];
+                                const customer = customers.find(c => c.id === job.customerId);
+                                const groupName = customer?.group;
+                                
+                                if (!groupName) return; // Skip non-grouped jobs
+                                
+                                // Check if this is the first job in a group
+                                const isFirstInGroup = !sortedSlots.slice(0, sortedSlots.indexOf(slotIndex)).some(prevSlot => {
+                                  const prevJob = jobsBySlot[prevSlot];
+                                  const prevCustomer = customers.find(c => c.id === prevJob.customerId);
+                                  return prevCustomer?.group === groupName;
+                                });
+                                
+                                if (isFirstInGroup) {
+                                  // This is the first job in the group - collect all consecutive jobs in this group
+                                  const groupJobs: any[] = [job];
+                                  let currentSlot = slotIndex + 1;
+                                  
+                                  // Find all consecutive jobs in the same group
+                                  while (currentSlot < 14) {
+                                    const nextJob = jobsBySlot[currentSlot];
+                                    if (!nextJob) break;
+                                    
+                                    const nextCustomer = customers.find(c => c.id === nextJob.customerId);
+                                    if (nextCustomer?.group !== groupName) break;
+                                    
+                                    groupJobs.push(nextJob);
+                                    slotsToSkip.add(currentSlot); // Mark this slot to skip rendering
+                                    currentSlot++;
+                                  }
+                                  
+                                  // Store group span information
+                                  groupSpans.set(slotIndex, {
+                                    groupName,
+                                    jobCount: groupJobs.length,
+                                    totalTime: groupJobs.length * 60, // 60 min per job
+                                    firstJobId: job.id,
+                                    jobs: groupJobs
+                                  });
+                                }
+                              });
+                              
                               return (
                                 <div className={`relative flex flex-col time-slots-container overflow-hidden ${
                                   isMobile ? 'space-y-0 flex-1 justify-between gap-y-[0.42vh]' : 'flex-1 justify-between'
@@ -3899,6 +3949,15 @@ export function WeatherForecast({
                                   
                                   // All slots are always visible and active
                                   const isDropTarget = dragOverSlot?.date === dateStr && dragOverSlot?.slot === slot.slotIndex;
+                                  
+                                  // Check if this slot should be skipped (part of a group but not the first)
+                                  if (slotsToSkip.has(slot.slotIndex)) {
+                                    return null; // Skip rendering this slot
+                                  }
+                                  
+                                  // Check if this is the start of a group span
+                                  const groupSpan = groupSpans.get(slot.slotIndex);
+                                  
                                   return (
                                     <div 
                                       key={slot.slotIndex} 
@@ -3944,6 +4003,77 @@ export function WeatherForecast({
                                         
                                         {/* Job card or empty drop zone */}
                                         {jobInSlot ? (() => {
+                                          // Check if this is a group span
+                                          if (groupSpan) {
+                                            // Render tall group card
+                                            const firstCustomer = customers.find(c => c.id === groupSpan.jobs[0].customerId);
+                                            const isDraggedItem = groupSpan.firstJobId === draggedJobId;
+                                            const isCompleted = groupSpan.jobs.every(j => j.status === 'completed');
+                                            const anyInProgress = groupSpan.jobs.some(j => j.status === 'in-progress');
+                                            
+                                            // Calculate height: each job = 4.9vh + gap
+                                            const cardHeight = `calc(${groupSpan.jobCount} * (4.9vh + 0.28vh) - 0.28vh)`;
+                                            
+                                            return (
+                                              <div
+                                                draggable={!isDraggedItem && !isTouchDevice.current && !isCompleted}
+                                                onDragStart={(e) => !isDraggedItem && !isCompleted && handleDragStart(e, groupSpan.firstJobId)}
+                                                className={`flex-1 rounded-lg transition-all text-xs group overflow-hidden flex flex-col justify-center select-none px-[0.58vh] py-[0.75vh] ${
+                                                  isCompleted
+                                                    ? 'bg-green-50 border-2 border-green-300 cursor-default'
+                                                    : anyInProgress
+                                                      ? 'bg-yellow-50 border-2 border-yellow-300'
+                                                      : isDraggedItem
+                                                      ? 'bg-purple-100 border-2 border-purple-600 shadow-lg scale-105'
+                                                      : 'bg-purple-50 border-2 border-purple-400 cursor-move hover:shadow-lg hover:border-purple-500'
+                                                }`}
+                                                style={{
+                                                  height: cardHeight,
+                                                  userSelect: 'none',
+                                                  WebkitUserSelect: 'none',
+                                                  WebkitTouchCallout: 'none',
+                                                }}
+                                              >
+                                                <div className="flex flex-col gap-[0.3vh] w-full">
+                                                  {/* GROUP Badge */}
+                                                  <div className="flex items-center justify-center">
+                                                    <span className="inline-block px-2 py-0.5 rounded text-white bg-purple-600 font-bold text-[1.1vh]">
+                                                      GROUP
+                                                    </span>
+                                                  </div>
+                                                  
+                                                  {/* Group Name */}
+                                                  <div className="font-bold text-center text-purple-900 text-[1.5vh] leading-tight">
+                                                    {groupSpan.groupName}
+                                                  </div>
+                                                  
+                                                  {/* Job Count and Time */}
+                                                  <div className="text-center text-purple-700 font-semibold text-[1.2vh]">
+                                                    {groupSpan.jobCount} properties • {groupSpan.totalTime} min
+                                                  </div>
+                                                  
+                                                  {/* First property address for reference */}
+                                                  <div className="text-center text-purple-600 text-[1.0vh] truncate">
+                                                    {firstCustomer?.address?.split(' ').slice(0, 3).join(' ')}...
+                                                  </div>
+                                                  
+                                                  {/* Status indicator */}
+                                                  {isCompleted && (
+                                                    <div className="text-center text-green-700 font-bold text-[1.1vh]">
+                                                      ✓ Complete
+                                                    </div>
+                                                  )}
+                                                  {anyInProgress && !isCompleted && (
+                                                    <div className="text-center text-yellow-700 font-semibold text-[1.1vh]">
+                                                      In Progress...
+                                                    </div>
+                                                  )}
+                                                </div>
+                                              </div>
+                                            );
+                                          }
+                                          
+                                          // Regular single job card
                                           const customer = customers.find(c => c.id === jobInSlot.customerId);
                                           const customerGroup = customer?.group;
                                           
