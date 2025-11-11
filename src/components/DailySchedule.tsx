@@ -108,6 +108,9 @@ export function DailySchedule({
   // Get customers who need service on the current viewed date
   const customersDueOnDate = customers.filter(c => c.nextCutDate === currentViewDate);
   
+  console.log('📅 Current view date:', currentViewDate);
+  console.log('📅 Customers due on this date:', customersDueOnDate.length, customersDueOnDate.map(c => c.name));
+  
   // Get jobs scheduled for the currently viewed date - sort by order, then by scheduled time
   const displayedJobs = jobs.filter(j => j.date === currentViewDate).sort((a, b) => {
     // Primary sort: by order field (lower numbers first)
@@ -119,6 +122,10 @@ export function DailySchedule({
     if (!a.scheduledTime || !b.scheduledTime) return 0;
     return a.scheduledTime.localeCompare(b.scheduledTime);
   });
+
+  console.log('📅 Displayed jobs for', currentViewDate + ':', displayedJobs.length);
+  console.log('📅 All jobs count:', jobs.length);
+  console.log('📅 Jobs by date:', jobs.reduce((acc, j) => { acc[j.date] = (acc[j.date] || 0) + 1; return acc; }, {} as Record<string, number>));
 
   // Group jobs by customer group (for displaying nearby properties together)
   type JobGroup = {
