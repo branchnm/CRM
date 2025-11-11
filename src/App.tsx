@@ -102,6 +102,7 @@ function App() {
   const [optimizationStatus, setOptimizationStatus] = useState<'idle' | 'optimizing' | 'optimized'>('idle');
   const [hasJobChanges, setHasJobChanges] = useState(false);
   const scrollToTodayRef = useRef<(() => void) | null>(null);
+  const resetToTodayRef = useRef<(() => void) | null>(null);
 
   // Don't auto-hide optimize button - keep it showing "Optimized" until jobs change
   // The optimization status is now controlled by job changes detection in DailySchedule
@@ -428,7 +429,10 @@ function App() {
           <div className="w-full h-full flex items-center justify-center gap-3 px-4">
             {/* Today Button */}
             <Button
-              onClick={() => scrollToTodayRef.current?.()}
+              onClick={() => {
+                scrollToTodayRef.current?.();
+                resetToTodayRef.current?.();
+              }}
               size="sm"
               variant="outline"
               className="border-blue-600 text-blue-600 hover:bg-blue-50 px-3"
@@ -537,6 +541,7 @@ function App() {
               onOptimizationStatusChange={setOptimizationStatus}
               onJobChangesDetected={setHasJobChanges}
               scrollToTodayRef={scrollToTodayRef}
+              resetToTodayRef={resetToTodayRef}
             />
           )}
           {activeTab === "calendar" && (
@@ -605,7 +610,10 @@ function App() {
             </Button>
             
             <Button
-              onClick={() => scrollToTodayRef.current?.()}
+              onClick={() => {
+                scrollToTodayRef.current?.();
+                resetToTodayRef.current?.();
+              }}
               size="sm"
               variant="outline"
               className="border-blue-600 text-blue-600 hover:bg-blue-100 shrink-0"

@@ -33,6 +33,7 @@ interface DailyScheduleProps {
   onOptimizationStatusChange?: (status: 'idle' | 'optimizing' | 'optimized') => void;
   onJobChangesDetected?: (hasChanges: boolean) => void;
   scrollToTodayRef?: React.MutableRefObject<(() => void) | null>;
+  resetToTodayRef?: React.MutableRefObject<(() => void) | null>;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -52,7 +53,8 @@ export function DailySchedule({
   optimizationStatus = 'idle',
   onOptimizationStatusChange,
   onJobChangesDetected,
-  scrollToTodayRef
+  scrollToTodayRef,
+  resetToTodayRef
 }: DailyScheduleProps) {
   const [jobNotes, setJobNotes] = useState('');
   const [elapsedTime, setElapsedTime] = useState<{ [jobId: string]: number }>({});
@@ -125,6 +127,15 @@ export function DailySchedule({
       setStartingAddress(weatherLocation);
     }
   }, []); // Run once on mount
+
+  // Register reset to today function
+  useEffect(() => {
+    if (resetToTodayRef) {
+      resetToTodayRef.current = () => {
+        setCurrentDayIndex(0);
+      };
+    }
+  }, [resetToTodayRef]);
 
   // Auto-create jobs for customers due on the currently viewed date who don't have a job yet (in Supabase)
   useEffect(() => {
@@ -1152,28 +1163,36 @@ export function DailySchedule({
       {/* Jobs Section Header with Day Navigation */}
       {displayedJobs.length > 0 && (
         <div className="space-y-3 mb-4">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center justify-center gap-2">
             <Button
-              variant="outline"
               size="sm"
               onClick={() => setCurrentDayIndex(Math.max(0, currentDayIndex - 1))}
               disabled={currentDayIndex === 0}
-              className="shrink-0"
+              className="shrink-0 bg-blue-600 hover:bg-blue-700 text-white disabled:bg-gray-300 disabled:text-gray-500"
+              style={{
+                width: 'max(4vh, 32px)',
+                height: 'max(4vh, 32px)',
+                padding: 0
+              }}
             >
-              <ChevronLeft className="h-4 w-4" />
+              <ChevronLeft style={{ width: 'max(2vh, 16px)', height: 'max(2vh, 16px)' }} />
             </Button>
-            <div className="h-1 flex-1 bg-linear-to-r from-blue-200 via-yellow-200 to-blue-200 rounded-full"></div>
-            <h2 className="text-2xl font-bold text-blue-900 uppercase tracking-wide whitespace-nowrap">
+            <div className="h-1 bg-linear-to-r from-blue-200 via-yellow-200 to-blue-200 rounded-full" style={{ width: 'max(8vw, 60px)' }}></div>
+            <h2 className="text-blue-900 uppercase tracking-wide whitespace-nowrap font-bold" style={{ fontSize: 'max(2.5vh, 18px)' }}>
               {getDateLabel(currentDayIndex)}'s Jobs
             </h2>
-            <div className="h-1 flex-1 bg-linear-to-l from-blue-200 via-yellow-200 to-blue-200 rounded-full"></div>
+            <div className="h-1 bg-linear-to-l from-blue-200 via-yellow-200 to-blue-200 rounded-full" style={{ width: 'max(8vw, 60px)' }}></div>
             <Button
-              variant="outline"
               size="sm"
               onClick={() => setCurrentDayIndex(currentDayIndex + 1)}
-              className="shrink-0"
+              className="shrink-0 bg-blue-600 hover:bg-blue-700 text-white"
+              style={{
+                width: 'max(4vh, 32px)',
+                height: 'max(4vh, 32px)',
+                padding: 0
+              }}
             >
-              <ChevronRight className="h-4 w-4" />
+              <ChevronRight style={{ width: 'max(2vh, 16px)', height: 'max(2vh, 16px)' }} />
             </Button>
           </div>
           
@@ -1200,7 +1219,7 @@ export function DailySchedule({
       )}
 
       {/* Job List */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6" style={{ gap: 'max(0.5vw, 8px)' }}>
         {customersDueOnDate.length === 0 && displayedJobs.length === 0 ? (
           <Card className="bg-white/80 backdrop-blur col-span-full">
             <CardContent className="pt-6">
@@ -1253,57 +1272,62 @@ export function DailySchedule({
                 onDragEnd={handleDragEnd}
                 onDrop={(e) => handleDrop(e, index)}
               >
-                <CardContent className="p-1.5">
+                <CardContent style={{ padding: 'max(0.5vh, 4px)' }}>
                   {/* Centered layout */}
-                  <div className="flex flex-col items-center text-center gap-1">
+                  <div className="flex flex-col items-center text-center" style={{ gap: 'max(0.3vh, 2px)' }}>
                     <div className="w-full">
-                      <h3 className="text-blue-800 text-xs font-semibold">{customer.name}</h3>
-                      <div className="flex items-center justify-center gap-1 text-gray-600 text-[10px] mt-0.5">
-                        <MapPin className="h-2.5 w-2.5 shrink-0 pointer-events-none" />
-                        <span>{customer.address}</span>
+                      <h3 className="text-blue-800 font-semibold" style={{ fontSize: 'max(1.2vh, 10px)' }}>{customer.name}</h3>
+                      <div className="flex items-center justify-center text-gray-600" style={{ gap: 'max(0.2vw, 2px)', fontSize: 'max(0.9vh, 8px)', marginTop: 'max(0.2vh, 1px)' }}>
+                        <MapPin style={{ width: 'max(1vh, 8px)', height: 'max(1vh, 8px)' }} className="shrink-0 pointer-events-none" />
+                        <span className="truncate">{customer.address}</span>
                       </div>
                       {job.scheduledTime && (
-                        <div className="flex items-center justify-center gap-1 text-blue-600 text-[10px] font-medium mt-0.5">
-                          <Clock className="h-2.5 w-2.5 pointer-events-none" />
+                        <div className="flex items-center justify-center text-blue-600 font-medium" style={{ gap: 'max(0.2vw, 2px)', fontSize: 'max(0.9vh, 8px)', marginTop: 'max(0.2vh, 1px)' }}>
+                          <Clock style={{ width: 'max(1vh, 8px)', height: 'max(1vh, 8px)' }} className="pointer-events-none" />
                           <span>Scheduled: {formatScheduledTime(job.scheduledTime)}</span>
                         </div>
                       )}
-                      <div className="flex items-center justify-center gap-1 text-blue-600 text-[10px] mt-0.5">
-                        <Clock className="h-2.5 w-2.5 pointer-events-none" />
+                      <div className="flex items-center justify-center text-blue-600" style={{ gap: 'max(0.2vw, 2px)', fontSize: 'max(0.9vh, 8px)', marginTop: 'max(0.2vh, 1px)' }}>
+                        <Clock style={{ width: 'max(1vh, 8px)', height: 'max(1vh, 8px)' }} className="pointer-events-none" />
                         <span>{driveTime}</span>
                       </div>
                     </div>
 
                   {/* Badges row */}
-                  <div className="flex flex-wrap gap-0.5 justify-center mb-0.5">
-                    {customer.isHilly && <Badge variant="secondary" className="text-[9px] py-0 px-1">Hilly</Badge>}
-                    {customer.hasFencing && <Badge variant="secondary" className="text-[9px] py-0 px-1">Fenced</Badge>}
-                    {customer.hasObstacles && <Badge variant="secondary" className="text-[9px] py-0 px-1">Obstacles</Badge>}
-                    <Badge variant="outline" className="text-[9px] py-0 px-1">{customer.squareFootage.toLocaleString()} sq ft</Badge>
-                    <Badge variant="outline" className="text-[9px] py-0 px-1">${customer.price}</Badge>
+                  <div className="flex flex-wrap justify-center" style={{ gap: 'max(0.2vw, 2px)', marginBottom: 'max(0.3vh, 2px)' }}>
+                    {customer.isHilly && <Badge variant="secondary" style={{ fontSize: 'max(0.8vh, 7px)', padding: '0 max(0.3vw, 2px)' }}>Hilly</Badge>}
+                    {customer.hasFencing && <Badge variant="secondary" style={{ fontSize: 'max(0.8vh, 7px)', padding: '0 max(0.3vw, 2px)' }}>Fenced</Badge>}
+                    {customer.hasObstacles && <Badge variant="secondary" style={{ fontSize: 'max(0.8vh, 7px)', padding: '0 max(0.3vw, 2px)' }}>Obstacles</Badge>}
+                    <Badge variant="outline" style={{ fontSize: 'max(0.8vh, 7px)', padding: '0 max(0.3vw, 2px)' }}>{customer.squareFootage.toLocaleString()} sq ft</Badge>
+                    <Badge variant="outline" style={{ fontSize: 'max(0.8vh, 7px)', padding: '0 max(0.3vw, 2px)' }}>${customer.price}</Badge>
                   </div>
                   </div>
 
                   {/* Action buttons row */}
-                  <div className="flex gap-1 w-full">
+                  <div className="flex w-full" style={{ gap: 'max(0.3vw, 2px)' }}>
 
                       {job.status === 'scheduled' && (
                         <Button
                           onClick={() => handleStartJobClick(job)}
-                          className="bg-blue-600 hover:bg-blue-700 w-full h-8 text-xs px-2"
+                          className="bg-blue-600 hover:bg-blue-700 w-full"
+                          style={{ 
+                            height: 'max(3vh, 24px)',
+                            fontSize: 'max(1.1vh, 9px)',
+                            padding: '0 max(0.5vw, 4px)'
+                          }}
                         >
-                          <Play className="h-3 w-3 mr-0.5" />
+                          <Play style={{ width: 'max(1.2vh, 10px)', height: 'max(1.2vh, 10px)' }} className="mr-0.5" />
                           Start
                         </Button>
                       )}
                       {job.status === 'in-progress' && (
                         <>
                           {/* Live Timer Display */}
-                          <div className="flex-1 bg-blue-50 border border-blue-200 rounded px-2 py-1.5 text-center min-w-0">
-                            <div className="flex items-center justify-center gap-1">
-                              <StopCircle className="h-3 w-3 text-blue-600 animate-pulse shrink-0" />
-                              <span className="text-[10px] text-blue-800 whitespace-nowrap">Running</span>
-                              <span className="text-[10px] text-blue-600 font-semibold ml-0.5">
+                          <div className="flex-1 bg-blue-50 border border-blue-200 rounded text-center min-w-0" style={{ padding: 'max(0.5vh, 4px) max(0.5vw, 4px)' }}>
+                            <div className="flex items-center justify-center" style={{ gap: 'max(0.2vw, 2px)' }}>
+                              <StopCircle style={{ width: 'max(1.2vh, 10px)', height: 'max(1.2vh, 10px)' }} className="text-blue-600 animate-pulse shrink-0" />
+                              <span className="text-blue-800 whitespace-nowrap" style={{ fontSize: 'max(0.9vh, 8px)' }}>Running</span>
+                              <span className="text-blue-600 font-semibold" style={{ fontSize: 'max(0.9vh, 8px)', marginLeft: 'max(0.1vw, 1px)' }}>
                                 {formatElapsedTime(elapsedTime[job.id] || 0)}
                               </span>
                             </div>
@@ -1317,9 +1341,14 @@ export function DailySchedule({
                                   setCompletionMessage(null);
                                   setSelectedTime(null);
                                 }}
-                                className="bg-blue-600 hover:bg-blue-700 h-8 text-xs px-2 shrink-0"
+                                className="bg-blue-600 hover:bg-blue-700 shrink-0"
+                                style={{ 
+                                  height: 'max(3vh, 24px)',
+                                  fontSize: 'max(1.1vh, 9px)',
+                                  padding: '0 max(0.5vw, 4px)'
+                                }}
                               >
-                                <CheckCircle className="h-3 w-3 mr-0.5" />
+                                <CheckCircle style={{ width: 'max(1.2vh, 10px)', height: 'max(1.2vh, 10px)' }} className="mr-0.5" />
                                 Complete
                               </Button>
                             </DialogTrigger>
