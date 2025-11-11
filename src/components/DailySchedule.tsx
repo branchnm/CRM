@@ -120,6 +120,79 @@ export function DailySchedule({
     return a.scheduledTime.localeCompare(b.scheduledTime);
   });
 
+  // Group jobs by customer group (for displaying nearby properties together)
+  type JobGroup = {
+    isGroup: true;
+    groupName: string;
+    jobs: Job[];
+    customers: Customer[];
+    totalTime: number; // Combined estimated time in minutes
+  };
+
+  type SingleJob = {
+    isGroup: false;
+    job: Job;
+    customer: Customer;
+  };
+
+  type DisplayItem = JobGroup | SingleJob;
+
+  const displayItems: DisplayItem[] = (() => {
+    const items: DisplayItem[] = [];
+    const processedJobIds = new Set<string>();
+
+    displayedJobs.forEach((job) => {
+      if (processedJobIds.has(job.id)) return;
+
+      const customer = customers.find(c => c.id === job.customerId);
+      if (!customer) return;
+
+      // Check if this customer has a group
+      if (customer.group) {
+        // Find all jobs for customers in this group
+        const groupJobs = displayedJobs.filter(j => {
+          const c = customers.find(cust => cust.id === j.customerId);
+          return c && c.group === customer.group && !processedJobIds.has(j.id);
+        });
+
+        if (groupJobs.length > 1) {
+          // Multiple jobs in group - create group item
+          const groupCustomers = groupJobs.map(j => customers.find(c => c.id === j.customerId)!).filter(Boolean);
+          const totalTime = groupJobs.length * 60; // 60 minutes per job
+
+          items.push({
+            isGroup: true,
+            groupName: customer.group,
+            jobs: groupJobs,
+            customers: groupCustomers,
+            totalTime
+          });
+
+          // Mark these jobs as processed
+          groupJobs.forEach(j => processedJobIds.add(j.id));
+        } else {
+          // Only one job in group - treat as single
+          items.push({
+            isGroup: false,
+            job,
+            customer
+          });
+          processedJobIds.add(job.id);
+        }
+      } else {
+        // No group - single job
+        items.push({
+          isGroup: false,
+          job,
+          customer
+        });
+        processedJobIds.add(job.id);
+      }
+    });
+
+    return items;
+  })();
+
   // Sync starting address with weather location
   useEffect(() => {
     const weatherLocation = localStorage.getItem('weatherLocationName');
@@ -1228,13 +1301,144 @@ export function DailySchedule({
           </Card>
         ) : (
           <>
-            {displayedJobs.map((job, index) => {
-              const customer = getCustomer(job.customerId);
+            {displayItems.map((item, index) => {
+              // Handle grouped jobs
+              if (item.isGroup) {
+                const { groupName, jobs: groupJobs, customers: groupCustomers, totalTime } = item;
+                const firstJob = groupJobs[0];
+                
+                // Get previous item for drive time calculation
+                const previousItem = index > 0 ? displayItems[index - 1] : null;
+                let previousCustomer: Customer | undefined;
+                if (previousItem) {
+                  if (previousItem.isGroup) {
+                    previousCustomer = previousItem.customers[previousItem.customers.length - 1];
+                  } else {
+                    previousCustomer = previousItem.customer;
+                  }
+                }
+                
+                // Calculate drive time to first property in group
+                let driveTime: string;
+                if (optimizationStatus === 'optimizing') {
+                  driveTime = 'Calculating...';
+                } else if (previousCustomer) {
+                  const cacheKey = `${previousCustomer.address}|${groupCustomers[0].address}`;
+                  driveTime = driveTimesCache.has(cacheKey)
+                    ? driveTimesCache.get(cacheKey)!
+                    : 'Calculating...';
+                } else if (startingAddress) {
+                  const cacheKey = `${startingAddress}|${groupCustomers[0].address}`;
+                  driveTime = driveTimesCache.has(cacheKey)
+                    ? driveTimesCache.get(cacheKey)!
+                    : 'Calculating...';
+                } else {
+                  driveTime = 'Start';
+                }
+                
+                const allCompleted = groupJobs.every(j => j.status === 'completed');
+                const anyInProgress = groupJobs.some(j => j.status === 'in-progress');
+                
+                // Calculate height based on total time - groups should be taller
+                const minHeight = `max(${Math.max(totalTime / 60 * 3, 12)}vh, ${Math.max(totalTime / 60 * 24, 96)}px)`;
+                
+                return (
+                  <Card 
+                    key={`group-${groupName}-${firstJob.id}`} 
+                    className={`backdrop-blur cursor-move transition-all select-none ${
+                      allCompleted 
+                        ? 'bg-green-50 border-2 border-green-300' 
+                        : anyInProgress
+                          ? 'bg-yellow-50 border-2 border-yellow-300'
+                          : draggedOverIndex === index 
+                            ? 'bg-blue-50 border-2 border-blue-400 border-dashed' 
+                            : 'bg-purple-50/80 border-2 border-purple-300'
+                    } ${draggedJobId === firstJob.id ? 'opacity-50' : ''}`}
+                    draggable={!allCompleted}
+                    onDragStart={(e) => handleDragStart(e, firstJob.id)}
+                    onDragOver={(e) => handleDragOver(e, index)}
+                    onDragEnd={handleDragEnd}
+                    onDrop={(e) => handleDrop(e, index)}
+                    style={{ minHeight }}
+                  >
+                    <CardContent style={{ padding: 'max(0.5vh, 4px)' }}>
+                      <div className="flex flex-col items-center text-center" style={{ gap: 'max(0.3vh, 2px)' }}>
+                        {/* Group Header */}
+                        <div className="w-full">
+                          <div className="flex items-center justify-center gap-1 mb-1">
+                            <Badge className="bg-purple-600 text-white" style={{ fontSize: 'max(0.8vh, 7px)', padding: '0 max(0.3vw, 2px)' }}>
+                              GROUP
+                            </Badge>
+                          </div>
+                          <h3 className="text-purple-900 font-bold" style={{ fontSize: 'max(1.3vh, 11px)' }}>{groupName}</h3>
+                          <p className="text-purple-700 font-semibold" style={{ fontSize: 'max(1vh, 9px)', marginTop: 'max(0.2vh, 1px)' }}>
+                            {groupJobs.length} properties • {totalTime} min
+                          </p>
+                          
+                          {/* Drive time */}
+                          <div className="flex items-center justify-center text-blue-600" style={{ gap: 'max(0.2vw, 2px)', fontSize: 'max(0.9vh, 8px)', marginTop: 'max(0.2vh, 1px)' }}>
+                            <Clock style={{ width: 'max(1vh, 8px)', height: 'max(1vh, 8px)' }} className="pointer-events-none" />
+                            <span>{driveTime}</span>
+                          </div>
+                          
+                          {/* Customer list */}
+                          <div className="mt-1" style={{ fontSize: 'max(0.9vh, 8px)' }}>
+                            {groupCustomers.map((cust, idx) => (
+                              <div key={cust.id} className="text-gray-700 truncate">
+                                {idx + 1}. {cust.name}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                        
+                        {/* Action buttons for group */}
+                        <div className="flex w-full mt-2" style={{ gap: 'max(0.3vw, 2px)' }}>
+                          {!allCompleted && !anyInProgress && (
+                            <Button
+                              onClick={() => handleStartJobClick(firstJob)}
+                              className="bg-purple-600 hover:bg-purple-700 w-full"
+                              style={{ 
+                                height: 'max(3vh, 24px)',
+                                fontSize: 'max(1.1vh, 9px)',
+                                padding: '0 max(0.5vw, 4px)'
+                              }}
+                            >
+                              <Play style={{ width: 'max(1.2vh, 10px)', height: 'max(1.2vh, 10px)' }} className="mr-0.5" />
+                              Start Group
+                            </Button>
+                          )}
+                          {anyInProgress && (
+                            <div className="w-full text-center text-purple-700 font-semibold" style={{ fontSize: 'max(1vh, 9px)' }}>
+                              Group in progress...
+                            </div>
+                          )}
+                          {allCompleted && (
+                            <div className="w-full text-center text-green-700 font-semibold" style={{ fontSize: 'max(1vh, 9px)' }}>
+                              ✓ Group Complete
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              }
+              
+              // Handle single jobs
+              const { job, customer } = item;
               if (!customer) return null;
               
-              // Get previous job for drive time calculation
-              const previousJob = index > 0 ? displayedJobs[index - 1] : null;
-              const previousCustomer = previousJob ? getCustomer(previousJob.customerId) : null;
+              // Get previous item for drive time calculation
+              const previousItem = index > 0 ? displayItems[index - 1] : null;
+              let previousCustomer: Customer | undefined;
+              if (previousItem) {
+                if (previousItem.isGroup) {
+                  // If previous was a group, use last customer in that group
+                  previousCustomer = previousItem.customers[previousItem.customers.length - 1];
+                } else {
+                  previousCustomer = previousItem.customer;
+                }
+              }
               
               // Calculate drive time based on current order
               let driveTime: string;

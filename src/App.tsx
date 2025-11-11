@@ -41,6 +41,7 @@ export interface Customer {
   lastCutDate?: string; // ISO date string (YYYY-MM-DD)
   nextCutDate?: string; // ISO date string (YYYY-MM-DD)
   status?: "incomplete" | "complete" | "inactive";
+  group?: string; // Optional: Group name for nearby properties (e.g., "Oak Ridge Cluster")
 }
 
 export interface Job {

@@ -1,0 +1,15 @@
+name,address,phone,squareFootage,price,frequency,isHilly,hasFencing,hasObstacles,nextCutDate,status,group
+Johnson Family,1234 Oak Ridge Dr Homewood AL 35209,205-555-0101,5000,45,weekly,false,true,false,2025-11-12,incomplete,Oak Ridge Cluster
+Williams Residence,1238 Oak Ridge Dr Homewood AL 35209,205-555-0102,4800,42,weekly,false,true,false,2025-11-12,incomplete,Oak Ridge Cluster
+Davis Home,1242 Oak Ridge Dr Homewood AL 35209,205-555-0103,5200,47,weekly,false,false,false,2025-11-12,incomplete,Oak Ridge Cluster
+Miller Property,1246 Oak Ridge Dr Homewood AL 35209,205-555-0104,4500,40,weekly,false,true,false,2025-11-12,incomplete,Oak Ridge Cluster
+Anderson Lawn,2301 Maple Grove Ln Homewood AL 35209,205-555-0201,6000,55,bi-weekly,true,true,true,2025-11-13,incomplete,Maple Grove Group
+Martinez Garden,2305 Maple Grove Ln Homewood AL 35209,205-555-0202,5800,52,bi-weekly,true,true,false,2025-11-13,incomplete,Maple Grove Group
+Thompson Yard,2309 Maple Grove Ln Homewood AL 35209,205-555-0203,6200,58,bi-weekly,true,false,true,2025-11-13,incomplete,Maple Grove Group
+Garcia Estate,3401 Pinehurst Cir Homewood AL 35209,205-555-0301,7500,70,weekly,false,true,true,2025-11-14,incomplete,Pinehurst Circle
+Rodriguez Manor,3405 Pinehurst Cir Homewood AL 35209,205-555-0302,7200,68,weekly,false,true,true,2025-11-14,incomplete,Pinehurst Circle
+Wilson Villa,3409 Pinehurst Cir Homewood AL 35209,205-555-0303,7800,75,weekly,false,true,false,2025-11-14,incomplete,Pinehurst Circle
+Lee Cottage,3413 Pinehurst Cir Homewood AL 35209,205-555-0304,7000,65,weekly,false,false,true,2025-11-14,incomplete,Pinehurst Circle
+Brown Bungalow,3417 Pinehurst Cir Homewood AL 35209,205-555-0305,7300,72,weekly,false,true,true,2025-11-14,incomplete,Pinehurst Circle
+Taylor House,5678 Elm Street Homewood AL 35209,205-555-0401,5500,50,weekly,false,false,false,2025-11-12,incomplete,
+Harris Lawn Care,9101 Cedar Ave Homewood AL 35209,205-555-0501,4200,38,weekly,true,false,false,2025-11-13,incomplete,
