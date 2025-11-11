@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -8,7 +8,7 @@ import { Switch } from './ui/switch';
 import { Textarea } from './ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
 import type { Customer, Job } from '../App';
-import { Plus, Pencil, Trash2, Calendar, AlertCircle, Search, SlidersHorizontal } from 'lucide-react';
+import { Plus, Pencil, Trash2, Calendar, AlertCircle, Search, SlidersHorizontal, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from './ui/badge';
 import { deleteCustomer, addCustomer, updateCustomer } from '../services/customers';
@@ -29,6 +29,7 @@ export function CustomerManagement({ customers, onUpdateCustomers, onRefreshCust
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'name' | 'price' | 'squareFootage' | 'nextCutDate'>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState<{
     name: string;
     address: string;
@@ -270,6 +271,130 @@ export function CustomerManagement({ customers, onUpdateCustomers, onRefreshCust
     });
   };
 
+  const handleCSVImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Check file type
+    if (!file.name.endsWith('.csv') && !file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
+      toast.error('Please upload a CSV or Excel file');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const text = e.target?.result as string;
+        const lines = text.split('\n').filter(line => line.trim());
+        
+        if (lines.length < 2) {
+          toast.error('CSV file is empty or has no data rows');
+          return;
+        }
+
+        // Parse header
+        const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+        
+        // Validate required columns
+        const requiredColumns = ['name', 'address', 'phone', 'price'];
+        const missingColumns = requiredColumns.filter(col => !headers.includes(col));
+        
+        if (missingColumns.length > 0) {
+          toast.error(`Missing required columns: ${missingColumns.join(', ')}`);
+          return;
+        }
+
+        let successCount = 0;
+        let errorCount = 0;
+
+        // Process each row
+        for (let i = 1; i < lines.length; i++) {
+          const values = lines[i].split(',').map(v => v.trim());
+          const row: Record<string, string> = {};
+          
+          headers.forEach((header, index) => {
+            row[header] = values[index] || '';
+          });
+
+          try {
+            // Parse property size (handle different column names)
+            const propertySize = parseInt(row.propertysize || row.squarefootage || row.sqft || '5000');
+            const price = parseFloat(row.price || '0');
+            
+            // Parse frequency
+            let frequency: 'weekly' | 'biweekly' | 'monthly' = 'weekly';
+            const freqValue = (row.servicefrequency || row.frequency || 'weekly').toLowerCase();
+            if (freqValue.includes('biweek') || freqValue.includes('bi-week')) {
+              frequency = 'biweekly';
+            } else if (freqValue.includes('month')) {
+              frequency = 'monthly';
+            }
+
+            // Parse status
+            let status: 'active' | 'inactive' | 'complete' | 'incomplete' = 'active';
+            const statusValue = (row.status || 'active').toLowerCase();
+            if (statusValue === 'inactive') status = 'inactive';
+            else if (statusValue === 'complete') status = 'complete';
+            else if (statusValue === 'incomplete') status = 'incomplete';
+
+            // Calculate next cut date if last cut date provided
+            let nextCutDate = row.nextcutdate || '';
+            if (!nextCutDate && row.lastcutdate) {
+              const calculated = calculateNextCutDate(row.lastcutdate, frequency);
+              nextCutDate = calculated || '';
+            }
+
+            const newCustomer = {
+              name: row.name,
+              address: row.address,
+              phone: row.phone,
+              email: row.email || '',
+              squareFootage: propertySize,
+              price: price,
+              isHilly: false,
+              hasFencing: false,
+              hasObstacles: false,
+              frequency: frequency,
+              dayOfWeek: undefined,
+              notes: row.notes || '',
+              lastCutDate: row.lastcutdate || '',
+              nextCutDate: nextCutDate,
+              status: status as any,
+            };
+
+            await addCustomer(newCustomer);
+            successCount++;
+          } catch (error) {
+            console.error(`Error importing row ${i}:`, error);
+            errorCount++;
+          }
+        }
+
+        // Refresh customer list
+        if (onRefreshCustomers) {
+          await onRefreshCustomers();
+        }
+
+        if (successCount > 0) {
+          toast.success(`Successfully imported ${successCount} customer${successCount > 1 ? 's' : ''}`);
+        }
+        if (errorCount > 0) {
+          toast.error(`Failed to import ${errorCount} customer${errorCount > 1 ? 's' : ''}`);
+        }
+
+      } catch (error) {
+        console.error('CSV import error:', error);
+        toast.error('Failed to parse CSV file. Please check the format.');
+      }
+    };
+
+    reader.readAsText(file);
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   // Filter and sort customers
   const filteredAndSortedCustomers = customers
     .filter(customer => {
@@ -368,13 +493,30 @@ export function CustomerManagement({ customers, onUpdateCustomers, onRefreshCust
               <CardTitle>Customers</CardTitle>
               <CardDescription>{customers.length} total customers</CardDescription>
             </div>
-            <Dialog open={isAddingCustomer} onOpenChange={setIsAddingCustomer}>
-              <DialogTrigger asChild>
-                <Button className="bg-blue-600 hover:bg-blue-700" size="lg" onClick={resetForm}>
-                  <Plus className="h-5 w-5 mr-2" />
-                  Add Customer
-                </Button>
-              </DialogTrigger>
+            <div className="flex gap-2">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".csv,.xlsx,.xls"
+                onChange={handleCSVImport}
+                className="hidden"
+              />
+              <Button 
+                variant="outline"
+                size="lg" 
+                onClick={() => fileInputRef.current?.click()}
+                className="border-blue-600 text-blue-600 hover:bg-blue-50"
+              >
+                <Upload className="h-5 w-5 mr-2" />
+                Import CSV
+              </Button>
+              <Dialog open={isAddingCustomer} onOpenChange={setIsAddingCustomer}>
+                <DialogTrigger asChild>
+                  <Button className="bg-blue-600 hover:bg-blue-700" size="lg" onClick={resetForm}>
+                    <Plus className="h-5 w-5 mr-2" />
+                    Add Customer
+                  </Button>
+                </DialogTrigger>
               <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>Add New Customer</DialogTitle>
@@ -557,6 +699,7 @@ export function CustomerManagement({ customers, onUpdateCustomers, onRefreshCust
                 </div>
               </DialogContent>
             </Dialog>
+            </div>
           </div>
         </CardHeader>
       </Card>
