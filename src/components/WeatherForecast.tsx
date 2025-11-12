@@ -4011,60 +4011,53 @@ export function WeatherForecast({
                                             const isCompleted = groupSpan.jobs.every(j => j.status === 'completed');
                                             const anyInProgress = groupSpan.jobs.some(j => j.status === 'in-progress');
                                             
-                                            // Calculate height: each job = 4.9vh + gap
-                                            const cardHeight = `calc(${groupSpan.jobCount} * (4.9vh + 0.28vh) - 0.28vh)`;
+                                            // Calculate height: each job = 4.9vh + gap between slots
+                                            const slotHeight = isMobile ? 2.65 : 4.9;
+                                            const slotGap = 0.28;
+                                            const totalHeight = groupSpan.jobCount * slotHeight + (groupSpan.jobCount - 1) * slotGap;
                                             
                                             return (
                                               <div
                                                 draggable={!isDraggedItem && !isTouchDevice.current && !isCompleted}
                                                 onDragStart={(e) => !isDraggedItem && !isCompleted && handleDragStart(e, groupSpan.firstJobId)}
-                                                className={`flex-1 rounded-lg transition-all text-xs group overflow-hidden flex flex-col justify-center select-none px-[0.58vh] py-[0.75vh] ${
+                                                className={`flex-1 rounded transition-all text-xs overflow-hidden flex flex-col select-none ${
+                                                  isMobile ? 'px-[0.73vh] py-[0.46vh]' : 'px-[0.58vh] py-[0.48vh]'
+                                                } ${
                                                   isCompleted
-                                                    ? 'bg-green-50 border-2 border-green-300 cursor-default'
-                                                    : anyInProgress
-                                                      ? 'bg-yellow-50 border-2 border-yellow-300'
-                                                      : isDraggedItem
-                                                      ? 'bg-purple-100 border-2 border-purple-600 shadow-lg scale-105'
-                                                      : 'bg-purple-50 border-2 border-purple-400 cursor-move hover:shadow-lg hover:border-purple-500'
+                                                    ? 'bg-gray-200/80 border border-gray-400 cursor-default'
+                                                    : isDraggedItem
+                                                      ? 'bg-blue-100 border-2 border-blue-600 shadow-lg scale-105'
+                                                      : 'bg-white border border-gray-300 cursor-move hover:shadow-md'
                                                 }`}
                                                 style={{
-                                                  height: cardHeight,
+                                                  height: `${totalHeight}vh`,
                                                   userSelect: 'none',
                                                   WebkitUserSelect: 'none',
                                                   WebkitTouchCallout: 'none',
                                                 }}
                                               >
-                                                <div className="flex flex-col gap-[0.3vh] w-full">
-                                                  {/* GROUP Badge */}
-                                                  <div className="flex items-center justify-center">
-                                                    <span className="inline-block px-2 py-0.5 rounded text-white bg-purple-600 font-bold text-[1.1vh]">
-                                                      GROUP
-                                                    </span>
-                                                  </div>
-                                                  
+                                                {/* Purple bar at top */}
+                                                <div className="w-full h-[0.4vh] bg-purple-600 rounded-sm mb-[0.3vh] -mx-[0.58vh] -mt-[0.48vh]" style={{ width: 'calc(100% + 1.16vh)' }}></div>
+                                                
+                                                <div className="flex flex-col gap-[0.2vh] w-full flex-1 justify-center">
                                                   {/* Group Name */}
-                                                  <div className="font-bold text-center text-purple-900 text-[1.5vh] leading-tight">
+                                                  <div className={`font-semibold text-gray-900 ${isMobile ? 'text-[1.27vh]' : 'text-[1.34vh]'}`}>
                                                     {groupSpan.groupName}
                                                   </div>
                                                   
                                                   {/* Job Count and Time */}
-                                                  <div className="text-center text-purple-700 font-semibold text-[1.2vh]">
+                                                  <div className={`text-gray-600 ${isMobile ? 'text-[1.14vh]' : 'text-[1.1vh]'}`}>
                                                     {groupSpan.jobCount} properties • {groupSpan.totalTime} min
-                                                  </div>
-                                                  
-                                                  {/* First property address for reference */}
-                                                  <div className="text-center text-purple-600 text-[1.0vh] truncate">
-                                                    {firstCustomer?.address?.split(' ').slice(0, 3).join(' ')}...
                                                   </div>
                                                   
                                                   {/* Status indicator */}
                                                   {isCompleted && (
-                                                    <div className="text-center text-green-700 font-bold text-[1.1vh]">
+                                                    <div className={`text-gray-700 font-bold ${isMobile ? 'text-[1.09vh]' : 'text-[1.15vh]'}`}>
                                                       ✓ Complete
                                                     </div>
                                                   )}
                                                   {anyInProgress && !isCompleted && (
-                                                    <div className="text-center text-yellow-700 font-semibold text-[1.1vh]">
+                                                    <div className={`text-blue-600 font-medium ${isMobile ? 'text-[1.09vh]' : 'text-[1.06vh]'}`}>
                                                       In Progress...
                                                     </div>
                                                   )}
@@ -4112,8 +4105,6 @@ export function WeatherForecast({
                                                   ? 'bg-gray-100 border-2 border-gray-400 animate-pulse cursor-move hover:shadow-md'
                                                   : isAffectedByRain
                                                   ? 'bg-blue-50 border-2 border-blue-300 cursor-move hover:shadow-md'
-                                                  : customerGroup
-                                                  ? 'bg-purple-50 border-2 border-purple-300 cursor-move hover:shadow-md hover:border-purple-400'
                                                   : 'bg-white border border-gray-300 cursor-move hover:shadow-md active:bg-blue-50 active:border-blue-400'
                                               }`}
                                               style={{
@@ -4129,12 +4120,7 @@ export function WeatherForecast({
                                                 <div className="flex-1 min-w-0">
                                                   <div className={`font-semibold truncate w-full ${
                                                     isMobile ? 'text-[1.27vh]' : 'text-[1.34vh]'
-                                                  } ${isCompleted ? 'text-gray-600' : customerGroup ? 'text-purple-900' : 'text-gray-900'}`}>
-                                                    {customerGroup && (
-                                                      <span className={`inline-block px-1 py-0.5 rounded text-white bg-purple-600 mr-1 ${isMobile ? 'text-[0.9vh]' : 'text-[1.0vh]'}`}>
-                                                        GROUP
-                                                      </span>
-                                                    )}
+                                                  } ${isCompleted ? 'text-gray-600' : 'text-gray-900'}`}>
                                                     {customer?.name}
                                                     {isSelected && (
                                                       <span className={`ml-[0.14vh] text-green-700 ${isMobile ? 'text-[1.09vh]' : 'text-[1.15vh]'}`}>✓ Selected</span>
@@ -4146,18 +4132,13 @@ export function WeatherForecast({
                                                       <span className={`ml-[0.14vh] text-gray-700 font-bold ${isMobile ? 'text-[1.09vh]' : 'text-[1.15vh]'}`}>✓</span>
                                                     )}
                                                   </div>
-                                                  {customerGroup && !isDraggedItem && !isAssigned && !isCutItem && (
-                                                    <div className={`truncate ${isMobile ? 'text-[1.0vh]' : 'text-[1.0vh]'} text-purple-700 font-medium`}>
-                                                      {customerGroup}
-                                                    </div>
-                                                  )}
                                                   {!isDraggedItem && isAssigned && (
                                                     <div className={`text-gray-700 font-medium mt-[0.18vh] italic ${isMobile ? 'text-[1.09vh]' : 'text-[1.06vh]'}`}>
                                                       Moving here...
                                                     </div>
                                                   )}
                                                   {!isDraggedItem && !isAssigned && !isCutItem && (
-                                                    <div className={`truncate ${isMobile ? 'text-[1.14vh]' : 'text-[1.1vh]'} ${isCompleted ? 'text-gray-500' : customerGroup ? 'text-purple-600' : 'text-gray-600'}`}>
+                                                    <div className={`truncate ${isMobile ? 'text-[1.14vh]' : 'text-[1.1vh]'} ${isCompleted ? 'text-gray-500' : 'text-gray-600'}`}>
                                                       {scheduledTime && <span className="font-medium">{scheduledTime} • </span>}
                                                       ${customer?.price} • 60 min
                                                     </div>
