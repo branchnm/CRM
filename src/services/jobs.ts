@@ -31,9 +31,14 @@ export async function fetchJobs(date?: string): Promise<Job[]> {
   const { data: { user } } = await supabase.auth.getUser();
   console.log('🔐 Fetching jobs for user:', DEMO_MODE ? 'DEMO MODE' : user?.email, 'ID:', userId);
   
-  // Query will be automatically filtered by RLS policies based on user_id
-  let query = supabase.from("jobs").select("*");
+  // Explicitly filter by user_id to ensure proper isolation
+  let query = supabase
+    .from("jobs")
+    .select("*")
+    .eq("user_id", userId); // Explicit filter by user_id
+  
   if (date) query = query.eq("date", date);
+  
   const { data, error } = await query.order("date", { ascending: true });
   if (error) throw new Error(`Failed to fetch jobs: ${error.message}`);
   

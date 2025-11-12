@@ -65,10 +65,11 @@ export async function fetchCustomers(): Promise<Customer[]> {
   const { data: { user } } = await supabase.auth.getUser();
   console.log('🔐 Fetching customers for user:', DEMO_MODE ? 'DEMO MODE' : user?.email, 'ID:', userId);
   
-  // Query will be automatically filtered by RLS policies based on user_id
+  // Explicitly filter by user_id to ensure proper isolation
   const { data, error } = await supabase
     .from("customers")
     .select("*")
+    .eq("user_id", userId) // Explicit filter by user_id
     .order("name", { ascending: true });
 
   if (error) {

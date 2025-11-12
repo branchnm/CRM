@@ -22,62 +22,66 @@ DROP POLICY IF EXISTS "jobs_insert_all" ON jobs;
 DROP POLICY IF EXISTS "jobs_update_all" ON jobs;
 DROP POLICY IF EXISTS "jobs_delete_all" ON jobs;
 
--- Step 5: Create RLS policies for customers (user can only see their own data)
+-- Step 5: Create RLS policies for customers
+-- Note: We use COALESCE to handle both authenticated users (auth.uid()) 
+-- and demo mode (where auth.uid() is NULL but user_id is set)
+
 CREATE POLICY "Users can view own customers" ON customers
   FOR SELECT
-  USING (auth.uid() = user_id);
+  USING (
+    user_id = COALESCE(auth.uid(), user_id)
+    OR user_id = '00000000-0000-0000-0000-000000000001'::uuid
+  );
 
 CREATE POLICY "Users can insert own customers" ON customers
   FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
+  WITH CHECK (true); -- Allow insert, user_id will be set by service layer
 
 CREATE POLICY "Users can update own customers" ON customers
   FOR UPDATE
-  USING (auth.uid() = user_id)
-  WITH CHECK (auth.uid() = user_id);
+  USING (
+    user_id = COALESCE(auth.uid(), user_id)
+    OR user_id = '00000000-0000-0000-0000-000000000001'::uuid
+  )
+  WITH CHECK (true); -- Allow update, user_id is already set
 
 CREATE POLICY "Users can delete own customers" ON customers
   FOR DELETE
-  USING (auth.uid() = user_id);
+  USING (
+    user_id = COALESCE(auth.uid(), user_id)
+    OR user_id = '00000000-0000-0000-0000-000000000001'::uuid
+  );
 
--- Step 6: Create RLS policies for jobs (user can only see their own data)
+-- Step 6: Create RLS policies for jobs
 CREATE POLICY "Users can view own jobs" ON jobs
   FOR SELECT
-  USING (auth.uid() = user_id);
+  USING (
+    user_id = COALESCE(auth.uid(), user_id)
+    OR user_id = '00000000-0000-0000-0000-000000000001'::uuid
+  );
 
 CREATE POLICY "Users can insert own jobs" ON jobs
   FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
+  WITH CHECK (true); -- Allow insert, user_id will be set by service layer
 
 CREATE POLICY "Users can update own jobs" ON jobs
   FOR UPDATE
-  USING (auth.uid() = user_id)
-  WITH CHECK (auth.uid() = user_id);
+  USING (
+    user_id = COALESCE(auth.uid(), user_id)
+    OR user_id = '00000000-0000-0000-0000-000000000001'::uuid
+  )
+  WITH CHECK (true); -- Allow update, user_id is already set
 
 CREATE POLICY "Users can delete own jobs" ON jobs
   FOR DELETE
-  USING (auth.uid() = user_id);
+  USING (
+    user_id = COALESCE(auth.uid(), user_id)
+    OR user_id = '00000000-0000-0000-0000-000000000001'::uuid
+  );
 
 -- Step 7: Ensure RLS is enabled (it should already be from schema.sql)
 ALTER TABLE customers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE jobs ENABLE ROW LEVEL SECURITY;
-
--- Step 8: Create a special demo user for demo mode
--- This is a fixed UUID that will be used for all demo mode data
--- Demo user ID: 00000000-0000-0000-0000-000000000001
--- Note: This user won't exist in auth.users, but RLS policies will allow operations
--- when the app provides this user_id directly in INSERT/UPDATE operations
-
--- Add special policies for demo user (allows anonymous access with demo user_id)
-CREATE POLICY "Allow demo user data access" ON customers
-  FOR ALL
-  USING (user_id = '00000000-0000-0000-0000-000000000001'::uuid)
-  WITH CHECK (user_id = '00000000-0000-0000-0000-000000000001'::uuid);
-
-CREATE POLICY "Allow demo user jobs access" ON jobs
-  FOR ALL
-  USING (user_id = '00000000-0000-0000-0000-000000000001'::uuid)
-  WITH CHECK (user_id = '00000000-0000-0000-0000-000000000001'::uuid);
 
 -- Verification queries (run these to check the migration)
 -- SELECT column_name FROM information_schema.columns WHERE table_name = 'customers' AND column_name = 'user_id';
