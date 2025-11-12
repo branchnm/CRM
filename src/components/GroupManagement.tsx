@@ -230,7 +230,7 @@ export function GroupManagement({
         </div>
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-blue-600 hover:bg-blue-700">
+            <Button className="bg-blue-600 hover:bg-blue-700 text-white">
               <Plus className="h-4 w-4 mr-2" />
               Create Group
             </Button>
@@ -287,7 +287,7 @@ export function GroupManagement({
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={closeDialog}>Cancel</Button>
-              <Button onClick={handleCreateGroup} className="bg-blue-600 hover:bg-blue-700">
+              <Button onClick={handleCreateGroup} className="bg-blue-600 hover:bg-blue-700 text-white">
                 Create Group
               </Button>
             </DialogFooter>
@@ -298,7 +298,7 @@ export function GroupManagement({
       {/* Groups List */}
       <div className="grid gap-4">
         {customerGroups.length === 0 ? (
-          <Card>
+          <Card className="bg-white border border-gray-200">
             <CardContent className="py-12 text-center">
               <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <p className="text-gray-600 mb-2">No groups yet</p>
@@ -313,7 +313,7 @@ export function GroupManagement({
             return (
               <Card 
                 key={group.id}
-                className={`transition-all ${isOver ? 'ring-2 ring-blue-500 shadow-lg' : ''}`}
+                className={`bg-white border border-gray-200 transition-all ${isOver ? 'ring-2 ring-blue-500 shadow-lg border-blue-500' : ''}`}
                 onDragOver={(e) => handleDragOver(e, group.id)}
                 onDragLeave={handleDragLeave}
                 onDrop={(e) => handleDrop(e, group.id)}
@@ -395,7 +395,7 @@ export function GroupManagement({
                           </div>
                           <DialogFooter>
                             <Button variant="outline" onClick={closeDialog}>Cancel</Button>
-                            <Button onClick={handleUpdateGroup} className="bg-blue-600 hover:bg-blue-700">
+                            <Button onClick={handleUpdateGroup} className="bg-blue-600 hover:bg-blue-700 text-white">
                               Update Group
                             </Button>
                           </DialogFooter>
@@ -419,7 +419,7 @@ export function GroupManagement({
                   {/* Drop zone hint */}
                   {groupCustomers.length === 0 ? (
                     <div className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
-                      isOver ? 'border-blue-500 bg-blue-50' : 'border-gray-300'
+                      isOver ? 'border-blue-500 bg-blue-50' : 'border-gray-300 bg-white'
                     }`}>
                       <Users className="h-8 w-8 text-gray-400 mx-auto mb-2" />
                       <p className="text-sm text-gray-600">
@@ -428,7 +428,7 @@ export function GroupManagement({
                     </div>
                   ) : (
                     <div className={`space-y-2 p-4 rounded-lg transition-colors ${
-                      isOver ? 'bg-blue-50' : 'bg-gray-50'
+                      isOver ? 'bg-blue-50 border-2 border-blue-500' : 'bg-gray-50 border border-gray-200'
                     }`}>
                       {groupCustomers.map((customer) => (
                         <div 
@@ -463,7 +463,7 @@ export function GroupManagement({
 
       {/* Ungrouped Customers */}
       {ungroupedCustomers.length > 0 && (
-        <Card>
+        <Card className="bg-white border border-gray-200">
           <CardHeader>
             <CardTitle className="text-lg">Ungrouped Customers</CardTitle>
             <CardDescription>
@@ -478,7 +478,7 @@ export function GroupManagement({
                   draggable
                   onDragStart={(e) => handleDragStart(e, customer)}
                   onDragEnd={handleDragEnd}
-                  className="flex items-center gap-2 bg-white p-3 rounded border border-gray-200 cursor-move hover:shadow-md transition-shadow"
+                  className="flex items-center gap-2 bg-white p-3 rounded border border-gray-200 cursor-move hover:shadow-md hover:border-blue-400 transition-all"
                 >
                   <GripVertical className="h-4 w-4 text-gray-400" />
                   <div className="flex-1 min-w-0">

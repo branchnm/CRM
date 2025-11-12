@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Card, CardContent } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
+import { Badge } from './ui/badge';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import type { Job, Customer, CustomerGroup } from '../App';
@@ -733,7 +734,7 @@ export function WeatherForecast({
   const [dragOverDay, setDragOverDay] = useState<string | null>(null);
   const [dragOverSlot, setDragOverSlot] = useState<{ date: string; slot: number } | null>(null);
   const [showLocationSearch, setShowLocationSearch] = useState(false);
-  // const [dragPosition, setDragPosition] = useState<{ x: number; y: number } | null>(null); // Removed for mobile performance
+  const [dragPosition, setDragPosition] = useState<{ x: number; y: number } | null>(null);
   const touchStartPos = useRef<{ x: number; y: number } | null>(null);
   const touchStartTime = useRef<number | null>(null);
   const dragDelayTimeout = useRef<number | null>(null);
@@ -2179,6 +2180,9 @@ export function WeatherForecast({
   const handleDragStart = (e: React.DragEvent, jobId: string) => {
     e.stopPropagation();
     
+    // Set initial drag position
+    setDragPosition({ x: e.clientX, y: e.clientY });
+    
     // Check if this job is part of a group
     const job = jobs.find(j => j.id === jobId);
     const customer = customers.find(c => c.id === job?.customerId);
@@ -2199,40 +2203,19 @@ export function WeatherForecast({
         
         setDraggedGroupJobs(groupJobs);
         console.log('🔷 Dragging group:', group.name, 'with', groupJobs.length, 'jobs');
-        
-        // Create custom drag ghost for group
-        const dragGhost = document.createElement('div');
-        dragGhost.style.cssText = `
-          position: absolute;
-          top: -9999px;
-          background: white;
-          border: 2px solid ${group.color || '#9333ea'};
-          border-radius: 6px;
-          padding: 12px;
-          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-          font-size: 14px;
-          min-width: 200px;
-        `;
-        dragGhost.innerHTML = `
-          <div style="font-weight: 600; color: #1f2937; margin-bottom: 4px;">${group.name}</div>
-          <div style="color: #6b7280; font-size: 12px;">${groupJobs.length} properties • ${group.workTimeMinutes} min</div>
-        `;
-        document.body.appendChild(dragGhost);
-        e.dataTransfer.setDragImage(dragGhost, 100, 30);
-        setTimeout(() => document.body.removeChild(dragGhost), 0);
       } else {
         setDraggedGroupJobs([]);
       }
     } else {
       setDraggedGroupJobs([]);
-      // Single job - keep default behavior
-      const img = new Image();
-      img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
-      e.dataTransfer.setDragImage(img, 0, 0);
     }
     
     setDraggedJobId(jobId);
-    // setIsDragging(true); // Removed for mobile performance
+    
+    // Hide default drag image
+    const img = new Image();
+    img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+    e.dataTransfer.setDragImage(img, 0, 0);
   };
 
   const handleDragOver = (e: React.DragEvent, dateStr: string, slotIndex?: number) => {
@@ -2268,10 +2251,28 @@ export function WeatherForecast({
     setDragOverDay(null);
     setDragOverSlot(null);
   };
+  
+  // Track mouse movement for drag preview
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (draggedJobId) {
+        setDragPosition({ x: e.clientX, y: e.clientY });
+      }
+    };
+
+    if (draggedJobId) {
+      window.addEventListener('mousemove', handleMouseMove);
+      return () => {
+        window.removeEventListener('mousemove', handleMouseMove);
+      };
+    }
+  }, [draggedJobId]);
 
   const handleSlotDrop = async (e: React.DragEvent, dateStr: string, targetSlot: number) => {
     e.preventDefault();
     e.stopPropagation();
+    
+    console.log('📍 Drop triggered - Date:', dateStr, 'Slot:', targetSlot, 'DraggedJobId:', draggedJobId, 'GroupJobs:', draggedGroupJobs.length);
     
     if (draggedJobId && onRescheduleJob) {
       const job = jobs.find(j => j.id === draggedJobId);
@@ -2285,12 +2286,15 @@ export function WeatherForecast({
           for (let i = 0; i < draggedGroupJobs.length; i++) {
             const groupJobId = draggedGroupJobs[i];
             const slotForThisJob = targetSlot + i;
+            console.log(`  Moving job ${i + 1}/${draggedGroupJobs.length} to slot ${slotForThisJob}`);
             await onRescheduleJob(groupJobId, dateStr, slotForThisJob);
           }
           
           toast.success(`Moved ${draggedGroupJobs.length} properties`);
-        } else if (job.date !== dateStr) {
-          // Single job move
+        } else if (job.date !== dateStr || !jobTimeSlots.has(draggedJobId) || jobTimeSlots.get(draggedJobId) !== targetSlot) {
+          // Single job move (or time slot change on same day)
+          console.log('📍 Moving single job to', dateStr, 'slot', targetSlot);
+          
           // Save last action for undo
           setLastAction({
             type: 'move',
@@ -2313,8 +2317,10 @@ export function WeatherForecast({
       
       setDraggedJobId(null);
       setDraggedGroupJobs([]);
+      setDragPosition(null);
     }
     setDragOverSlot(null);
+    setDragOverDay(null);
   };
 
   const handleDrop = async (e: React.DragEvent, dateStr: string) => {
@@ -2362,8 +2368,10 @@ export function WeatherForecast({
       
       setDraggedJobId(null);
       setDraggedGroupJobs([]);
+      setDragPosition(null);
     }
     setDragOverDay(null);
+    setDragOverSlot(null);
   };
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -3727,8 +3735,13 @@ export function WeatherForecast({
                                       }
                                     }}
                                     onDragEnd={(e) => {
-                                      // Ensure final position is saved
+                                      // Ensure final position is saved and clear drag state
                                       e.preventDefault();
+                                      setDragPosition(null);
+                                      setDraggedJobId(null);
+                                      setDraggedGroupJobs([]);
+                                      setDragOverDay(null);
+                                      setDragOverSlot(null);
                                     }}
                                     onTouchStart={(e) => {
                                       e.preventDefault();
@@ -4055,7 +4068,7 @@ export function WeatherForecast({
                                       onDrop={(e) => handleSlotDrop(e, dateStr, slot.slotIndex)}
                                     >
                                       {/* Group card overlay - positioned absolutely to span multiple slots */}
-                                      {groupSpan && (
+                                      {groupSpan && !groupSpan.jobs.some(j => draggedGroupJobs.includes(j.id)) && (
                                         <div 
                                           className="absolute left-0 right-0 z-10"
                                           style={{
@@ -4067,7 +4080,7 @@ export function WeatherForecast({
                                             const isDraggedItem = groupSpan.jobs.some(j => j.id === draggedJobId);
                                             const isCompleted = groupSpan.jobs.every(j => j.status === 'completed');
                                             const anyInProgress = groupSpan.jobs.some(j => j.status === 'in-progress');
-                                            const groupColor = groupSpan.group.color || '#9333ea'; // Purple default
+                                            const groupColor = groupSpan.group.color || '#2563eb'; // Blue default
                                             
                                             return (
                                               <div
@@ -4077,10 +4090,10 @@ export function WeatherForecast({
                                                   isMobile ? 'px-[0.73vh] py-[0.46vh]' : 'px-[0.58vh] py-[0.48vh]'
                                                 } ${
                                                   isCompleted
-                                                    ? 'bg-gray-200/80 border border-gray-400 cursor-default'
+                                                    ? 'bg-gray-100 border border-gray-300 cursor-default'
                                                     : isDraggedItem
-                                                      ? 'bg-purple-100 border-2 border-purple-600 shadow-xl opacity-70'
-                                                      : 'bg-white border border-gray-300 cursor-move hover:shadow-md hover:border-purple-400'
+                                                      ? 'bg-blue-50 border-2 border-blue-500 shadow-xl opacity-70'
+                                                      : 'bg-white border border-gray-300 cursor-move hover:shadow-md hover:border-blue-400'
                                                 }`}
                                                 style={{
                                                   userSelect: 'none',
@@ -4153,8 +4166,9 @@ export function WeatherForecast({
                                         )}
                                         
                                         {/* Job card or empty drop zone */}
-                                        {jobInSlot && !isPartOfGroup ? (() => {
+                                        {jobInSlot && !isPartOfGroup && !draggedGroupJobs.includes(jobInSlot.id) ? (() => {
                                           // Don't render if this job is part of a group (will be shown by group overlay)
+                                          // Also don't render if this job is part of the currently dragged group
                                           
                                           // Regular single job card
                                           const customer = customers.find(c => c.id === jobInSlot.customerId);
@@ -4343,8 +4357,13 @@ export function WeatherForecast({
                                     }
                                   }}
                                   onDragEnd={(e) => {
-                                    // Ensure final position is saved
+                                    // Ensure final position is saved and clear drag state
                                     e.preventDefault();
+                                    setDragPosition(null);
+                                    setDraggedJobId(null);
+                                    setDraggedGroupJobs([]);
+                                    setDragOverDay(null);
+                                    setDragOverSlot(null);
                                   }}
                                   onTouchStart={(e) => {
                                     e.preventDefault();
@@ -4533,7 +4552,82 @@ export function WeatherForecast({
         </Alert>
       )}
 
-      {/* Drag preview removed for better mobile performance */}
+      {/* Drag preview */}
+      {draggedJobId && dragPosition && (() => {
+        const draggedJob = jobs.find(j => j.id === draggedJobId);
+        const customer = draggedJob ? customers.find(c => c.id === draggedJob.customerId) : null;
+        if (!draggedJob || !customer) return null;
+        
+        // Check if this is a group drag
+        const isGroupDrag = customer.groupId && draggedGroupJobs.length > 1;
+        const group = isGroupDrag ? customerGroups.find(g => g.id === customer.groupId) : null;
+        const groupColor = group?.color || '#2563eb';
+        
+        return (
+          <div
+            className="fixed pointer-events-none"
+            style={{
+              left: `${dragPosition.x}px`,
+              top: `${dragPosition.y}px`,
+              transform: 'translate(-50%, -50%)',
+              zIndex: 9999,
+            }}
+          >
+            {isGroupDrag && group ? (
+              // Group drag preview - matches forecast card styling exactly
+              <div
+                className="rounded text-xs overflow-hidden flex flex-col select-none bg-white border-2 border-blue-500 shadow-xl opacity-90"
+                style={{
+                  padding: 'max(0.58vh, 5px)',
+                  minWidth: '120px',
+                  minHeight: '60px',
+                  userSelect: 'none',
+                  WebkitUserSelect: 'none',
+                  WebkitTouchCallout: 'none',
+                }}
+              >
+                {/* Colored bar at top */}
+                <div 
+                  className="w-full rounded-sm mb-[0.3vh]" 
+                  style={{ 
+                    height: 'max(0.4vh, 3px)',
+                    width: 'calc(100% + max(1.16vh, 10px))',
+                    marginLeft: 'calc(-1 * max(0.58vh, 5px))',
+                    marginTop: 'calc(-1 * max(0.48vh, 4px))',
+                    backgroundColor: groupColor
+                  }}
+                ></div>
+                
+                <div className="flex flex-col gap-[0.2vh] w-full flex-1 justify-center">
+                  <div className="font-semibold text-gray-900" style={{ fontSize: 'max(1.34vh, 11px)' }}>
+                    {group.name}
+                  </div>
+                  <div className="text-gray-600" style={{ fontSize: 'max(1.1vh, 9px)' }}>
+                    {draggedGroupJobs.length} properties • {group.workTimeMinutes} min
+                  </div>
+                </div>
+              </div>
+            ) : (
+              // Single job drag preview - simplified version
+              <div 
+                className="rounded text-xs overflow-hidden flex flex-col select-none bg-white border-2 border-blue-500 shadow-xl opacity-90"
+                style={{
+                  padding: 'max(0.58vh, 5px)',
+                  minWidth: '120px',
+                  minHeight: '60px',
+                }}
+              >
+                <div className="flex flex-col gap-1 justify-center items-center text-center h-full">
+                  <div className="font-semibold text-gray-900" style={{ fontSize: 'max(1.34vh, 11px)' }}>
+                    {customer.name}
+                  </div>
+                  <div className="text-gray-600 text-[10px]">{customer.address}</div>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })()}
     </div>
   );
 }

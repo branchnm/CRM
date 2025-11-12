@@ -180,35 +180,27 @@ export function DailySchedule({
           return;
         }
 
-        // Find all jobs for customers in this group
+        // Find all jobs for customers in this group that haven't been processed
         const groupJobs = displayedJobs.filter(j => {
+          if (processedJobIds.has(j.id)) return false;
           const c = customers.find(cust => cust.id === j.customerId);
-          return c && c.groupId === customer.groupId && !processedJobIds.has(j.id);
+          return c && c.groupId === customer.groupId;
         });
 
-        if (groupJobs.length > 1) {
-          // Multiple jobs in group - create group item
-          const groupCustomers = groupJobs.map(j => customers.find(c => c.id === j.customerId)!).filter(Boolean);
+        // Always create a group item, even if only one job
+        // This ensures consistent display and drag behavior
+        const groupCustomers = groupJobs.map(j => customers.find(c => c.id === j.customerId)!).filter(Boolean);
 
-          items.push({
-            isGroup: true,
-            groupName: group.name,
-            jobs: groupJobs,
-            customers: groupCustomers,
-            totalTime: group.workTimeMinutes
-          });
+        items.push({
+          isGroup: true,
+          groupName: group.name,
+          jobs: groupJobs,
+          customers: groupCustomers,
+          totalTime: group.workTimeMinutes
+        });
 
-          // Mark these jobs as processed
-          groupJobs.forEach(j => processedJobIds.add(j.id));
-        } else {
-          // Only one job in group - treat as single
-          items.push({
-            isGroup: false,
-            job,
-            customer
-          });
-          processedJobIds.add(job.id);
-        }
+        // Mark these jobs as processed
+        groupJobs.forEach(j => processedJobIds.add(j.id));
       } else {
         // No group - single job
         items.push({
@@ -1180,7 +1172,30 @@ export function DailySchedule({
     e.preventDefault();
     if (!draggedJobId) return;
 
-    const sourceIndex = displayedJobs.findIndex(j => j.id === draggedJobId);
+    const draggedJob = displayedJobs.find(j => j.id === draggedJobId);
+    if (!draggedJob) {
+      setDraggedJobId(null);
+      setDragPosition(null);
+      setDraggedOverIndex(null);
+      return;
+    }
+
+    const draggedCustomer = customers.find(c => c.id === draggedJob.customerId);
+    
+    // Check if this is a group
+    let jobsToMove: typeof displayedJobs = [draggedJob];
+    if (draggedCustomer?.groupId) {
+      // Find all jobs in the same group
+      const groupId = draggedCustomer.groupId;
+      jobsToMove = displayedJobs.filter(j => {
+        const c = customers.find(cust => cust.id === j.customerId);
+        return c?.groupId === groupId;
+      });
+      console.log(`📦 Moving group with ${jobsToMove.length} jobs`);
+    }
+
+    // Find the source index of the first job in the group
+    const sourceIndex = displayedJobs.findIndex(j => j.id === jobsToMove[0].id);
     if (sourceIndex === -1 || sourceIndex === targetIndex) {
       setDraggedJobId(null);
       setDragPosition(null);
@@ -1188,13 +1203,21 @@ export function DailySchedule({
       return;
     }
 
-    // Reorder jobs
+    // Reorder jobs - remove all jobs in the group and insert at target
     const reorderedJobs = [...displayedJobs];
-    const [movedJob] = reorderedJobs.splice(sourceIndex, 1);
-    reorderedJobs.splice(targetIndex, 0, movedJob);
+    
+    // Remove all jobs that are being moved
+    const jobIdsToMove = new Set(jobsToMove.map(j => j.id));
+    const remainingJobs = reorderedJobs.filter(j => !jobIdsToMove.has(j.id));
+    
+    // Calculate the actual target index after removing moved jobs
+    const adjustedTargetIndex = targetIndex - reorderedJobs.slice(0, targetIndex).filter(j => jobIdsToMove.has(j.id)).length;
+    
+    // Insert the moved jobs at the target position
+    remainingJobs.splice(adjustedTargetIndex, 0, ...jobsToMove);
 
     // Update order field for all affected jobs
-    const updatedJobs = reorderedJobs.map((job, idx) => ({
+    const updatedJobs = remainingJobs.map((job, idx) => ({
       ...job,
       order: idx + 1
     }));
@@ -1205,7 +1228,7 @@ export function DailySchedule({
         updatedJobs.map(job => updateJob(job))
       );
       await onRefreshJobs?.();
-      toast.success('Job order updated');
+      toast.success(jobsToMove.length > 1 ? 'Group order updated' : 'Job order updated');
     } catch (error) {
       console.error('Failed to update job order:', error);
       toast.error('Failed to update job order');
@@ -1378,6 +1401,10 @@ export function DailySchedule({
                 const allCompleted = groupJobs.every(j => j.status === 'completed');
                 const anyInProgress = groupJobs.some(j => j.status === 'in-progress');
                 
+                // Get group color (use the first customer's group color)
+                const group = customerGroups.find(g => g.id === groupCustomers[0]?.groupId);
+                const groupColor = group?.color || '#2563eb'; // Blue default
+                
                 // Calculate height based on total time - groups should be taller
                 const minHeight = `max(${Math.max(totalTime / 60 * 3, 12)}vh, ${Math.max(totalTime / 60 * 24, 96)}px)`;
                 
@@ -1386,12 +1413,12 @@ export function DailySchedule({
                     key={`group-${groupName}-${firstJob.id}`} 
                     className={`backdrop-blur cursor-move transition-all select-none ${
                       allCompleted 
-                        ? 'bg-green-50 border-2 border-green-300' 
+                        ? 'bg-gray-100 border-2 border-gray-300' 
                         : anyInProgress
-                          ? 'bg-yellow-50 border-2 border-yellow-300'
+                          ? 'bg-blue-50 border-2 border-blue-300'
                           : draggedOverIndex === index 
                             ? 'bg-blue-50 border-2 border-blue-400 border-dashed' 
-                            : 'bg-purple-50/80 border-2 border-purple-300'
+                            : 'bg-white border-2 border-gray-300 hover:border-blue-400'
                     } ${draggedJobId === firstJob.id ? 'opacity-50' : ''}`}
                     draggable={!allCompleted}
                     onDragStart={(e) => handleDragStart(e, firstJob.id)}
@@ -1402,15 +1429,24 @@ export function DailySchedule({
                   >
                     <CardContent style={{ padding: 'max(0.5vh, 4px)' }}>
                       <div className="flex flex-col items-center text-center" style={{ gap: 'max(0.3vh, 2px)' }}>
+                        {/* Colored top bar */}
+                        <div 
+                          className="w-full h-1 rounded-sm -mt-1 -mx-1" 
+                          style={{ 
+                            width: 'calc(100% + max(1vh, 8px))',
+                            backgroundColor: groupColor
+                          }}
+                        ></div>
+                        
                         {/* Group Header */}
                         <div className="w-full">
                           <div className="flex items-center justify-center gap-1 mb-1">
-                            <Badge className="bg-purple-600 text-white" style={{ fontSize: 'max(0.8vh, 7px)', padding: '0 max(0.3vw, 2px)' }}>
+                            <Badge className="bg-blue-600 text-white" style={{ fontSize: 'max(0.8vh, 7px)', padding: '0 max(0.3vw, 2px)' }}>
                               GROUP
                             </Badge>
                           </div>
-                          <h3 className="text-purple-900 font-bold" style={{ fontSize: 'max(1.3vh, 11px)' }}>{groupName}</h3>
-                          <p className="text-purple-700 font-semibold" style={{ fontSize: 'max(1vh, 9px)', marginTop: 'max(0.2vh, 1px)' }}>
+                          <h3 className="text-gray-900 font-bold" style={{ fontSize: 'max(1.3vh, 11px)' }}>{groupName}</h3>
+                          <p className="text-gray-700 font-semibold" style={{ fontSize: 'max(1vh, 9px)', marginTop: 'max(0.2vh, 1px)' }}>
                             {groupJobs.length} properties • {totalTime} min
                           </p>
                           
@@ -1837,6 +1873,16 @@ export function DailySchedule({
         const customer = draggedJob ? getCustomer(draggedJob.customerId) : null;
         if (!draggedJob || !customer) return null;
         
+        // Check if this is a group
+        const isGroupDrag = customer.groupId;
+        const group = isGroupDrag ? customerGroups.find(g => g.id === customer.groupId) : null;
+        const groupJobs = isGroupDrag 
+          ? displayedJobs.filter(j => {
+              const c = customers.find(cust => cust.id === j.customerId);
+              return c?.groupId === customer.groupId;
+            })
+          : [];
+        
         return (
           <div
             className="fixed pointer-events-none z-50 opacity-90"
@@ -1848,25 +1894,58 @@ export function DailySchedule({
           >
             <Card className="backdrop-blur bg-white/80 shadow-2xl border-2 border-blue-600 w-[280px]">
               <CardContent className="p-4">
-                {/* Centered layout - matching the original card */}
-                <div className="flex flex-col items-center text-center gap-4">
-                  <div className="w-full">
-                    <h3 className="text-blue-800 text-sm font-semibold">{customer.name}</h3>
-                    <div className="flex items-center justify-center gap-1.5 text-gray-600 text-xs mt-1">
-                      <MapPin className="h-3 w-3 shrink-0" />
-                      <span>{customer.address}</span>
+                {isGroupDrag && group ? (
+                  // Group drag preview
+                  <div className="flex flex-col items-center text-center gap-2">
+                    <div 
+                      className="w-full h-1 rounded-sm -mt-4 -mx-4" 
+                      style={{ 
+                        width: 'calc(100% + 32px)',
+                        backgroundColor: group.color || '#2563eb'
+                      }}
+                    ></div>
+                    <Badge className="bg-blue-600 text-white text-[10px]">GROUP</Badge>
+                    <h3 className="text-gray-900 text-sm font-bold">{group.name}</h3>
+                    <p className="text-gray-700 text-xs font-semibold">
+                      {groupJobs.length} properties • {group.workTimeMinutes} min
+                    </p>
+                    <div className="text-xs text-gray-600 mt-1">
+                      {groupJobs.slice(0, 3).map((j, idx) => {
+                        const c = customers.find(cust => cust.id === j.customerId);
+                        return c ? (
+                          <div key={j.id} className="truncate">
+                            {idx + 1}. {c.name}
+                          </div>
+                        ) : null;
+                      })}
+                      {groupJobs.length > 3 && (
+                        <div className="text-gray-500 italic">
+                          +{groupJobs.length - 3} more...
+                        </div>
+                      )}
                     </div>
                   </div>
+                ) : (
+                  // Single job drag preview
+                  <div className="flex flex-col items-center text-center gap-4">
+                    <div className="w-full">
+                      <h3 className="text-blue-800 text-sm font-semibold">{customer.name}</h3>
+                      <div className="flex items-center justify-center gap-1.5 text-gray-600 text-xs mt-1">
+                        <MapPin className="h-3 w-3 shrink-0" />
+                        <span>{customer.address}</span>
+                      </div>
+                    </div>
 
-                  {/* Badges row */}
-                  <div className="flex flex-wrap gap-1 justify-center">
-                    {customer.isHilly && <Badge variant="secondary" className="text-[10px] py-0 px-1.5">Hilly</Badge>}
-                    {customer.hasFencing && <Badge variant="secondary" className="text-[10px] py-0 px-1.5">Fenced</Badge>}
-                    {customer.hasObstacles && <Badge variant="secondary" className="text-[10px] py-0 px-1.5">Obstacles</Badge>}
-                    <Badge variant="outline" className="text-[10px] py-0 px-1.5">{customer.squareFootage.toLocaleString()} sq ft</Badge>
-                    <Badge variant="outline" className="text-[10px] py-0 px-1.5">${customer.price}</Badge>
+                    {/* Badges row */}
+                    <div className="flex flex-wrap gap-1 justify-center">
+                      {customer.isHilly && <Badge variant="secondary" className="text-[10px] py-0 px-1.5">Hilly</Badge>}
+                      {customer.hasFencing && <Badge variant="secondary" className="text-[10px] py-0 px-1.5">Fenced</Badge>}
+                      {customer.hasObstacles && <Badge variant="secondary" className="text-[10px] py-0 px-1.5">Obstacles</Badge>}
+                      <Badge variant="outline" className="text-[10px] py-0 px-1.5">{customer.squareFootage.toLocaleString()} sq ft</Badge>
+                      <Badge variant="outline" className="text-[10px] py-0 px-1.5">${customer.price}</Badge>
+                    </div>
                   </div>
-                </div>
+                )}
               </CardContent>
             </Card>
           </div>
