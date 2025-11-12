@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { CustomerManagement } from './CustomerManagement';
 import { CustomerComms } from './CustomerComms';
+import { GroupManagement } from './GroupManagement';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import type { Customer, Job, MessageTemplate, CustomerGroup } from '../App';
-import { Users, MessageSquare } from 'lucide-react';
+import { Users, MessageSquare, FolderKanban } from 'lucide-react';
 
 interface CustomerViewProps {
   customers: Customer[];
@@ -28,18 +29,25 @@ export function CustomerView({
   messageTemplates,
   onUpdateTemplates
 }: CustomerViewProps) {
-  const [activeSubTab, setActiveSubTab] = useState<'customers' | 'messages'>('customers');
+  const [activeSubTab, setActiveSubTab] = useState<'customers' | 'groups' | 'messages'>('customers');
 
   return (
     <div className="space-y-6">
-      <Tabs value={activeSubTab} onValueChange={(value) => setActiveSubTab(value as 'customers' | 'messages')}>
-        <TabsList className="grid w-full max-w-md grid-cols-2 bg-gray-100 p-1">
+      <Tabs value={activeSubTab} onValueChange={(value) => setActiveSubTab(value as 'customers' | 'groups' | 'messages')}>
+        <TabsList className="grid w-full max-w-2xl grid-cols-3 bg-gray-100 p-1">
           <TabsTrigger 
             value="customers" 
             className="flex items-center gap-2 data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:hover:bg-blue-700"
           >
             <Users className="h-4 w-4" />
             Customers
+          </TabsTrigger>
+          <TabsTrigger 
+            value="groups" 
+            className="flex items-center gap-2 data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:hover:bg-blue-700"
+          >
+            <FolderKanban className="h-4 w-4" />
+            Groups
           </TabsTrigger>
           <TabsTrigger 
             value="messages" 
@@ -59,6 +67,15 @@ export function CustomerView({
             onRefreshCustomerGroups={onRefreshCustomerGroups}
             jobs={jobs}
             onRefreshJobs={onRefreshJobs}
+          />
+        </TabsContent>
+
+        <TabsContent value="groups" className="mt-6">
+          <GroupManagement
+            customers={customers}
+            customerGroups={customerGroups}
+            onRefreshCustomers={onRefreshCustomers}
+            onRefreshCustomerGroups={onRefreshCustomerGroups}
           />
         </TabsContent>
 
