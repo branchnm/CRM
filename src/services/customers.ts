@@ -2,10 +2,22 @@ import { supabase } from "../lib/supabase";
 import type { Customer } from "../App";
 import { calculateNextCutDate } from "../utils/dateHelpers";
 
+// Demo user ID - fixed UUID for all demo mode data
+const DEMO_USER_ID = '00000000-0000-0000-0000-000000000001';
+
+// Check if demo mode is enabled
+const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true';
+
 /**
- * Get the current authenticated user's ID
+ * Get the current user's ID (or demo user ID if in demo mode)
  */
 async function getCurrentUserId(): Promise<string> {
+  // In demo mode, always use the special demo user ID
+  if (DEMO_MODE) {
+    return DEMO_USER_ID;
+  }
+  
+  // In normal mode, require authentication
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
     throw new Error('User not authenticated');
@@ -44,14 +56,16 @@ export async function deleteAllCustomers(): Promise<void> {
 }
 
 /**
- * Fetch all customers from Supabase (filtered by current user)
+ * Fetch all customers from Supabase (filtered by current user or demo user)
  */
 export async function fetchCustomers(): Promise<Customer[]> {
+  const userId = await getCurrentUserId();
+  
   // Debug: Check who is authenticated
   const { data: { user } } = await supabase.auth.getUser();
-  console.log('🔐 Fetching customers for user:', user?.email, 'ID:', user?.id);
+  console.log('🔐 Fetching customers for user:', DEMO_MODE ? 'DEMO MODE' : user?.email, 'ID:', userId);
   
-  // RLS policies will automatically filter by user_id
+  // Query will be automatically filtered by RLS policies based on user_id
   const { data, error } = await supabase
     .from("customers")
     .select("*")
@@ -63,7 +77,9 @@ export async function fetchCustomers(): Promise<Customer[]> {
   }
 
   console.log('📊 Fetched customers:', data?.length || 0, 'records');
-  console.log('🔍 First customer user_id:', data?.[0]?.user_id);
+  if (data && data.length > 0) {
+    console.log('🔍 First customer user_id:', data[0].user_id);
+  }
 
   // Helper: format Date to YYYY-MM-DD
   const toYMD = (d: Date) => {

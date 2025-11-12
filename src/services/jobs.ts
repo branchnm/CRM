@@ -1,10 +1,22 @@
 import { supabase } from "../lib/supabase";
 import type { Job } from "../App";
 
+// Demo user ID - fixed UUID for all demo mode data
+const DEMO_USER_ID = '00000000-0000-0000-0000-000000000001';
+
+// Check if demo mode is enabled
+const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true';
+
 /**
- * Get the current authenticated user's ID
+ * Get the current user's ID (or demo user ID if in demo mode)
  */
 async function getCurrentUserId(): Promise<string> {
+  // In demo mode, always use the special demo user ID
+  if (DEMO_MODE) {
+    return DEMO_USER_ID;
+  }
+  
+  // In normal mode, require authentication
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
     throw new Error('User not authenticated');
@@ -13,18 +25,22 @@ async function getCurrentUserId(): Promise<string> {
 }
 
 export async function fetchJobs(date?: string): Promise<Job[]> {
+  const userId = await getCurrentUserId();
+  
   // Debug: Check who is authenticated
   const { data: { user } } = await supabase.auth.getUser();
-  console.log('🔐 Fetching jobs for user:', user?.email, 'ID:', user?.id);
+  console.log('🔐 Fetching jobs for user:', DEMO_MODE ? 'DEMO MODE' : user?.email, 'ID:', userId);
   
-  // RLS policies will automatically filter by user_id
+  // Query will be automatically filtered by RLS policies based on user_id
   let query = supabase.from("jobs").select("*");
   if (date) query = query.eq("date", date);
   const { data, error } = await query.order("date", { ascending: true });
   if (error) throw new Error(`Failed to fetch jobs: ${error.message}`);
   
   console.log('📊 Fetched jobs:', data?.length || 0, 'records');
-  console.log('🔍 First job user_id:', data?.[0]?.user_id);
+  if (data && data.length > 0) {
+    console.log('🔍 First job user_id:', data[0].user_id);
+  }
   
   return (data || []).map((row: any) => ({
     id: row.id,
