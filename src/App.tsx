@@ -4,7 +4,7 @@ import { InsightsDashboard } from "./components/InsightsDashboard";
 import { CustomerView } from "./components/CustomerView";
 import { Settings } from "./components/Settings";
 import { CalendarView } from "./components/CalendarView";
-import AuthPage from "./components/AuthPage";
+// import AuthPage from "./components/AuthPage"; // DISABLED - No auth required for demo
 import {
   Calendar,
   TrendingUp,
@@ -20,8 +20,8 @@ import {
 } from "lucide-react";
 import { fetchCustomers } from "./services/customers";
 import { fetchJobs } from "./services/jobs";
-import { getCurrentUser, onAuthStateChange, signOut } from "./services/auth";
-import type { User } from "@supabase/supabase-js";
+// import { getCurrentUser, onAuthStateChange, signOut } from "./services/auth"; // DISABLED - No auth required for demo
+// import type { User } from "@supabase/supabase-js"; // DISABLED - No auth required for demo
 import { Button } from "./components/ui/button";
 
 export interface Customer {
@@ -82,8 +82,8 @@ export interface Equipment {
 }
 
 function App() {
-  const [user, setUser] = useState<User | null>(null);
-  const [authLoading, setAuthLoading] = useState(true);
+  // const [user, setUser] = useState<User | null>(null); // DISABLED - No auth required
+  // const [authLoading, setAuthLoading] = useState(true); // DISABLED - No auth required
   const [activeTab, setActiveTab] = useState("schedule");
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -108,38 +108,40 @@ function App() {
   // Don't auto-hide optimize button - keep it showing "Optimized" until jobs change
   // The optimization status is now controlled by job changes detection in DailySchedule
 
+  // DISABLED - No auth required for demo
   // Check auth state on mount and listen for changes
-  useEffect(() => {
-    // Check current user
-    getCurrentUser().then((currentUser) => {
-      setUser(currentUser);
-      setAuthLoading(false);
-    });
+  // useEffect(() => {
+  //   // Check current user
+  //   getCurrentUser().then((currentUser) => {
+  //     setUser(currentUser);
+  //     setAuthLoading(false);
+  //   });
 
-    // Listen for auth changes
-    const subscription = onAuthStateChange((currentUser) => {
-      setUser(currentUser);
-      setAuthLoading(false);
+  //   // Listen for auth changes
+  //   const subscription = onAuthStateChange((currentUser) => {
+  //     setUser(currentUser);
+  //     setAuthLoading(false);
       
-      // Reload customers when user logs in
-      if (currentUser) {
-        loadCustomers();
-      } else {
-        setCustomers([]);
-      }
-    });
+  //     // Reload customers when user logs in
+  //     if (currentUser) {
+  //       loadCustomers();
+  //     } else {
+  //       setCustomers([]);
+  //     }
+  //   });
 
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, []);
+  //   return () => {
+  //     subscription.unsubscribe();
+  //   };
+  // }, []);
 
+  // DISABLED - No logout needed for demo
   // Handle logout
-  const handleLogout = async () => {
-    await signOut();
-    setCustomers([]);
-    setActiveTab("schedule");
-  };
+  // const handleLogout = async () => {
+  //   await signOut();
+  //   setCustomers([]);
+  //   setActiveTab("schedule");
+  // };
 
   // Handle scroll to show/hide bottom navigation
   useEffect(() => {
@@ -163,7 +165,8 @@ function App() {
 
   // Load customers from Supabase
   const loadCustomers = async () => {
-    if (!user) return;
+    // DISABLED - No auth check needed for demo
+    // if (!user) return;
     
     try {
       const data = await fetchCustomers();
@@ -175,16 +178,15 @@ function App() {
     }
   };
 
-  // Load customers when user is authenticated
+  // Load customers on mount (no auth required)
   useEffect(() => {
-    if (user) {
-      loadCustomers();
-    }
-  }, [user]);
+    loadCustomers();
+  }, []); // Changed from [user] to []
 
   // Expose a refresh function to children
   const refreshCustomers = async () => {
-    if (!user) return;
+    // DISABLED - No auth check needed for demo
+    // if (!user) return;
     
     try {
       const data = await fetchCustomers();
@@ -196,9 +198,10 @@ function App() {
 
   const [jobs, setJobs] = useState<Job[]>([]);
 
-  // Load jobs from Supabase when user is authenticated
+  // Load jobs from Supabase (no auth required)
   useEffect(() => {
-    if (!user) return;
+    // DISABLED - No auth check needed for demo
+    // if (!user) return;
     
     const loadJobs = async () => {
       try {
@@ -209,7 +212,7 @@ function App() {
       }
     };
     loadJobs();
-  }, [user]);
+  }, []); // Changed from [user] to []
 
   const [messageTemplates, setMessageTemplates] = useState<
     MessageTemplate[]
@@ -341,19 +344,21 @@ function App() {
     { id: "settings", label: "Settings", icon: SettingsIcon },
   ];
 
+  // DISABLED - No auth loading needed for demo
   // Show loading state while checking auth
-  if (authLoading) {
-    return (
-      <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-yellow-50 flex items-center justify-center">
-        <div className="text-blue-800 text-xl">Loading...</div>
-      </div>
-    );
-  }
+  // if (authLoading) {
+  //   return (
+  //     <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-yellow-50 flex items-center justify-center">
+  //       <div className="text-blue-800 text-xl">Loading...</div>
+  //     </div>
+  //   );
+  // }
 
+  // DISABLED - No login required for demo
   // Show auth page if not logged in
-  if (!user) {
-    return <AuthPage />;
-  }
+  // if (!user) {
+  //   return <AuthPage />;
+  // }
 
   if (loading) {
     return (
@@ -407,8 +412,9 @@ function App() {
               ))}
             </div>
 
+            {/* DISABLED - No logout button needed for demo */}
             {/* User info and logout - Right */}
-            <div className="flex items-center gap-2 xl:gap-3">
+            {/* <div className="flex items-center gap-2 xl:gap-3">
               <span className="text-xs xl:text-sm text-gray-600 hidden xl:inline">{user.email}</span>
               <Button 
                 variant="outline" 
@@ -419,7 +425,7 @@ function App() {
                 <LogOut className="h-3 w-3 xl:h-4 xl:w-4 xl:mr-2" />
                 <span className="hidden xl:inline text-xs xl:text-sm">Logout</span>
               </Button>
-            </div>
+            </div> */}
           </div>
         </div>
       </div>
@@ -493,7 +499,8 @@ function App() {
               Job Flow
             </h1>
             <div className="flex-1 flex justify-end">
-              {activeTab === "settings" && (
+              {/* DISABLED - No logout button needed for demo */}
+              {/* {activeTab === "settings" && (
                 <Button 
                   variant="outline" 
                   size="sm" 
@@ -502,7 +509,7 @@ function App() {
                 >
                   <LogOut className="h-4 w-4" />
                 </Button>
-              )}
+              )} */}
             </div>
           </div>
         </div>
