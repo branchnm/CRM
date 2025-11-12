@@ -4,7 +4,7 @@ import { InsightsDashboard } from "./components/InsightsDashboard";
 import { CustomerView } from "./components/CustomerView";
 import { Settings } from "./components/Settings";
 import { CalendarView } from "./components/CalendarView";
-// import AuthPage from "./components/AuthPage"; // DISABLED - No auth required for demo
+import AuthPage from "./components/AuthPage";
 import {
   Calendar,
   TrendingUp,
@@ -20,9 +20,12 @@ import {
 } from "lucide-react";
 import { fetchCustomers } from "./services/customers";
 import { fetchJobs } from "./services/jobs";
-// import { getCurrentUser, onAuthStateChange, signOut } from "./services/auth"; // DISABLED - No auth required for demo
-// import type { User } from "@supabase/supabase-js"; // DISABLED - No auth required for demo
+import { getCurrentUser, onAuthStateChange, signOut } from "./services/auth";
+import type { User } from "@supabase/supabase-js";
 import { Button } from "./components/ui/button";
+
+// Check if demo mode is enabled via environment variable
+const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true';
 
 export interface Customer {
   id: string;
@@ -82,8 +85,8 @@ export interface Equipment {
 }
 
 function App() {
-  // const [user, setUser] = useState<User | null>(null); // DISABLED - No auth required
-  // const [authLoading, setAuthLoading] = useState(true); // DISABLED - No auth required
+  const [user, setUser] = useState<User | null>(null);
+  const [authLoading, setAuthLoading] = useState(!DEMO_MODE); // Skip auth loading in demo mode
   const [activeTab, setActiveTab] = useState("schedule");
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -108,40 +111,45 @@ function App() {
   // Don't auto-hide optimize button - keep it showing "Optimized" until jobs change
   // The optimization status is now controlled by job changes detection in DailySchedule
 
-  // DISABLED - No auth required for demo
-  // Check auth state on mount and listen for changes
-  // useEffect(() => {
-  //   // Check current user
-  //   getCurrentUser().then((currentUser) => {
-  //     setUser(currentUser);
-  //     setAuthLoading(false);
-  //   });
+  // Check auth state on mount and listen for changes (skip in demo mode)
+  useEffect(() => {
+    if (DEMO_MODE) {
+      console.log('🎭 Demo Mode: Authentication bypassed');
+      setAuthLoading(false);
+      return;
+    }
 
-  //   // Listen for auth changes
-  //   const subscription = onAuthStateChange((currentUser) => {
-  //     setUser(currentUser);
-  //     setAuthLoading(false);
+    // Check current user
+    getCurrentUser().then((currentUser) => {
+      setUser(currentUser);
+      setAuthLoading(false);
+    });
+
+    // Listen for auth changes
+    const subscription = onAuthStateChange((currentUser) => {
+      setUser(currentUser);
+      setAuthLoading(false);
       
-  //     // Reload customers when user logs in
-  //     if (currentUser) {
-  //       loadCustomers();
-  //     } else {
-  //       setCustomers([]);
-  //     }
-  //   });
+      // Reload customers when user logs in
+      if (currentUser) {
+        loadCustomers();
+      } else {
+        setCustomers([]);
+      }
+    });
 
-  //   return () => {
-  //     subscription.unsubscribe();
-  //   };
-  // }, []);
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
-  // DISABLED - No logout needed for demo
   // Handle logout
-  // const handleLogout = async () => {
-  //   await signOut();
-  //   setCustomers([]);
-  //   setActiveTab("schedule");
-  // };
+  const handleLogout = async () => {
+    if (DEMO_MODE) return; // Can't logout in demo mode
+    await signOut();
+    setCustomers([]);
+    setActiveTab("schedule");
+  };
 
   // Handle scroll to show/hide bottom navigation
   useEffect(() => {
@@ -165,8 +173,8 @@ function App() {
 
   // Load customers from Supabase
   const loadCustomers = async () => {
-    // DISABLED - No auth check needed for demo
-    // if (!user) return;
+    // In demo mode, skip auth check
+    if (!DEMO_MODE && !user) return;
     
     try {
       const data = await fetchCustomers();
@@ -178,15 +186,17 @@ function App() {
     }
   };
 
-  // Load customers on mount (no auth required)
+  // Load customers on mount (or when user changes)
   useEffect(() => {
-    loadCustomers();
-  }, []); // Changed from [user] to []
+    if (DEMO_MODE || user) {
+      loadCustomers();
+    }
+  }, [user]); // Keep user dependency for auth mode
 
   // Expose a refresh function to children
   const refreshCustomers = async () => {
-    // DISABLED - No auth check needed for demo
-    // if (!user) return;
+    // In demo mode, skip auth check
+    if (!DEMO_MODE && !user) return;
     
     try {
       const data = await fetchCustomers();
@@ -198,10 +208,10 @@ function App() {
 
   const [jobs, setJobs] = useState<Job[]>([]);
 
-  // Load jobs from Supabase (no auth required)
+  // Load jobs from Supabase
   useEffect(() => {
-    // DISABLED - No auth check needed for demo
-    // if (!user) return;
+    // In demo mode, skip auth check
+    if (!DEMO_MODE && !user) return;
     
     const loadJobs = async () => {
       try {
@@ -212,7 +222,7 @@ function App() {
       }
     };
     loadJobs();
-  }, []); // Changed from [user] to []
+  }, [user]); // Keep user dependency for both modes
 
   const [messageTemplates, setMessageTemplates] = useState<
     MessageTemplate[]
@@ -344,21 +354,19 @@ function App() {
     { id: "settings", label: "Settings", icon: SettingsIcon },
   ];
 
-  // DISABLED - No auth loading needed for demo
-  // Show loading state while checking auth
-  // if (authLoading) {
-  //   return (
-  //     <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-yellow-50 flex items-center justify-center">
-  //       <div className="text-blue-800 text-xl">Loading...</div>
-  //     </div>
-  //   );
-  // }
+  // Show loading state while checking auth (skip in demo mode)
+  if (!DEMO_MODE && authLoading) {
+    return (
+      <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-yellow-50 flex items-center justify-center">
+        <div className="text-blue-800 text-xl">Loading...</div>
+      </div>
+    );
+  }
 
-  // DISABLED - No login required for demo
-  // Show auth page if not logged in
-  // if (!user) {
-  //   return <AuthPage />;
-  // }
+  // Show auth page if not logged in (skip in demo mode)
+  if (!DEMO_MODE && !user) {
+    return <AuthPage />;
+  }
 
   if (loading) {
     return (
@@ -412,20 +420,21 @@ function App() {
               ))}
             </div>
 
-            {/* DISABLED - No logout button needed for demo */}
-            {/* User info and logout - Right */}
-            {/* <div className="flex items-center gap-2 xl:gap-3">
-              <span className="text-xs xl:text-sm text-gray-600 hidden xl:inline">{user.email}</span>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={handleLogout}
-                className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 border-blue-200 px-2 xl:px-4"
-              >
-                <LogOut className="h-3 w-3 xl:h-4 xl:w-4 xl:mr-2" />
-                <span className="hidden xl:inline text-xs xl:text-sm">Logout</span>
-              </Button>
-            </div> */}
+            {/* User info and logout - Right (hide in demo mode) */}
+            {!DEMO_MODE && (
+              <div className="flex items-center gap-2 xl:gap-3">
+                <span className="text-xs xl:text-sm text-gray-600 hidden xl:inline">{user?.email || 'Guest'}</span>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleLogout}
+                  className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 border-blue-200 px-2 xl:px-4"
+                >
+                  <LogOut className="h-3 w-3 xl:h-4 xl:w-4 xl:mr-2" />
+                  <span className="hidden xl:inline text-xs xl:text-sm">Logout</span>
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -499,8 +508,8 @@ function App() {
               Job Flow
             </h1>
             <div className="flex-1 flex justify-end">
-              {/* DISABLED - No logout button needed for demo */}
-              {/* {activeTab === "settings" && (
+              {/* Show logout button in settings tab (hide in demo mode) */}
+              {!DEMO_MODE && activeTab === "settings" && (
                 <Button 
                   variant="outline" 
                   size="sm" 
@@ -509,7 +518,7 @@ function App() {
                 >
                   <LogOut className="h-4 w-4" />
                 </Button>
-              )} */}
+              )}
             </div>
           </div>
         </div>
