@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
-import type { Customer, Job, MessageTemplate, Equipment } from '../App';
+import type { Customer, Job, MessageTemplate, Equipment, CustomerGroup } from '../App';
 import { updateCustomer } from '../services/customers';
 import { addJob, updateJob, fetchJobs } from '../services/jobs';
 import { smsService } from '../services/sms';
@@ -18,6 +18,7 @@ import { WeatherForecast } from './WeatherForecast';
 
 interface DailyScheduleProps {
   customers: Customer[];
+  customerGroups: CustomerGroup[]; // NEW: Customer groups
   jobs: Job[];
   equipment: Equipment[];
   onUpdateJobs: (jobs: Job[]) => void;
@@ -39,6 +40,7 @@ interface DailyScheduleProps {
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function DailySchedule({ 
   customers, 
+  customerGroups, // NEW
   jobs, 
   equipment, 
   onUpdateJobs, 
@@ -1239,6 +1241,7 @@ export function DailySchedule({
       <WeatherForecast 
         jobs={jobs}
         customers={customers}
+        customerGroups={customerGroups}
         onRescheduleJob={handleRescheduleJob}
         onStartTimeChange={handleStartTimeChange}
         onOptimizeRoute={handleOptimizeRoute}

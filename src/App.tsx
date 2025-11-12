@@ -20,12 +20,24 @@ import {
 } from "lucide-react";
 import { fetchCustomers } from "./services/customers";
 import { fetchJobs } from "./services/jobs";
+import { fetchCustomerGroups } from "./services/groups";
 import { getCurrentUser, onAuthStateChange, signOut } from "./services/auth";
 import type { User } from "@supabase/supabase-js";
 import { Button } from "./components/ui/button";
 
 // Check if demo mode is enabled via environment variable
 const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true';
+
+export interface CustomerGroup {
+  id: string;
+  name: string;
+  workTimeMinutes: number; // Total work time for all properties in group
+  customerIds: string[]; // Array of customer IDs in this group
+  color?: string; // Optional custom color for visual identification
+  notes?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
 
 export interface Customer {
   id: string;
@@ -44,7 +56,7 @@ export interface Customer {
   lastCutDate?: string; // ISO date string (YYYY-MM-DD)
   nextCutDate?: string; // ISO date string (YYYY-MM-DD)
   status?: "incomplete" | "complete" | "inactive";
-  group?: string; // Optional: Group name for nearby properties (e.g., "Oak Ridge Cluster")
+  groupId?: string; // Reference to CustomerGroup.id
 }
 
 export interface Job {
@@ -89,6 +101,7 @@ function App() {
   const [authLoading, setAuthLoading] = useState(!DEMO_MODE); // Skip auth loading in demo mode
   const [activeTab, setActiveTab] = useState("schedule");
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [customerGroups, setCustomerGroups] = useState<CustomerGroup[]>([]); // NEW: Customer groups
   const [loading, setLoading] = useState(true);
   const [showBottomNav, setShowBottomNav] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
@@ -186,10 +199,24 @@ function App() {
     }
   };
 
-  // Load customers on mount (or when user changes)
+  // Load customer groups from Supabase
+  const loadCustomerGroups = async () => {
+    // In demo mode, skip auth check
+    if (!DEMO_MODE && !user) return;
+    
+    try {
+      const data = await fetchCustomerGroups();
+      setCustomerGroups(data);
+    } catch (error) {
+      console.error('Failed to load customer groups:', error);
+    }
+  };
+
+  // Load customers and groups on mount (or when user changes)
   useEffect(() => {
     if (DEMO_MODE || user) {
       loadCustomers();
+      loadCustomerGroups();
     }
   }, [user]); // Keep user dependency for auth mode
 
@@ -203,6 +230,19 @@ function App() {
       setCustomers(data);
     } catch (error) {
       console.error('Failed to refresh customers:', error);
+    }
+  };
+
+  // Refresh customer groups
+  const refreshCustomerGroups = async () => {
+    // In demo mode, skip auth check
+    if (!DEMO_MODE && !user) return;
+    
+    try {
+      const data = await fetchCustomerGroups();
+      setCustomerGroups(data);
+    } catch (error) {
+      console.error('Failed to refresh customer groups:', error);
     }
   };
 
@@ -528,6 +568,7 @@ function App() {
           {activeTab === "schedule" && (
             <DailySchedule
               customers={customers}
+              customerGroups={customerGroups}
               jobs={jobs}
               equipment={equipment}
               onUpdateJobs={updateJobs}
@@ -580,8 +621,10 @@ function App() {
           {activeTab === "customers" && (
             <CustomerView
               customers={customers}
+              customerGroups={customerGroups}
               onUpdateCustomers={updateCustomers}
               onRefreshCustomers={refreshCustomers}
+              onRefreshCustomerGroups={refreshCustomerGroups}
               jobs={jobs}
               onRefreshJobs={refreshJobs}
               messageTemplates={messageTemplates}

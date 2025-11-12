@@ -4,7 +4,7 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
-import type { Job, Customer } from '../App';
+import type { Job, Customer, CustomerGroup } from '../App';
 import { 
   CloudRain, 
   MapPin, 
@@ -64,6 +64,7 @@ function useDebounce<T>(value: T, delay: number): T {
 interface WeatherForecastProps {
   jobs?: Job[];
   customers?: Customer[];
+  customerGroups?: CustomerGroup[]; // NEW: Array of customer groups
   onRescheduleJob?: (jobId: string, newDate: string, timeSlot?: number) => void;
   onUpdateJobTimeSlot?: (jobId: string, timeSlot: number) => void;
   onStartTimeChange?: (date: string, startHour: number) => void;
@@ -83,6 +84,7 @@ interface WeatherForecastProps {
 export function WeatherForecast({ 
   jobs = [], 
   customers = [], 
+  customerGroups = [], // NEW: Customer groups
   onRescheduleJob, 
   onStartTimeChange, 
   onOptimizeRoute, 
@@ -2180,40 +2182,47 @@ export function WeatherForecast({
     // Check if this job is part of a group
     const job = jobs.find(j => j.id === jobId);
     const customer = customers.find(c => c.id === job?.customerId);
-    const groupName = customer?.group;
+    const groupId = customer?.groupId;
     
-    if (groupName) {
-      // Find all jobs in this group on the same date
-      const jobDate = job?.date;
-      const groupJobs = jobs.filter(j => {
-        if (j.date !== jobDate) return false;
-        const jobCustomer = customers.find(c => c.id === j.customerId);
-        return jobCustomer?.group === groupName;
-      }).map(j => j.id);
+    if (groupId) {
+      // Find the group details
+      const group = customerGroups.find(g => g.id === groupId);
       
-      setDraggedGroupJobs(groupJobs);
-      console.log('🔷 Dragging group:', groupName, 'with', groupJobs.length, 'jobs');
-      
-      // Create custom drag ghost for group
-      const dragGhost = document.createElement('div');
-      dragGhost.style.cssText = `
-        position: absolute;
-        top: -9999px;
-        background: white;
-        border: 2px solid #9333ea;
-        border-radius: 6px;
-        padding: 12px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        font-size: 14px;
-        min-width: 200px;
-      `;
-      dragGhost.innerHTML = `
-        <div style="font-weight: 600; color: #1f2937; margin-bottom: 4px;">${groupName}</div>
-        <div style="color: #6b7280; font-size: 12px;">${groupJobs.length} properties • ${groupJobs.length * 60} min</div>
-      `;
-      document.body.appendChild(dragGhost);
-      e.dataTransfer.setDragImage(dragGhost, 100, 30);
-      setTimeout(() => document.body.removeChild(dragGhost), 0);
+      if (group) {
+        // Find all jobs for customers in this group on the same date
+        const jobDate = job?.date;
+        const groupJobs = jobs.filter(j => {
+          if (j.date !== jobDate) return false;
+          const jobCustomer = customers.find(c => c.id === j.customerId);
+          return jobCustomer?.groupId === groupId;
+        }).map(j => j.id);
+        
+        setDraggedGroupJobs(groupJobs);
+        console.log('🔷 Dragging group:', group.name, 'with', groupJobs.length, 'jobs');
+        
+        // Create custom drag ghost for group
+        const dragGhost = document.createElement('div');
+        dragGhost.style.cssText = `
+          position: absolute;
+          top: -9999px;
+          background: white;
+          border: 2px solid ${group.color || '#9333ea'};
+          border-radius: 6px;
+          padding: 12px;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+          font-size: 14px;
+          min-width: 200px;
+        `;
+        dragGhost.innerHTML = `
+          <div style="font-weight: 600; color: #1f2937; margin-bottom: 4px;">${group.name}</div>
+          <div style="color: #6b7280; font-size: 12px;">${groupJobs.length} properties • ${group.workTimeMinutes} min</div>
+        `;
+        document.body.appendChild(dragGhost);
+        e.dataTransfer.setDragImage(dragGhost, 100, 30);
+        setTimeout(() => document.body.removeChild(dragGhost), 0);
+      } else {
+        setDraggedGroupJobs([]);
+      }
     } else {
       setDraggedGroupJobs([]);
       // Single job - keep default behavior
@@ -3863,7 +3872,7 @@ export function WeatherForecast({
                               }
                               
                               // Group detection: identify which slots belong to groups and should be rendered as single tall cards
-                              const groupSpans = new Map<number, { groupName: string; jobCount: number; totalTime: number; firstJobId: string; jobs: any[] }>();
+                              const groupSpans = new Map<number, { group: CustomerGroup; jobCount: number; firstJobId: string; jobs: any[] }>();
                               const slotsToSkip = new Set<number>();
                               
                               // Sort slots to process in order
@@ -3872,15 +3881,19 @@ export function WeatherForecast({
                               sortedSlots.forEach((slotIndex) => {
                                 const job = jobsBySlot[slotIndex];
                                 const customer = customers.find(c => c.id === job.customerId);
-                                const groupName = customer?.group;
+                                const groupId = customer?.groupId;
                                 
-                                if (!groupName) return; // Skip non-grouped jobs
+                                if (!groupId) return; // Skip non-grouped jobs
+                                
+                                // Find the group
+                                const group = customerGroups.find(g => g.id === groupId);
+                                if (!group) return;
                                 
                                 // Check if this is the first job in a group
                                 const isFirstInGroup = !sortedSlots.slice(0, sortedSlots.indexOf(slotIndex)).some(prevSlot => {
                                   const prevJob = jobsBySlot[prevSlot];
                                   const prevCustomer = customers.find(c => c.id === prevJob.customerId);
-                                  return prevCustomer?.group === groupName;
+                                  return prevCustomer?.groupId === groupId;
                                 });
                                 
                                 if (isFirstInGroup) {
@@ -3894,7 +3907,7 @@ export function WeatherForecast({
                                     if (!nextJob) break;
                                     
                                     const nextCustomer = customers.find(c => c.id === nextJob.customerId);
-                                    if (nextCustomer?.group !== groupName) break;
+                                    if (nextCustomer?.groupId !== groupId) break;
                                     
                                     groupJobs.push(nextJob);
                                     slotsToSkip.add(currentSlot); // Mark this slot to skip rendering
@@ -3903,9 +3916,8 @@ export function WeatherForecast({
                                   
                                   // Store group span information
                                   groupSpans.set(slotIndex, {
-                                    groupName,
+                                    group,
                                     jobCount: groupJobs.length,
-                                    totalTime: groupJobs.length * 60, // 60 min per job
                                     firstJobId: job.id,
                                     jobs: groupJobs
                                   });
@@ -4055,6 +4067,7 @@ export function WeatherForecast({
                                             const isDraggedItem = groupSpan.jobs.some(j => j.id === draggedJobId);
                                             const isCompleted = groupSpan.jobs.every(j => j.status === 'completed');
                                             const anyInProgress = groupSpan.jobs.some(j => j.status === 'in-progress');
+                                            const groupColor = groupSpan.group.color || '#9333ea'; // Purple default
                                             
                                             return (
                                               <div
@@ -4075,15 +4088,21 @@ export function WeatherForecast({
                                                   WebkitTouchCallout: 'none',
                                                 }}
                                               >
-                                                {/* Purple bar at top */}
-                                                <div className="w-full h-[0.4vh] bg-purple-600 rounded-sm mb-[0.3vh] -mx-[0.58vh] -mt-[0.48vh]" style={{ width: 'calc(100% + 1.16vh)' }}></div>
+                                                {/* Colored bar at top */}
+                                                <div 
+                                                  className="w-full h-[0.4vh] rounded-sm mb-[0.3vh] -mx-[0.58vh] -mt-[0.48vh]" 
+                                                  style={{ 
+                                                    width: 'calc(100% + 1.16vh)',
+                                                    backgroundColor: groupColor
+                                                  }}
+                                                ></div>
                                                 
                                                 <div className="flex flex-col gap-[0.2vh] w-full flex-1 justify-center">
                                                   <div className={`font-semibold text-gray-900 ${isMobile ? 'text-[1.27vh]' : 'text-[1.34vh]'}`}>
-                                                    {groupSpan.groupName}
+                                                    {groupSpan.group.name}
                                                   </div>
                                                   <div className={`text-gray-600 ${isMobile ? 'text-[1.14vh]' : 'text-[1.1vh]'}`}>
-                                                    {groupSpan.jobCount} properties • {groupSpan.totalTime} min
+                                                    {groupSpan.jobCount} properties • {groupSpan.group.workTimeMinutes} min
                                                   </div>
                                                   {isCompleted && (
                                                     <div className={`text-gray-700 font-bold ${isMobile ? 'text-[1.09vh]' : 'text-[1.15vh]'}`}>
@@ -4139,7 +4158,8 @@ export function WeatherForecast({
                                           
                                           // Regular single job card
                                           const customer = customers.find(c => c.id === jobInSlot.customerId);
-                                          const customerGroup = customer?.group;
+                                          const customerGroupId = customer?.groupId;
+                                          const customerGroup = customerGroupId ? customerGroups.find(g => g.id === customerGroupId) : undefined;
                                           
                                           // eslint-disable-next-line @typescript-eslint/no-unused-vars
                                           const isScheduled = scheduledJobsForDay.some(j => j.id === jobInSlot.id);
