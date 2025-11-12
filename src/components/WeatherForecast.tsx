@@ -2193,17 +2193,37 @@ export function WeatherForecast({
       
       setDraggedGroupJobs(groupJobs);
       console.log('🔷 Dragging group:', groupName, 'with', groupJobs.length, 'jobs');
+      
+      // Create custom drag ghost for group
+      const dragGhost = document.createElement('div');
+      dragGhost.style.cssText = `
+        position: absolute;
+        top: -9999px;
+        background: white;
+        border: 2px solid #9333ea;
+        border-radius: 6px;
+        padding: 12px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        font-size: 14px;
+        min-width: 200px;
+      `;
+      dragGhost.innerHTML = `
+        <div style="font-weight: 600; color: #1f2937; margin-bottom: 4px;">${groupName}</div>
+        <div style="color: #6b7280; font-size: 12px;">${groupJobs.length} properties • ${groupJobs.length * 60} min</div>
+      `;
+      document.body.appendChild(dragGhost);
+      e.dataTransfer.setDragImage(dragGhost, 100, 30);
+      setTimeout(() => document.body.removeChild(dragGhost), 0);
     } else {
       setDraggedGroupJobs([]);
+      // Single job - keep default behavior
+      const img = new Image();
+      img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+      e.dataTransfer.setDragImage(img, 0, 0);
     }
     
     setDraggedJobId(jobId);
     // setIsDragging(true); // Removed for mobile performance
-    
-    // Hide the default drag ghost image
-    const img = new Image();
-    img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
-    e.dataTransfer.setDragImage(img, 0, 0);
   };
 
   const handleDragOver = (e: React.DragEvent, dateStr: string, slotIndex?: number) => {
@@ -4005,26 +4025,83 @@ export function WeatherForecast({
                                   // All slots are always visible and active
                                   const isDropTarget = dragOverSlot?.date === dateStr && dragOverSlot?.slot === slot.slotIndex;
                                   
-                                  // Check if this slot should be skipped (part of a group but not the first)
-                                  if (slotsToSkip.has(slot.slotIndex)) {
-                                    return null; // Skip rendering this slot
-                                  }
-                                  
                                   // Check if this is the start of a group span
                                   const groupSpan = groupSpans.get(slot.slotIndex);
+                                  
+                                  // Check if this slot is part of a group (but not the first slot)
+                                  const isPartOfGroup = slotsToSkip.has(slot.slotIndex);
                                   
                                   return (
                                     <div 
                                       key={slot.slotIndex} 
                                       className={`relative flex items-center transition-colors ${
-                                        isMobile ? 'px-[0.46vh] py-[0.28vh] max-h-[2.65vh]' : 'h-[4.9vh] px-[0.48vh]' //Increased from 4.3vh to 5vh (slot height)
-                                        
+                                        isMobile ? 'px-[0.46vh] py-[0.28vh] max-h-[2.65vh]' : 'h-[4.9vh] px-[0.48vh]'
                                       } ${isDropTarget ? 'bg-blue-100 border-l-4 border-blue-500' : ''}`}
                                       data-time-slot="true"
                                       data-slot-index={slot.slotIndex}
                                       onDragOver={(e) => handleDragOver(e, dateStr, slot.slotIndex)}
                                       onDrop={(e) => handleSlotDrop(e, dateStr, slot.slotIndex)}
                                     >
+                                      {/* Group card overlay - positioned absolutely to span multiple slots */}
+                                      {groupSpan && (
+                                        <div 
+                                          className="absolute left-0 right-0 z-10"
+                                          style={{
+                                            top: 0,
+                                            height: `calc(${groupSpan.jobCount} * (4.9vh + 0.28vh) - 0.28vh)`,
+                                          }}
+                                        >
+                                          {(() => {
+                                            const isDraggedItem = groupSpan.jobs.some(j => j.id === draggedJobId);
+                                            const isCompleted = groupSpan.jobs.every(j => j.status === 'completed');
+                                            const anyInProgress = groupSpan.jobs.some(j => j.status === 'in-progress');
+                                            
+                                            return (
+                                              <div
+                                                draggable={!isDraggedItem && !isTouchDevice.current && !isCompleted}
+                                                onDragStart={(e) => !isDraggedItem && !isCompleted && handleDragStart(e, groupSpan.firstJobId)}
+                                                className={`h-full rounded transition-all text-xs overflow-hidden flex flex-col select-none ${
+                                                  isMobile ? 'px-[0.73vh] py-[0.46vh]' : 'px-[0.58vh] py-[0.48vh]'
+                                                } ${
+                                                  isCompleted
+                                                    ? 'bg-gray-200/80 border border-gray-400 cursor-default'
+                                                    : isDraggedItem
+                                                      ? 'bg-purple-100 border-2 border-purple-600 shadow-xl opacity-70'
+                                                      : 'bg-white border border-gray-300 cursor-move hover:shadow-md hover:border-purple-400'
+                                                }`}
+                                                style={{
+                                                  userSelect: 'none',
+                                                  WebkitUserSelect: 'none',
+                                                  WebkitTouchCallout: 'none',
+                                                }}
+                                              >
+                                                {/* Purple bar at top */}
+                                                <div className="w-full h-[0.4vh] bg-purple-600 rounded-sm mb-[0.3vh] -mx-[0.58vh] -mt-[0.48vh]" style={{ width: 'calc(100% + 1.16vh)' }}></div>
+                                                
+                                                <div className="flex flex-col gap-[0.2vh] w-full flex-1 justify-center">
+                                                  <div className={`font-semibold text-gray-900 ${isMobile ? 'text-[1.27vh]' : 'text-[1.34vh]'}`}>
+                                                    {groupSpan.groupName}
+                                                  </div>
+                                                  <div className={`text-gray-600 ${isMobile ? 'text-[1.14vh]' : 'text-[1.1vh]'}`}>
+                                                    {groupSpan.jobCount} properties • {groupSpan.totalTime} min
+                                                  </div>
+                                                  {isCompleted && (
+                                                    <div className={`text-gray-700 font-bold ${isMobile ? 'text-[1.09vh]' : 'text-[1.15vh]'}`}>
+                                                      ✓ Complete
+                                                    </div>
+                                                  )}
+                                                  {anyInProgress && !isCompleted && (
+                                                    <div className={`text-blue-600 font-medium ${isMobile ? 'text-[1.09vh]' : 'text-[1.06vh]'}`}>
+                                                      In Progress...
+                                                    </div>
+                                                  )}
+                                                </div>
+                                              </div>
+                                            );
+                                          })()}
+                                        </div>
+                                      )}
+                                      
                                       <div className={`flex items-center w-full h-full ${shouldShowWeatherIcon ? 'gap-[0.48vh]' : 'gap-0'}`}>
                                         {/* Show weather icon with time, or just empty space for alignment */}
                                         {shouldShowWeatherIcon ? (() => {
@@ -4057,69 +4134,8 @@ export function WeatherForecast({
                                         )}
                                         
                                         {/* Job card or empty drop zone */}
-                                        {jobInSlot ? (() => {
-                                          // Check if this is a group span
-                                          if (groupSpan) {
-                                            // Render tall group card
-                                            const firstCustomer = customers.find(c => c.id === groupSpan.jobs[0].customerId);
-                                            const isDraggedItem = groupSpan.jobs.some(j => j.id === draggedJobId);
-                                            const isCompleted = groupSpan.jobs.every(j => j.status === 'completed');
-                                            const anyInProgress = groupSpan.jobs.some(j => j.status === 'in-progress');
-                                            
-                                            // Calculate height: each job = 4.9vh + gap between slots
-                                            const slotHeight = isMobile ? 2.65 : 4.9;
-                                            const slotGap = 0.28;
-                                            const totalHeight = groupSpan.jobCount * slotHeight + (groupSpan.jobCount - 1) * slotGap;
-                                            
-                                            return (
-                                              <div
-                                                draggable={!isDraggedItem && !isTouchDevice.current && !isCompleted}
-                                                onDragStart={(e) => !isDraggedItem && !isCompleted && handleDragStart(e, groupSpan.firstJobId)}
-                                                className={`flex-1 rounded transition-all text-xs overflow-hidden flex flex-col select-none ${
-                                                  isMobile ? 'px-[0.73vh] py-[0.46vh]' : 'px-[0.58vh] py-[0.48vh]'
-                                                } ${
-                                                  isCompleted
-                                                    ? 'bg-gray-200/80 border border-gray-400 cursor-default'
-                                                    : isDraggedItem
-                                                      ? 'bg-purple-100 border-2 border-purple-600 shadow-xl opacity-50'
-                                                      : 'bg-white border border-gray-300 cursor-move hover:shadow-md hover:border-purple-400'
-                                                }`}
-                                                style={{
-                                                  height: `${totalHeight}vh`,
-                                                  userSelect: 'none',
-                                                  WebkitUserSelect: 'none',
-                                                  WebkitTouchCallout: 'none',
-                                                }}
-                                              >
-                                                {/* Purple bar at top */}
-                                                <div className="w-full h-[0.4vh] bg-purple-600 rounded-sm mb-[0.3vh] -mx-[0.58vh] -mt-[0.48vh]" style={{ width: 'calc(100% + 1.16vh)' }}></div>
-                                                
-                                                <div className="flex flex-col gap-[0.2vh] w-full flex-1 justify-center">
-                                                  {/* Group Name */}
-                                                  <div className={`font-semibold text-gray-900 ${isMobile ? 'text-[1.27vh]' : 'text-[1.34vh]'}`}>
-                                                    {groupSpan.groupName}
-                                                  </div>
-                                                  
-                                                  {/* Job Count and Time */}
-                                                  <div className={`text-gray-600 ${isMobile ? 'text-[1.14vh]' : 'text-[1.1vh]'}`}>
-                                                    {groupSpan.jobCount} properties • {groupSpan.totalTime} min
-                                                  </div>
-                                                  
-                                                  {/* Status indicator */}
-                                                  {isCompleted && (
-                                                    <div className={`text-gray-700 font-bold ${isMobile ? 'text-[1.09vh]' : 'text-[1.15vh]'}`}>
-                                                      ✓ Complete
-                                                    </div>
-                                                  )}
-                                                  {anyInProgress && !isCompleted && (
-                                                    <div className={`text-blue-600 font-medium ${isMobile ? 'text-[1.09vh]' : 'text-[1.06vh]'}`}>
-                                                      In Progress...
-                                                    </div>
-                                                  )}
-                                                </div>
-                                              </div>
-                                            );
-                                          }
+                                        {jobInSlot && !isPartOfGroup ? (() => {
+                                          // Don't render if this job is part of a group (will be shown by group overlay)
                                           
                                           // Regular single job card
                                           const customer = customers.find(c => c.id === jobInSlot.customerId);
@@ -4216,7 +4232,11 @@ export function WeatherForecast({
                                               </div>
                                             </div>
                                           );
-                                        })() : (
+                                        })() : isPartOfGroup ? (
+                                          // Empty transparent drop zone for slots that are part of a group (overlay will show the group card)
+                                          <div className="flex-1 h-[4.8vh]"></div>
+                                        ) : (
+                                          // Normal empty drop zone for ungrouped slots
                                           <div 
                                             onClick={isTouchDevice.current && (cutJobId || (isSelectionMode && selectedJobIds.size > 0)) ? () => handleSlotTap(dateStr, slot.slotIndex) : undefined}
                                             className={`flex-1 border border-dashed rounded flex items-center justify-center text-center text-[1.2vh] transition-all h-[4.2vh] ${
