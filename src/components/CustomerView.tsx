@@ -2,13 +2,15 @@ import { useState } from 'react';
 import { CustomerManagement } from './CustomerManagement';
 import { CustomerComms } from './CustomerComms';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import type { Customer, Job, MessageTemplate } from '../App';
+import type { Customer, Job, MessageTemplate, CustomerGroup } from '../App';
 import { Users, MessageSquare } from 'lucide-react';
 
 interface CustomerViewProps {
   customers: Customer[];
+  customerGroups: CustomerGroup[];
   onUpdateCustomers: (customers: Customer[]) => void;
   onRefreshCustomers?: () => Promise<void> | void;
+  onRefreshCustomerGroups?: () => Promise<void> | void;
   jobs?: Job[];
   onRefreshJobs?: () => Promise<void> | void;
   messageTemplates: MessageTemplate[];
@@ -17,8 +19,10 @@ interface CustomerViewProps {
 
 export function CustomerView({ 
   customers, 
+  customerGroups,
   onUpdateCustomers, 
-  onRefreshCustomers, 
+  onRefreshCustomers,
+  onRefreshCustomerGroups,
   jobs, 
   onRefreshJobs,
   messageTemplates,
@@ -49,8 +53,10 @@ export function CustomerView({
         <TabsContent value="customers" className="mt-6">
           <CustomerManagement
             customers={customers}
+            customerGroups={customerGroups}
             onUpdateCustomers={onUpdateCustomers}
             onRefreshCustomers={onRefreshCustomers}
+            onRefreshCustomerGroups={onRefreshCustomerGroups}
             jobs={jobs}
             onRefreshJobs={onRefreshJobs}
           />

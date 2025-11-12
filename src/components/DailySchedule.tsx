@@ -151,9 +151,13 @@ export function DailySchedule({
     const processedJobIds = new Set<string>();
 
     // Debug: Log customers with groups
-    const customersWithGroups = customers.filter(c => c.group);
+    const customersWithGroups = customers.filter(c => c.groupId);
     if (customersWithGroups.length > 0) {
-      console.log('🔍 Customers with groups:', customersWithGroups.map(c => ({ name: c.name, group: c.group })));
+      const groupDetails = customersWithGroups.map(c => {
+        const group = customerGroups.find(g => g.id === c.groupId);
+        return { name: c.name, groupId: c.groupId, groupName: group?.name };
+      });
+      console.log('🔍 Customers with groups:', groupDetails);
     }
 
     displayedJobs.forEach((job) => {
@@ -163,24 +167,35 @@ export function DailySchedule({
       if (!customer) return;
 
       // Check if this customer has a group
-      if (customer.group) {
+      if (customer.groupId) {
+        const group = customerGroups.find(g => g.id === customer.groupId);
+        if (!group) {
+          // Group not found, treat as single job
+          items.push({
+            isGroup: false,
+            job,
+            customer
+          });
+          processedJobIds.add(job.id);
+          return;
+        }
+
         // Find all jobs for customers in this group
         const groupJobs = displayedJobs.filter(j => {
           const c = customers.find(cust => cust.id === j.customerId);
-          return c && c.group === customer.group && !processedJobIds.has(j.id);
+          return c && c.groupId === customer.groupId && !processedJobIds.has(j.id);
         });
 
         if (groupJobs.length > 1) {
           // Multiple jobs in group - create group item
           const groupCustomers = groupJobs.map(j => customers.find(c => c.id === j.customerId)!).filter(Boolean);
-          const totalTime = groupJobs.length * 60; // 60 minutes per job
 
           items.push({
             isGroup: true,
-            groupName: customer.group,
+            groupName: group.name,
             jobs: groupJobs,
             customers: groupCustomers,
-            totalTime
+            totalTime: group.workTimeMinutes
           });
 
           // Mark these jobs as processed
