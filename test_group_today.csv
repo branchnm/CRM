@@ -1,0 +1,5 @@
+name,address,phone,squareFootage,price,frequency,isHilly,hasFencing,hasObstacles,nextCutDate,status,group
+Smith House,101 Pine Street Homewood AL 35209,205-555-1001,5000,50,weekly,false,false,false,2025-11-11,incomplete,Pine Street Group
+Jones Residence,105 Pine Street Homewood AL 35209,205-555-1002,4800,48,weekly,false,true,false,2025-11-11,incomplete,Pine Street Group
+Brown Property,109 Pine Street Homewood AL 35209,205-555-1003,5200,52,weekly,false,false,true,2025-11-11,incomplete,Pine Street Group
+Taylor Lawn,456 Oak Avenue Homewood AL 35209,205-555-2001,6000,55,weekly,false,true,false,2025-11-11,incomplete,

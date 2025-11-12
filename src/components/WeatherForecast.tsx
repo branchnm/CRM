@@ -126,6 +126,9 @@ export function WeatherForecast({
   const [jobTimeSlots, setJobTimeSlots] = useState<Map<string, number>>(new Map()); // jobId -> timeSlot (0-11 for 6am-6pm)
   const [dayOffset, setDayOffset] = useState(0); // 0 = today, -1 = yesterday, 1 = tomorrow, etc.
   
+  // Track jobs being dragged as a group
+  const [draggedGroupJobs, setDraggedGroupJobs] = useState<string[]>([]); // Array of job IDs in the dragged group
+  
   // Undo functionality - store last action
   const [lastAction, setLastAction] = useState<{
     type: 'move';
@@ -2173,6 +2176,27 @@ export function WeatherForecast({
   // Drag and drop handlers
   const handleDragStart = (e: React.DragEvent, jobId: string) => {
     e.stopPropagation();
+    
+    // Check if this job is part of a group
+    const job = jobs.find(j => j.id === jobId);
+    const customer = customers.find(c => c.id === job?.customerId);
+    const groupName = customer?.group;
+    
+    if (groupName) {
+      // Find all jobs in this group on the same date
+      const jobDate = job?.date;
+      const groupJobs = jobs.filter(j => {
+        if (j.date !== jobDate) return false;
+        const jobCustomer = customers.find(c => c.id === j.customerId);
+        return jobCustomer?.group === groupName;
+      }).map(j => j.id);
+      
+      setDraggedGroupJobs(groupJobs);
+      console.log('🔷 Dragging group:', groupName, 'with', groupJobs.length, 'jobs');
+    } else {
+      setDraggedGroupJobs([]);
+    }
+    
     setDraggedJobId(jobId);
     // setIsDragging(true); // Removed for mobile performance
     
@@ -2223,27 +2247,43 @@ export function WeatherForecast({
     if (draggedJobId && onRescheduleJob) {
       const job = jobs.find(j => j.id === draggedJobId);
       
-      if (job && job.date !== dateStr) {
-        // Save last action for undo
-        setLastAction({
-          type: 'move',
-          jobId: draggedJobId,
-          fromDate: job.date,
-          toDate: dateStr,
-          timeSlot: targetSlot
-        });
-        
-        // Immediately save the change
-        await onRescheduleJob(draggedJobId, dateStr, targetSlot);
-        
-        // Show undo button
-        setShowUndo(true);
-        setTimeout(() => setShowUndo(false), 5000);
-        
-        toast.success('Job moved');
+      if (job) {
+        // Check if this is a group drag
+        if (draggedGroupJobs.length > 1) {
+          console.log('🔷 Dropping group of', draggedGroupJobs.length, 'jobs at slot', targetSlot);
+          
+          // Move all jobs in the group to consecutive slots starting at targetSlot
+          for (let i = 0; i < draggedGroupJobs.length; i++) {
+            const groupJobId = draggedGroupJobs[i];
+            const slotForThisJob = targetSlot + i;
+            await onRescheduleJob(groupJobId, dateStr, slotForThisJob);
+          }
+          
+          toast.success(`Moved ${draggedGroupJobs.length} properties`);
+        } else if (job.date !== dateStr) {
+          // Single job move
+          // Save last action for undo
+          setLastAction({
+            type: 'move',
+            jobId: draggedJobId,
+            fromDate: job.date,
+            toDate: dateStr,
+            timeSlot: targetSlot
+          });
+          
+          // Immediately save the change
+          await onRescheduleJob(draggedJobId, dateStr, targetSlot);
+          
+          // Show undo button
+          setShowUndo(true);
+          setTimeout(() => setShowUndo(false), 5000);
+          
+          toast.success('Job moved');
+        }
       }
       
       setDraggedJobId(null);
+      setDraggedGroupJobs([]);
     }
     setDragOverSlot(null);
   };
@@ -2253,31 +2293,46 @@ export function WeatherForecast({
     if (draggedJobId) {
       const job = jobs.find(j => j.id === draggedJobId);
       
-      if (job && job.date !== dateStr && onRescheduleJob) {
-        const timeSlot = jobTimeSlots.get(draggedJobId);
-        
-        // Save last action for undo
-        setLastAction({
-          type: 'move',
-          jobId: draggedJobId,
-          fromDate: job.date,
-          toDate: dateStr,
-          timeSlot
-        });
-        
-        // Immediately save the change
-        await onRescheduleJob(draggedJobId, dateStr, timeSlot);
-        
-        // Show undo button
-        setShowUndo(true);
-        
-        // Auto-hide undo after 5 seconds
-        setTimeout(() => setShowUndo(false), 5000);
-        
-        toast.success('Job moved');
+      if (job && onRescheduleJob) {
+        // Check if this is a group drag
+        if (draggedGroupJobs.length > 1) {
+          console.log('🔷 Dropping group of', draggedGroupJobs.length, 'jobs');
+          
+          // Move all jobs in the group
+          for (const groupJobId of draggedGroupJobs) {
+            const timeSlot = jobTimeSlots.get(groupJobId);
+            await onRescheduleJob(groupJobId, dateStr, timeSlot);
+          }
+          
+          toast.success(`Moved ${draggedGroupJobs.length} properties`);
+        } else if (job.date !== dateStr) {
+          // Single job move
+          const timeSlot = jobTimeSlots.get(draggedJobId);
+          
+          // Save last action for undo
+          setLastAction({
+            type: 'move',
+            jobId: draggedJobId,
+            fromDate: job.date,
+            toDate: dateStr,
+            timeSlot
+          });
+          
+          // Immediately save the change
+          await onRescheduleJob(draggedJobId, dateStr, timeSlot);
+          
+          // Show undo button
+          setShowUndo(true);
+          
+          // Auto-hide undo after 5 seconds
+          setTimeout(() => setShowUndo(false), 5000);
+          
+          toast.success('Job moved');
+        }
       }
       
       setDraggedJobId(null);
+      setDraggedGroupJobs([]);
     }
     setDragOverDay(null);
   };
@@ -4007,7 +4062,7 @@ export function WeatherForecast({
                                           if (groupSpan) {
                                             // Render tall group card
                                             const firstCustomer = customers.find(c => c.id === groupSpan.jobs[0].customerId);
-                                            const isDraggedItem = groupSpan.firstJobId === draggedJobId;
+                                            const isDraggedItem = groupSpan.jobs.some(j => j.id === draggedJobId);
                                             const isCompleted = groupSpan.jobs.every(j => j.status === 'completed');
                                             const anyInProgress = groupSpan.jobs.some(j => j.status === 'in-progress');
                                             
@@ -4026,8 +4081,8 @@ export function WeatherForecast({
                                                   isCompleted
                                                     ? 'bg-gray-200/80 border border-gray-400 cursor-default'
                                                     : isDraggedItem
-                                                      ? 'bg-blue-100 border-2 border-blue-600 shadow-lg scale-105'
-                                                      : 'bg-white border border-gray-300 cursor-move hover:shadow-md'
+                                                      ? 'bg-purple-100 border-2 border-purple-600 shadow-xl opacity-50'
+                                                      : 'bg-white border border-gray-300 cursor-move hover:shadow-md hover:border-purple-400'
                                                 }`}
                                                 style={{
                                                   height: `${totalHeight}vh`,
