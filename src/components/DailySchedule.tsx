@@ -110,8 +110,8 @@ export function DailySchedule({
   // Get customers who need service on the current viewed date
   const customersDueOnDate = customers.filter(c => c.nextCutDate === currentViewDate);
   
-  console.log('📅 Current view date:', currentViewDate);
-  console.log('📅 Customers due on this date:', customersDueOnDate.length, customersDueOnDate.map(c => c.name));
+  //console.log('📅 Current view date:', currentViewDate);
+  //console.log('📅 Customers due on this date:', customersDueOnDate.length, customersDueOnDate.map(c => c.name));
   
   // Get jobs scheduled for the currently viewed date - sort by order, then by scheduled time
   const displayedJobs = jobs.filter(j => j.date === currentViewDate).sort((a, b) => {
@@ -125,9 +125,9 @@ export function DailySchedule({
     return a.scheduledTime.localeCompare(b.scheduledTime);
   });
 
-  console.log('📅 Displayed jobs for', currentViewDate + ':', displayedJobs.length);
-  console.log('📅 All jobs count:', jobs.length);
-  console.log('📅 Jobs by date:', jobs.reduce((acc, j) => { acc[j.date] = (acc[j.date] || 0) + 1; return acc; }, {} as Record<string, number>));
+ // console.log('📅 Displayed jobs for', currentViewDate + ':', displayedJobs.length);
+ // console.log('📅 All jobs count:', jobs.length);
+ // console.log('📅 Jobs by date:', jobs.reduce((acc, j) => { acc[j.date] = (acc[j.date] || 0) + 1; return acc; }, {} as Record<string, number>));
 
   // Group jobs by customer group (for displaying nearby properties together)
   type JobGroup = {
@@ -213,9 +213,9 @@ export function DailySchedule({
     });
 
     // Debug: Log what displayItems were created
-    console.log('📊 DisplayItems created:', items.length, 'items');
-    console.log('📊 Groups:', items.filter(i => i.isGroup).length);
-    console.log('📊 Singles:', items.filter(i => !i.isGroup).length);
+   // console.log('📊 DisplayItems created:', items.length, 'items');
+   // console.log('📊 Groups:', items.filter(i => i.isGroup).length);
+   // console.log('📊 Singles:', items.filter(i => !i.isGroup).length);
     if (items.some(i => i.isGroup)) {
       console.log('📊 Group details:', items.filter(i => i.isGroup).map(i => i.isGroup ? { name: i.groupName, jobs: i.jobs.length } : null));
     }
@@ -874,6 +874,19 @@ export function DailySchedule({
     }
   };
 
+  const handleUpdateJobTime = async (jobId: string, estimatedMinutes: number) => {
+    const job = jobs.find(j => j.id === jobId);
+    if (!job) return;
+
+    try {
+      await updateJob({ ...job, totalTime: estimatedMinutes });
+      await onRefreshJobs?.();
+    } catch (error) {
+      console.error('Error updating job time:', error);
+      toast.error('Failed to update job time');
+    }
+  };
+
   const handleStartTimeChange = async (date: string, startHour: number) => {
     // Store the start time
     setDayStartTimes(prev => {
@@ -1281,6 +1294,7 @@ export function DailySchedule({
         customers={customers}
         customerGroups={customerGroups}
         onRescheduleJob={handleRescheduleJob}
+        onUpdateJobTime={handleUpdateJobTime}
         onStartTimeChange={handleStartTimeChange}
         onOptimizeRoute={handleOptimizeRoute}
         optimizationStatus={optimizationStatus}
@@ -1354,7 +1368,7 @@ export function DailySchedule({
       )}
 
       {/* Job List */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6" style={{ gap: 'max(0.5vw, 8px)' }}>
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-3 justify-items-center max-w-7xl mx-auto">
         {customersDueOnDate.length === 0 && displayedJobs.length === 0 ? (
           <Card className="bg-white/80 backdrop-blur col-span-full">
             <CardContent className="pt-6">
@@ -1427,37 +1441,37 @@ export function DailySchedule({
                     onDrop={(e) => handleDrop(e, index)}
                     style={{ minHeight }}
                   >
-                    <CardContent style={{ padding: 'max(0.5vh, 4px)' }}>
-                      <div className="flex flex-col items-center text-center" style={{ gap: 'max(0.3vh, 2px)' }}>
+                    <CardContent className="p-1 sm:p-2">
+                      <div className="flex flex-col items-center text-center gap-0.5 sm:gap-1">
                         {/* Colored top bar */}
                         <div 
                           className="w-full h-1 rounded-sm -mt-1 -mx-1" 
                           style={{ 
-                            width: 'calc(100% + max(1vh, 8px))',
+                            width: 'calc(100% + 8px)',
                             backgroundColor: groupColor
                           }}
                         ></div>
                         
                         {/* Group Header */}
                         <div className="w-full">
-                          <div className="flex items-center justify-center gap-1 mb-1">
-                            <Badge className="bg-blue-600 text-white" style={{ fontSize: 'max(0.8vh, 7px)', padding: '0 max(0.3vw, 2px)' }}>
+                          <div className="flex items-center justify-center gap-1 mb-0.5 sm:mb-1">
+                            <Badge className="bg-blue-600 text-white text-[7px] sm:text-[8px] px-1 py-0">
                               GROUP
                             </Badge>
                           </div>
-                          <h3 className="text-gray-900 font-bold" style={{ fontSize: 'max(1.3vh, 11px)' }}>{groupName}</h3>
-                          <p className="text-gray-700 font-semibold" style={{ fontSize: 'max(1vh, 9px)', marginTop: 'max(0.2vh, 1px)' }}>
+                          <h3 className="text-gray-900 font-bold text-[11px] sm:text-xs">{groupName}</h3>
+                          <p className="text-gray-700 font-semibold text-[9px] sm:text-[10px] mt-0.5">
                             {groupJobs.length} properties • {totalTime} min
                           </p>
                           
                           {/* Drive time */}
-                          <div className="flex items-center justify-center text-blue-600" style={{ gap: 'max(0.2vw, 2px)', fontSize: 'max(0.9vh, 8px)', marginTop: 'max(0.2vh, 1px)' }}>
-                            <Clock style={{ width: 'max(1vh, 8px)', height: 'max(1vh, 8px)' }} className="pointer-events-none" />
-                            <span>{driveTime}</span>
+                          <div className="flex items-center justify-center text-blue-600 gap-0.5 sm:gap-1 text-[8px] sm:text-[9px] mt-0.5">
+                            <Clock className="w-2 h-2 sm:w-3 sm:h-3 pointer-events-none shrink-0" />
+                            <span className="truncate">{driveTime}</span>
                           </div>
                           
                           {/* Customer list */}
-                          <div className="mt-1" style={{ fontSize: 'max(0.9vh, 8px)' }}>
+                          <div className="mt-1 text-[8px] sm:text-[9px]">
                             {groupCustomers.map((cust, idx) => (
                               <div key={cust.id} className="text-gray-700 truncate">
                                 {idx + 1}. {cust.name}
@@ -1467,28 +1481,23 @@ export function DailySchedule({
                         </div>
                         
                         {/* Action buttons for group */}
-                        <div className="flex w-full mt-2" style={{ gap: 'max(0.3vw, 2px)' }}>
+                        <div className="flex w-full mt-1 sm:mt-2 gap-1">
                           {!allCompleted && !anyInProgress && (
                             <Button
                               onClick={() => handleStartJobClick(firstJob)}
-                              className="bg-purple-600 hover:bg-purple-700 w-full"
-                              style={{ 
-                                height: 'max(3vh, 24px)',
-                                fontSize: 'max(1.1vh, 9px)',
-                                padding: '0 max(0.5vw, 4px)'
-                              }}
+                              className="bg-purple-600 hover:bg-purple-700 w-full h-6 sm:h-7 text-[9px] sm:text-[10px] px-1 sm:px-2"
                             >
-                              <Play style={{ width: 'max(1.2vh, 10px)', height: 'max(1.2vh, 10px)' }} className="mr-0.5" />
-                              Start Group
+                              <Play className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-0.5" />
+                              <span className="truncate">Start Group</span>
                             </Button>
                           )}
                           {anyInProgress && (
-                            <div className="w-full text-center text-purple-700 font-semibold" style={{ fontSize: 'max(1vh, 9px)' }}>
+                            <div className="w-full text-center text-purple-700 font-semibold text-[9px] sm:text-[10px]">
                               Group in progress...
                             </div>
                           )}
                           {allCompleted && (
-                            <div className="w-full text-center text-green-700 font-semibold" style={{ fontSize: 'max(1vh, 9px)' }}>
+                            <div className="w-full text-center text-green-700 font-semibold text-[9px] sm:text-[10px]">
                               ✓ Group Complete
                             </div>
                           )}
@@ -1551,62 +1560,57 @@ export function DailySchedule({
                 onDragEnd={handleDragEnd}
                 onDrop={(e) => handleDrop(e, index)}
               >
-                <CardContent style={{ padding: 'max(0.5vh, 4px)' }}>
+                <CardContent className="p-1 sm:p-2">
                   {/* Centered layout */}
-                  <div className="flex flex-col items-center text-center" style={{ gap: 'max(0.3vh, 2px)' }}>
+                  <div className="flex flex-col items-center text-center gap-0.5 sm:gap-1">
                     <div className="w-full">
-                      <h3 className="text-blue-800 font-semibold" style={{ fontSize: 'max(1.2vh, 10px)' }}>{customer.name}</h3>
-                      <div className="flex items-center justify-center text-gray-600" style={{ gap: 'max(0.2vw, 2px)', fontSize: 'max(0.9vh, 8px)', marginTop: 'max(0.2vh, 1px)' }}>
-                        <MapPin style={{ width: 'max(1vh, 8px)', height: 'max(1vh, 8px)' }} className="shrink-0 pointer-events-none" />
+                      <h3 className="text-blue-800 font-semibold text-[10px] sm:text-xs truncate">{customer.name}</h3>
+                      <div className="flex items-center justify-center text-gray-600 gap-0.5 sm:gap-1 text-[8px] sm:text-[9px] mt-0.5">
+                        <MapPin className="w-2 h-2 sm:w-3 sm:h-3 shrink-0 pointer-events-none" />
                         <span className="truncate">{customer.address}</span>
                       </div>
                       {job.scheduledTime && (
-                        <div className="flex items-center justify-center text-blue-600 font-medium" style={{ gap: 'max(0.2vw, 2px)', fontSize: 'max(0.9vh, 8px)', marginTop: 'max(0.2vh, 1px)' }}>
-                          <Clock style={{ width: 'max(1vh, 8px)', height: 'max(1vh, 8px)' }} className="pointer-events-none" />
-                          <span>Scheduled: {formatScheduledTime(job.scheduledTime)}</span>
+                        <div className="flex items-center justify-center text-blue-600 font-medium gap-0.5 sm:gap-1 text-[8px] sm:text-[9px] mt-0.5">
+                          <Clock className="w-2 h-2 sm:w-3 sm:h-3 pointer-events-none shrink-0" />
+                          <span className="truncate">Scheduled: {formatScheduledTime(job.scheduledTime)}</span>
                         </div>
                       )}
-                      <div className="flex items-center justify-center text-blue-600" style={{ gap: 'max(0.2vw, 2px)', fontSize: 'max(0.9vh, 8px)', marginTop: 'max(0.2vh, 1px)' }}>
-                        <Clock style={{ width: 'max(1vh, 8px)', height: 'max(1vh, 8px)' }} className="pointer-events-none" />
-                        <span>{driveTime}</span>
+                      <div className="flex items-center justify-center text-blue-600 gap-0.5 sm:gap-1 text-[8px] sm:text-[9px] mt-0.5">
+                        <Clock className="w-2 h-2 sm:w-3 sm:h-3 pointer-events-none shrink-0" />
+                        <span className="truncate">{driveTime}</span>
                       </div>
                     </div>
 
                   {/* Badges row */}
-                  <div className="flex flex-wrap justify-center" style={{ gap: 'max(0.2vw, 2px)', marginBottom: 'max(0.3vh, 2px)' }}>
-                    {customer.isHilly && <Badge variant="secondary" style={{ fontSize: 'max(0.8vh, 7px)', padding: '0 max(0.3vw, 2px)' }}>Hilly</Badge>}
-                    {customer.hasFencing && <Badge variant="secondary" style={{ fontSize: 'max(0.8vh, 7px)', padding: '0 max(0.3vw, 2px)' }}>Fenced</Badge>}
-                    {customer.hasObstacles && <Badge variant="secondary" style={{ fontSize: 'max(0.8vh, 7px)', padding: '0 max(0.3vw, 2px)' }}>Obstacles</Badge>}
-                    <Badge variant="outline" style={{ fontSize: 'max(0.8vh, 7px)', padding: '0 max(0.3vw, 2px)' }}>{customer.squareFootage.toLocaleString()} sq ft</Badge>
-                    <Badge variant="outline" style={{ fontSize: 'max(0.8vh, 7px)', padding: '0 max(0.3vw, 2px)' }}>${customer.price}</Badge>
+                  <div className="flex flex-wrap justify-center gap-0.5 sm:gap-1 mb-0.5 sm:mb-1">
+                    {customer.isHilly && <Badge variant="secondary" className="text-[7px] sm:text-[8px] px-1 py-0">Hilly</Badge>}
+                    {customer.hasFencing && <Badge variant="secondary" className="text-[7px] sm:text-[8px] px-1 py-0">Fenced</Badge>}
+                    {customer.hasObstacles && <Badge variant="secondary" className="text-[7px] sm:text-[8px] px-1 py-0">Obstacles</Badge>}
+                    <Badge variant="outline" className="text-[7px] sm:text-[8px] px-1 py-0">{customer.squareFootage.toLocaleString()} sq ft</Badge>
+                    <Badge variant="outline" className="text-[7px] sm:text-[8px] px-1 py-0">${customer.price}</Badge>
                   </div>
                   </div>
 
                   {/* Action buttons row */}
-                  <div className="flex w-full" style={{ gap: 'max(0.3vw, 2px)' }}>
+                  <div className="flex w-full gap-1">
 
                       {job.status === 'scheduled' && (
                         <Button
                           onClick={() => handleStartJobClick(job)}
-                          className="bg-blue-600 hover:bg-blue-700 w-full"
-                          style={{ 
-                            height: 'max(3vh, 24px)',
-                            fontSize: 'max(1.1vh, 9px)',
-                            padding: '0 max(0.5vw, 4px)'
-                          }}
+                          className="bg-blue-600 hover:bg-blue-700 w-full h-6 sm:h-7 text-[9px] sm:text-[10px] px-1 sm:px-2"
                         >
-                          <Play style={{ width: 'max(1.2vh, 10px)', height: 'max(1.2vh, 10px)' }} className="mr-0.5" />
-                          Start
+                          <Play className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-0.5 shrink-0" />
+                          <span className="truncate">Start</span>
                         </Button>
                       )}
                       {job.status === 'in-progress' && (
                         <>
                           {/* Live Timer Display */}
-                          <div className="flex-1 bg-blue-50 border border-blue-200 rounded text-center min-w-0" style={{ padding: 'max(0.5vh, 4px) max(0.5vw, 4px)' }}>
-                            <div className="flex items-center justify-center" style={{ gap: 'max(0.2vw, 2px)' }}>
-                              <StopCircle style={{ width: 'max(1.2vh, 10px)', height: 'max(1.2vh, 10px)' }} className="text-blue-600 animate-pulse shrink-0" />
-                              <span className="text-blue-800 whitespace-nowrap" style={{ fontSize: 'max(0.9vh, 8px)' }}>Running</span>
-                              <span className="text-blue-600 font-semibold" style={{ fontSize: 'max(0.9vh, 8px)', marginLeft: 'max(0.1vw, 1px)' }}>
+                          <div className="flex-1 bg-blue-50 border border-blue-200 rounded text-center min-w-0 p-1">
+                            <div className="flex items-center justify-center gap-0.5 sm:gap-1">
+                              <StopCircle className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-blue-600 animate-pulse shrink-0" />
+                              <span className="text-blue-800 whitespace-nowrap text-[8px] sm:text-[9px]">Running</span>
+                              <span className="text-blue-600 font-semibold text-[8px] sm:text-[9px]">
                                 {formatElapsedTime(elapsedTime[job.id] || 0)}
                               </span>
                             </div>
@@ -1620,15 +1624,10 @@ export function DailySchedule({
                                   setCompletionMessage(null);
                                   setSelectedTime(null);
                                 }}
-                                className="bg-blue-600 hover:bg-blue-700 shrink-0"
-                                style={{ 
-                                  height: 'max(3vh, 24px)',
-                                  fontSize: 'max(1.1vh, 9px)',
-                                  padding: '0 max(0.5vw, 4px)'
-                                }}
+                                className="bg-blue-600 hover:bg-blue-700 shrink-0 h-6 sm:h-7 text-[9px] sm:text-[10px] px-1 sm:px-2"
                               >
-                                <CheckCircle style={{ width: 'max(1.2vh, 10px)', height: 'max(1.2vh, 10px)' }} className="mr-0.5" />
-                                Complete
+                                <CheckCircle className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-0.5 shrink-0" />
+                                <span className="truncate">Complete</span>
                               </Button>
                             </DialogTrigger>
                             <DialogContent className="max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto">
@@ -1775,21 +1774,21 @@ export function DailySchedule({
                               toast.error('Failed to revert job status');
                             }
                           }}
-                          className="flex-1 text-center text-blue-700 hover:bg-blue-50 rounded-lg p-1.5 transition-colors border border-blue-300 hover:border-blue-400"
+                          className="flex-1 text-center text-blue-700 hover:bg-blue-50 rounded-lg p-1 transition-colors border border-blue-300 hover:border-blue-400"
                           title="Click to undo completion"
                         >
-                          <CheckCircle className="h-4 w-4 mx-auto" />
-                          <span className="text-xs">{job.totalTime} min</span>
+                          <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 mx-auto" />
+                          <span className="text-[8px] sm:text-[9px]">{job.totalTime} min</span>
                         </button>
                       )}
                       {customer.phone && (
                         <Button
                           variant="outline"
-                          className="flex-1 h-9 text-xs border-blue-300 text-blue-700 hover:bg-blue-50 hover:border-blue-400"
+                          className="flex-1 min-w-0 h-6 sm:h-7 text-[9px] sm:text-[10px] border-blue-300 text-blue-700 hover:bg-blue-50 hover:border-blue-400 px-1 sm:px-2"
                           onClick={() => window.open(`tel:${customer.phone}`, '_self')}
                         >
-                          <Phone className="h-3 w-3 mr-1" />
-                          Call
+                          <Phone className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-0.5 shrink-0" />
+                          <span className="truncate">Call</span>
                         </Button>
                       )}
                     </div>

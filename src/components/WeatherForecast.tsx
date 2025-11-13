@@ -68,6 +68,7 @@ interface WeatherForecastProps {
   customerGroups?: CustomerGroup[]; // NEW: Array of customer groups
   onRescheduleJob?: (jobId: string, newDate: string, timeSlot?: number) => void;
   onUpdateJobTimeSlot?: (jobId: string, timeSlot: number) => void;
+  onUpdateJobTime?: (jobId: string, estimatedMinutes: number) => void; // NEW: Update estimated time
   onStartTimeChange?: (date: string, startHour: number) => void;
   onOptimizeRoute?: () => void;
   optimizationStatus?: 'idle' | 'optimizing' | 'optimized';
@@ -87,6 +88,7 @@ export function WeatherForecast({
   customers = [], 
   customerGroups = [], // NEW: Customer groups
   onRescheduleJob, 
+  onUpdateJobTime, // NEW
   onStartTimeChange, 
   onOptimizeRoute, 
   optimizationStatus = 'idle',
@@ -2212,10 +2214,21 @@ export function WeatherForecast({
     
     setDraggedJobId(jobId);
     
-    // Hide default drag image
-    const img = new Image();
-    img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
-    e.dataTransfer.setDragImage(img, 0, 0);
+    // Create and use a completely transparent drag image to hide browser's default ghost
+    const dragImage = document.createElement('div');
+    dragImage.style.position = 'absolute';
+    dragImage.style.top = '-9999px';
+    dragImage.style.width = '1px';
+    dragImage.style.height = '1px';
+    dragImage.style.opacity = '0';
+    document.body.appendChild(dragImage);
+    
+    e.dataTransfer.setDragImage(dragImage, 0, 0);
+    
+    // Clean up the temporary element after a short delay
+    setTimeout(() => {
+      document.body.removeChild(dragImage);
+    }, 0);
   };
 
   const handleDragOver = (e: React.DragEvent, dateStr: string, slotIndex?: number) => {
@@ -2274,6 +2287,9 @@ export function WeatherForecast({
     
     console.log('📍 Drop triggered - Date:', dateStr, 'Slot:', targetSlot, 'DraggedJobId:', draggedJobId, 'GroupJobs:', draggedGroupJobs.length);
     
+    // Immediately clear drag preview to prevent ghost card
+    setDragPosition(null);
+    
     if (draggedJobId && onRescheduleJob) {
       const job = jobs.find(j => j.id === draggedJobId);
       
@@ -2325,6 +2341,10 @@ export function WeatherForecast({
 
   const handleDrop = async (e: React.DragEvent, dateStr: string) => {
     e.preventDefault();
+    
+    // Immediately clear drag preview to prevent ghost card
+    setDragPosition(null);
+    
     if (draggedJobId) {
       const job = jobs.find(j => j.id === draggedJobId);
       
@@ -3430,6 +3450,7 @@ export function WeatherForecast({
                   
                   const rainChance = weatherForDay?.precipitationChance || 0;
                   const isBeingDraggedOver = dragOverDay === dateStr;
+                  const hasOvernightRain = daysWithOvernightRain.has(dateStr);
                   
                   // Get suggestions for this specific day
                   const suggestionsForDay = (() => {
@@ -3813,59 +3834,52 @@ export function WeatherForecast({
                               );
                             })()}
                             
-                            {/* Time Slot Schedule: 4am-6pm with drag-and-drop (includes 5am icon as first slot) */}
+                            {/* Time Slot Schedule: 5am-6pm hourly with drag-and-drop */}
                             {(() => {
-                              // Get start time for this day (default to 5am - earliest visible slot)
+                              // Get start time for this day (default to 5am)
                               const dayStartHour = dayStartTimes.get(dateStr) || 5;
                               const dayEndHour = dayEndTimes.get(dateStr) || 18;
                               
-                              // Generate hourly time slots from 5am to 6pm (14 hours total)
+                              // Simple hourly slots from 5am to 6pm (14 hours total)
                               const timeSlots = Array.from({ length: 14 }, (_, i) => {
-                                const hour = 5 + i; // Start from 5am
+                                const hour = 5 + i;
                                 const timeLabel = hour > 12 ? `${hour - 12} PM` : hour === 12 ? '12 PM' : `${hour} AM`;
                                 return { hour, timeLabel, slotIndex: i };
                               });
                               
-                              // Get all jobs for this day and sort by status (incomplete first), then by order/scheduledTime
+                              // Get all jobs for this day and sort
                               const allJobs = [...scheduledJobsForDay, ...assignedJobs].sort((a, b) => {
-                                // First priority: Sort by status - incomplete jobs (scheduled/in-progress) before completed
                                 const aIncomplete = a.status !== 'completed';
                                 const bIncomplete = b.status !== 'completed';
-                                if (aIncomplete && !bIncomplete) return -1; // a is incomplete, b is complete - a comes first
-                                if (!aIncomplete && bIncomplete) return 1;  // b is incomplete, a is complete - b comes first
+                                if (aIncomplete && !bIncomplete) return -1;
+                                if (!aIncomplete && bIncomplete) return 1;
                                 
-                                // Secondary sort: by order field if both have it (for optimized routes)
                                 if (a.order && b.order) return a.order - b.order;
-                                // Tertiary sort: by scheduledTime if available
                                 if (a.scheduledTime && b.scheduledTime) {
                                   return a.scheduledTime.localeCompare(b.scheduledTime);
                                 }
                                 return 0;
                               });
                               
-                              // Calculate offset based on start time (e.g., if start is 8am, offset is 3 from 5am)
-                              const slotOffset = Math.max(0, dayStartHour - 5); // Offset from 5am
+                              // Calculate offset based on start time
+                              const slotOffset = Math.max(0, dayStartHour - 5);
+                              
                               const isDraggingOverThisDay = dragOverSlot?.date === dateStr && draggedJobId;
                               const dragTargetSlot = isDraggingOverThisDay ? dragOverSlot.slot : -1;
                               
-                              // Map jobs to their time slots using jobTimeSlots map (updated by useEffect after optimization)
+                              // Map jobs to their 15-minute time slots
                               const jobsBySlot: { [key: number]: typeof allJobs[0] } = {};
                               
                               allJobs.forEach((job) => {
-                                // Skip the dragged job itself - we'll handle it separately
                                 if (job.id === draggedJobId) return;
                                 
-                                // Get the assigned slot from jobTimeSlots (which reflects optimization order)
                                 const assignedSlot = jobTimeSlots.get(job.id);
                                 if (assignedSlot !== undefined) {
-                                  // Apply the slot offset to shift jobs based on day start time
                                   let targetSlot = assignedSlot + slotOffset;
                                   
-                                  // Ensure slot is within valid range (0-13 now for 5am-6pm)
                                   if (targetSlot < 0) targetSlot = 0;
                                   if (targetSlot >= 14) targetSlot = 13;
                                   
-                                  // If dragging over this day, shift jobs to make space
                                   if (isDraggingOverThisDay && targetSlot >= dragTargetSlot) {
                                     targetSlot = targetSlot + 1;
                                   }
@@ -3884,6 +3898,11 @@ export function WeatherForecast({
                                 }
                               }
                               
+                              // Simple system - no duration spanning for now
+                              const jobSpans = new Map<number, { job: any; slotsNeeded: number; firstSlot: number }>();
+                              const slotsOccupiedByDuration = new Set<number>();
+                              
+                              // GROUPS LOGIC REMOVED - handled separately
                               // Group detection: identify which slots belong to groups and should be rendered as single tall cards
                               const groupSpans = new Map<number, { group: CustomerGroup; jobCount: number; firstJobId: string; jobs: any[] }>();
                               const slotsToSkip = new Set<number>();
@@ -3948,11 +3967,9 @@ export function WeatherForecast({
                                   
                                   const totalSlots = 14; // 5am to 6pm = 14 hours
                                   
-                                  // Calculate blocked area as percentage instead of pixels
                                   const blockedStartSlots = Math.max(0, currentStartTime - 5);
                                   const blockedStartPercent = (blockedStartSlots / totalSlots) * 100;
                                   
-                                  // Block from currentEndTime to 6pm (inclusive)
                                   const blockedEndSlots = Math.max(0, 19 - currentEndTime);
                                   const blockedEndPercent = (blockedEndSlots / totalSlots) * 100;
                                   const blockedEndTopPercent = ((currentEndTime - 5) / totalSlots) * 100;
@@ -3988,25 +4005,20 @@ export function WeatherForecast({
                                 {timeSlots.map((slot) => {
                                   const jobInSlot = jobsBySlot[slot.slotIndex];
                                   const isSlotHovered = dragOverSlot?.date === dateStr && dragOverSlot?.slot === slot.slotIndex;
+                                  const isFirstSlot = slot.slotIndex === 0; // First time slot of the day (5 AM)
                                   
-                                  // First slot (5 AM) always shows weather icon + wet indicator
-                                  const isFirstSlot = slot.slotIndex === 0;
-                                  const hasOvernightRain = daysWithOvernightRain.has(dateStr);
+                                  // Show weather icons at 5am, 8am, 11am, 2pm, 5pm
+                                  const shouldShowWeatherIcon = weatherForDay && [5, 8, 11, 14, 17].includes(slot.hour);
                                   
-                                  // Show weather icon at 5am (first slot), 8am, 11am, 2pm, 5pm (every 3 hours, excluding 6pm)
-                                  const shouldShowWeatherIcon = weatherForDay && (isFirstSlot || [8, 11, 14, 17].includes(slot.hour));
-                                  
-                                  // Get weather icon component for this hour
+                                  // Get weather icon component for this hour (if should show)
                                   const getWeatherForHour = () => {
-                                    if (!shouldShowWeatherIcon) return null;
+                                    if (!shouldShowWeatherIcon || !weatherForDay) return null;
                                     
-                                    // Find the matching hourly forecast by hour24 field, or closest match
+                                    // Find the matching hourly forecast
                                     let forecast = null;
                                     if (weatherForDay.hourlyForecasts && weatherForDay.hourlyForecasts.length > 0) {
-                                      // Try to find exact match first
                                       forecast = weatherForDay.hourlyForecasts.find((f: any) => f.hour24 === slot.hour);
                                       
-                                      // If no exact match, find the closest forecast
                                       if (!forecast) {
                                         const closestForecast = weatherForDay.hourlyForecasts.reduce((prev: any, curr: any) => {
                                           const prevDiff = Math.abs((prev.hour24 || 0) - slot.hour);
@@ -4017,7 +4029,7 @@ export function WeatherForecast({
                                       }
                                     }
                                     
-                                    // Fallback to daily weather if no hourly data
+                                    // Fallback to daily weather
                                     if (!forecast) {
                                       forecast = { 
                                         description: weatherForDay.description, 
@@ -4032,7 +4044,7 @@ export function WeatherForecast({
                                       forecast.description, 
                                       effectivePrecipitation,
                                       forecast.rainAmount,
-                                      slot.hour  // Use the actual slot hour for time-based icons
+                                      slot.hour
                                     );
                                     
                                     const timeLabel = slot.hour > 12 ? `${slot.hour - 12} PM` : slot.hour === 12 ? '12 PM' : `${slot.hour} AM`;
@@ -4056,16 +4068,22 @@ export function WeatherForecast({
                                   // Check if this slot is part of a group (but not the first slot)
                                   const isPartOfGroup = slotsToSkip.has(slot.slotIndex);
                                   
+                                  // Check if this is the start of a duration span
+                                  const jobSpan = jobSpans.get(slot.slotIndex);
+                                  
+                                  // Check if this slot is occupied by a duration span from a previous slot
+                                  const isOccupiedByDuration = slotsOccupiedByDuration.has(slot.slotIndex);
+                                  
                                   return (
                                     <div 
                                       key={slot.slotIndex} 
-                                      className={`relative flex items-center transition-colors ${
+                                      className={`relative flex items-start transition-colors ${
                                         isMobile ? 'px-[0.46vh] py-[0.28vh] max-h-[2.65vh]' : 'h-[4.9vh] px-[0.48vh]'
                                       } ${isDropTarget ? 'bg-blue-100 border-l-4 border-blue-500' : ''}`}
                                       data-time-slot="true"
                                       data-slot-index={slot.slotIndex}
-                                      onDragOver={(e) => handleDragOver(e, dateStr, slot.slotIndex)}
-                                      onDrop={(e) => handleSlotDrop(e, dateStr, slot.slotIndex)}
+                                      onDragOver={(e) => !isOccupiedByDuration && handleDragOver(e, dateStr, slot.slotIndex)}
+                                      onDrop={(e) => !isOccupiedByDuration && handleSlotDrop(e, dateStr, slot.slotIndex)}
                                     >
                                       {/* Group card overlay - positioned absolutely to span multiple slots */}
                                       {groupSpan && !groupSpan.jobs.some(j => draggedGroupJobs.includes(j.id)) && (
@@ -4086,8 +4104,8 @@ export function WeatherForecast({
                                               <div
                                                 draggable={!isDraggedItem && !isTouchDevice.current && !isCompleted}
                                                 onDragStart={(e) => !isDraggedItem && !isCompleted && handleDragStart(e, groupSpan.firstJobId)}
-                                                className={`h-full rounded transition-all text-xs overflow-hidden flex flex-col select-none ${
-                                                  isMobile ? 'px-[0.73vh] py-[0.46vh]' : 'px-[0.58vh] py-[0.48vh]'
+                                                className={`h-full rounded transition-all text-xs overflow-hidden flex flex-col select-none mx-auto ${
+                                                  isMobile ? 'px-[0.73vh] py-[0.46vh] max-w-[90vw]' : 'px-[0.58vh] py-[0.48vh] max-w-[260px]'
                                                 } ${
                                                   isCompleted
                                                     ? 'bg-gray-100 border border-gray-300 cursor-default'
@@ -4134,7 +4152,7 @@ export function WeatherForecast({
                                         </div>
                                       )}
                                       
-                                      <div className={`flex items-center w-full h-full ${shouldShowWeatherIcon ? 'gap-[0.48vh]' : 'gap-0'}`}>
+                                      <div className={`flex items-start w-full ${shouldShowWeatherIcon ? 'gap-[0.48vh]' : 'gap-0'}`}>
                                         {/* Show weather icon with time, or just empty space for alignment */}
                                         {shouldShowWeatherIcon ? (() => {
                                           const weatherIcon = getWeatherForHour();
@@ -4167,13 +4185,15 @@ export function WeatherForecast({
                                         
                                         {/* Job card or empty drop zone */}
                                         {jobInSlot && !isPartOfGroup && !draggedGroupJobs.includes(jobInSlot.id) ? (() => {
-                                          // Don't render if this job is part of a group (will be shown by group overlay)
-                                          // Also don't render if this job is part of the currently dragged group
+                                          // Groups are handled separately
+                                          // Duration spans: job only exists in jobsBySlot at first slot
+                                          
+                                          // Check if this job spans multiple slots based on duration
+                                          const spanInfo = jobSpan;
+                                          const spansMultipleSlots = spanInfo && spanInfo.slotsNeeded > 1;
                                           
                                           // Regular single job card
                                           const customer = customers.find(c => c.id === jobInSlot.customerId);
-                                          const customerGroupId = customer?.groupId;
-                                          const customerGroup = customerGroupId ? customerGroups.find(g => g.id === customerGroupId) : undefined;
                                           
                                           // eslint-disable-next-line @typescript-eslint/no-unused-vars
                                           const isScheduled = scheduledJobsForDay.some(j => j.id === jobInSlot.id);
@@ -4186,7 +4206,8 @@ export function WeatherForecast({
                                           const isSelected = selectedJobIds.has(jobInSlot.id);
                                           const isAffectedByRain = affectedJobIds.has(jobInSlot.id);
                                           
-                                          return (
+                                          // If this job spans multiple slots, render it absolutely positioned
+                                          const jobCardContent = (
                                             <div
                                               draggable={!isDraggedItem && !isTouchDevice.current && !isCompleted}
                                               onDragStart={(e) => !isDraggedItem && !isCompleted && handleDragStart(e, jobInSlot.id)}
@@ -4195,8 +4216,8 @@ export function WeatherForecast({
                                               onTouchMove={isTouchDevice.current && !isCompleted ? handleJobTouchMove : undefined}
                                               onTouchEnd={isTouchDevice.current && !isCompleted ? handleJobTouchEnd : undefined}
                                               //is where the size of the job cards are adjusted
-                                              className={`flex-1 rounded transition-all text-xs group overflow-hidden flex items-center select-none ${
-                                                isMobile ? 'px-[0.73vh] py-[0.46vh] min-h-[3.65vh] max-h-[4.10vh]' : 'px-[0.58vh] py-[0.48vh] h-[4.8vh]'
+                                              className={`rounded transition-all text-xs group overflow-hidden flex items-start select-none mx-auto ${
+                                                isMobile ? 'px-[0.73vh] py-[0.46vh] max-w-[90vw]' : 'px-[0.58vh] py-[0.48vh] max-w-[260px]'
                                               } ${
                                                 isCompleted
                                                   ? 'bg-gray-200/80 border border-gray-400 cursor-default'
@@ -4216,6 +4237,9 @@ export function WeatherForecast({
                                                 userSelect: 'none',
                                                 WebkitUserSelect: 'none',
                                                 WebkitTouchCallout: 'none',
+                                                height: isMobile ? 'auto' : `${Math.max(2.45, ((jobInSlot.totalTime || 60) / 60) * 4.9)}vh`,
+                                                minHeight: isMobile ? '3.65vh' : '2.45vh',
+                                                alignSelf: 'flex-start',
                                                 ...(isAffectedByRain && !isCompleted && !isSelected && !isCutItem && !isDraggedItem && !isAssigned ? {
                                                   backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 6px, rgba(59, 130, 246, 0.08) 6px, rgba(59, 130, 246, 0.08) 12px)'
                                                 } : {})
@@ -4243,9 +4267,46 @@ export function WeatherForecast({
                                                     </div>
                                                   )}
                                                   {!isDraggedItem && !isAssigned && !isCutItem && (
-                                                    <div className={`truncate ${isMobile ? 'text-[1.14vh]' : 'text-[1.1vh]'} ${isCompleted ? 'text-gray-500' : 'text-gray-600'}`}>
+                                                    <div className={`truncate ${
+                                                      isMobile ? 'text-[1.14vh]' : 'text-[1.1vh]'
+                                                    } ${isCompleted ? 'text-gray-500' : 'text-gray-600'}`}>
                                                       {scheduledTime && <span className="font-medium">{scheduledTime} • </span>}
-                                                      ${customer?.price} • 60 min
+                                                      ${customer?.price} • 
+                                                      <input
+                                                        type="number"
+                                                        value={jobInSlot.totalTime || 60}
+                                                        onChange={(e) => {
+                                                          const newTime = parseInt(e.target.value) || 60;
+                                                          if (onUpdateJobTime && newTime >= 15 && newTime <= 300) {
+                                                            onUpdateJobTime(jobInSlot.id, newTime);
+                                                          }
+                                                        }}
+                                                        onBlur={(e) => {
+                                                          // Ensure value is valid on blur
+                                                          const value = parseInt(e.target.value);
+                                                          if (!value || value < 15) {
+                                                            if (onUpdateJobTime) onUpdateJobTime(jobInSlot.id, 15);
+                                                          } else if (value > 300) {
+                                                            if (onUpdateJobTime) onUpdateJobTime(jobInSlot.id, 300);
+                                                          }
+                                                        }}
+                                                        onKeyDown={(e) => {
+                                                          if (e.key === 'Enter') {
+                                                            e.currentTarget.blur();
+                                                          }
+                                                          e.stopPropagation();
+                                                        }}
+                                                        onClick={(e) => {
+                                                          e.stopPropagation();
+                                                          e.currentTarget.select();
+                                                        }}
+                                                        onDragStart={(e) => e.preventDefault()}
+                                                        draggable={false}
+                                                        className="w-10 bg-transparent border-b border-dashed border-gray-400 hover:border-blue-500 focus:outline-none focus:border-blue-600 text-center cursor-text"
+                                                        min="15"
+                                                        max="300"
+                                                        step="15"
+                                                      /> min
                                                     </div>
                                                   )}
                                                   {isCutItem && isTouchDevice.current && (
@@ -4266,11 +4327,14 @@ export function WeatherForecast({
                                               </div>
                                             </div>
                                           );
-                                        })() : isPartOfGroup ? (
-                                          // Empty transparent drop zone for slots that are part of a group (overlay will show the group card)
-                                          <div className="flex-1 h-[4.8vh]"></div>
+                                          
+                                          
+                                          return jobCardContent;
+                                        })() : isPartOfGroup || isOccupiedByDuration ? (
+                                          // Empty transparent drop zone
+                                          <div className="flex-1 h-[4.5vh]"></div>
                                         ) : (
-                                          // Normal empty drop zone for ungrouped slots
+                                          // Normal empty drop zone
                                           <div 
                                             onClick={isTouchDevice.current && (cutJobId || (isSelectionMode && selectedJobIds.size > 0)) ? () => handleSlotTap(dateStr, slot.slotIndex) : undefined}
                                             className={`flex-1 border border-dashed rounded flex items-center justify-center text-center text-[1.2vh] transition-all h-[4.2vh] ${
@@ -4552,8 +4616,8 @@ export function WeatherForecast({
         </Alert>
       )}
 
-      {/* Drag preview */}
-      {draggedJobId && dragPosition && (() => {
+      {/* Drag preview - DISABLED to prevent ghost card */}
+      {false && draggedJobId && dragPosition && (() => {
         const draggedJob = jobs.find(j => j.id === draggedJobId);
         const customer = draggedJob ? customers.find(c => c.id === draggedJob.customerId) : null;
         if (!draggedJob || !customer) return null;

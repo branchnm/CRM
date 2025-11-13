@@ -1,29 +1,39 @@
-# Copilot Instructions for Job Flow 
+# Copilot Instructions for Job Flow CRM
 
 ## Project Overview
-React + TypeScript (Vite) frontend with Supabase backend. CRM for outdoor service businesses with weather-aware scheduling, route optimization, and automated customer communications.
+React 19 + TypeScript (Vite) frontend with Supabase backend. CRM for outdoor service businesses with weather-aware scheduling, route optimization, and automated customer communications.
 
-**Tech Stack:** React 19 + TypeScript, Tailwind CSS 4, Supabase (Postgres + Edge Functions), Vite with Rolldown, shadcn/ui components
+**Tech Stack:** React 19, TypeScript, Tailwind CSS 4, Supabase (Postgres + RLS + Edge Functions), Vite with Rolldown, shadcn/ui, PWA
 
 ## Architecture & Key Patterns
 
+### Multi-Tenant Data Isolation (CRITICAL)
+- **ALL database operations** filter by `user_id` field (customers, jobs, groups tables)
+- **RLS policies** enforce per-user data isolation at the database level
+- **Demo mode:** Set `VITE_DEMO_MODE=true` to use shared demo user ID (`00000000-0000-0000-0000-000000000001`) - skips auth, no user isolation
+- **Production mode:** `VITE_DEMO_MODE=false` requires authentication - each user sees only their data
+- **Service layer pattern:** `getCurrentUserId()` in `services/{customers,jobs,groups}.ts` returns either demo ID or `auth.uid()`
+- **Migration:** `src/db/add_user_id_with_rls.sql` shows complete RLS setup - reference for any new tables
+
 ### State Management Pattern
-- **Customer/Job data:** Managed via Supabase in `src/services/{customers,jobs}.ts`
-- **Refresh pattern:** Components call `onRefreshCustomers()` and `onRefreshJobs()` after mutations to sync with DB
-- **Race condition handling:** Use `creatingJobsRef` (see `DailySchedule.tsx` line 48) to prevent duplicate job creation during auto-scheduling
-- **Local state:** Message templates and equipment stored in `localStorage` (not in DB yet)
+- **Customer/Job data:** Managed via Supabase in `src/services/{customers,jobs,groups}.ts`
+- **Refresh pattern:** Components call `onRefreshCustomers()` and `onRefreshJobs()` callbacks after mutations to sync with DB
+- **Race condition handling:** Use `creatingJobsRef` (see `DailySchedule.tsx` line 96) to prevent duplicate job creation during auto-scheduling
+- **Local state:** Message templates and equipment stored in `localStorage` (not persisted to DB)
 
 ### Data Flow for Job Scheduling
-1. **Auto-job creation:** `DailySchedule.tsx` auto-creates jobs for customers with `nextCutDate === today` (lines 87-126)
-2. **Order tracking:** Jobs have an `order` field (1-indexed) that persists across drag-and-drop reordering
-3. **Database sync:** ALL job updates MUST call `updateJob()` from `services/jobs.ts` - the `order` field is CRITICAL and must be included in updates (see comments in `jobs.ts` lines 144, 168)
+1. **Auto-job creation:** `DailySchedule.tsx` auto-creates jobs for customers with `nextCutDate === currentViewDate` on mount (prevents duplicates via `creatingJobsRef`)
+2. **Order tracking:** Jobs have an `order` field (1-indexed) that persists drag-and-drop sequence across page reloads
+3. **Database sync:** ALL job updates MUST call `updateJob()` from `services/jobs.ts` - the `order` field is CRITICAL and must be included in updates (see `jobs.ts` line 150: `order: job.order || null`)
+4. **Date format:** ALWAYS use `'en-CA'` locale for YYYY-MM-DD dates to match DB storage (e.g., `new Date().toLocaleDateString('en-CA')`)
+5. **Customer groups:** `CustomerGroup` table allows batching nearby properties - jobs display grouped when customers share `groupId`
 
 ### Route Optimization Pattern
-- **Entry point:** `DailySchedule.tsx` "Optimize Route" button → calls `optimizeRouteWithGoogleMaps()` from `services/routeOptimizer.ts`
-- **Batch API calls:** Uses `getBatchDriveTimes()` to fetch all drive times in parallel (batched into groups of 25)
-- **Algorithm:** Greedy nearest-neighbor with 2-opt improvement, prioritizes time but considers distance for close alternatives
-- **Caching:** Drive times cached in component state to avoid redundant API calls
-- **Order persistence:** Updates job `order` field (1, 2, 3...) and persists to DB via `updateJob()`
+- **Entry point:** `DailySchedule.tsx` "Optimize Route" button → calls `optimizeRoute()` from `services/routeOptimizer.ts`
+- **Batch API calls:** Uses `getBatchDriveTimes()` to fetch all drive times in parallel (batched into groups of 25 to avoid API limits)
+- **Algorithm:** Greedy nearest-neighbor with 2-opt improvement - prioritizes time but considers distance if time difference <10%
+- **Caching:** Drive times cached in component state (`driveTimesCache: Map<string, string>`) to avoid redundant API calls during same session
+- **Order persistence:** Updates job `order` field sequentially (1, 2, 3...) and persists to DB via `updateJob()` - triggers re-render with new order
 
 ### Weather-Driven Scheduling
 - **Component:** `WeatherForecast.tsx` - drag-and-drop jobs across 5-day forecast grid
@@ -34,39 +44,45 @@ React + TypeScript (Vite) frontend with Supabase backend. CRM for outdoor servic
 ### Service Layer Pattern
 All external integrations abstracted in `src/services/`:
 - **Supabase client:** `lib/supabase.ts` - uses `projectId` and `publicAnonKey` from `utils/supabase/info.ts` (auto-generated, don't edit)
-- **SMS:** `services/sms.ts` - falls back to MockSMS in dev, uses Supabase Edge Function in prod
-- **Google Maps:** `services/googleMaps.ts` - calls `supabase/functions/get-drive-time` Edge Function (which uses `GOOGLE_MAPS_API_KEY` server secret) - **Note:** This function needs to be created/deployed separately
-- **Weather:** `services/weather.ts` - direct OpenWeather API calls from frontend
+- **Authentication:** `services/auth.ts` - email/password via Supabase Auth, supports session persistence and state change listeners
+- **SMS:** `services/sms.ts` - falls back to MockSMS in dev, uses `supabase/functions/send-sms` Edge Function (Twilio) in prod
+- **Google Maps:** `services/googleMaps.ts` - client-side calls (requires `VITE_GOOGLE_MAPS_API_KEY`) - **Note:** No Edge Function deployed yet
+- **Weather:** `services/weather.ts` - direct OpenWeather API calls from frontend, requires `VITE_OPENWEATHER_API_KEY`
+- **Data isolation:** Each service has `getCurrentUserId()` helper that returns demo ID or `auth.uid()` based on `VITE_DEMO_MODE`
 
 ## Developer Workflows
 
 ### Frontend Commands (run in project root)
 ```powershell
-npm run dev     # Start Vite dev server (uses Rolldown for faster builds)
-npm run build   # TypeScript compile + production build
-npm run lint    # ESLint with React Compiler support
+npm run dev         # Start Vite dev server (uses Rolldown for faster builds)
+npm run dev:host    # Start dev server accessible on network
+npm run build       # TypeScript compile + production build
+npm run lint        # ESLint with React Compiler support
+npm run preview     # Preview production build locally
+npm run deploy      # Run auto-commit.ps1 script for deployment
 ```
 
 ### Environment Variables
 Create `.env.local` in project root (never commit):
 ```env
-VITE_OPENWEATHER_API_KEY=your_key_here          # For weather.ts
-VITE_GOOGLE_MAPS_API_KEY=your_key_here          # Optional: frontend can call Google Maps directly (deprecated, use Edge Function)
+VITE_DEMO_MODE=true                    # true = demo mode (no auth), false = requires login
+VITE_OPENWEATHER_API_KEY=your_key      # For weather.ts (OpenWeather API)
+VITE_GOOGLE_MAPS_API_KEY=your_key      # For googleMaps.ts (Distance Matrix API)
 ```
 
 ### Supabase Commands
 ```powershell
 supabase functions deploy send-sms --project-ref oqzhxfggzveuhaldjuay
-supabase functions deploy get-drive-time --project-ref oqzhxfggzveuhaldjuay  # Need to create this function first
-supabase secrets set GOOGLE_MAPS_API_KEY=your_key
 supabase secrets set TWILIO_ACCOUNT_SID=your_sid TWILIO_AUTH_TOKEN=your_token TWILIO_FROM_NUMBER=+1234567890
 supabase db push   # Apply migrations from supabase/migrations/
 ```
 
 ### Database Schema
-- **customers:** `src/db/schema.sql` - includes `next_cut_date` (YYYY-MM-DD) for auto-scheduling
-- **jobs:** `src/db/create_jobs_table.sql` - includes `order` field for drag-and-drop sequence
+- **customers:** `src/db/schema.sql` - includes `user_id`, `next_cut_date` (YYYY-MM-DD), `group_id` for auto-scheduling
+- **jobs:** `src/db/create_jobs_table.sql` - includes `user_id`, `order` field for drag-and-drop sequence
+- **customer_groups:** `src/db/create_customer_groups_table.sql` - groups nearby properties for batched routing
 - **Migrations:** SQL files in `src/db/` are reference schemas - actual DB managed via Supabase dashboard/migrations
+- **RLS Setup:** Run `src/db/add_user_id_with_rls.sql` to add user isolation - enables demo mode AND production multi-tenancy
 
 ## Critical Implementation Details
 
@@ -97,6 +113,8 @@ Enabled via `babel-plugin-react-compiler` in `vite.config.ts` - automatically me
 3. **Date format:** Use `'en-CA'` locale for YYYY-MM-DD (e.g., `new Date().toLocaleDateString('en-CA')`)
 4. **Supabase info.ts:** Auto-generated file - if you need to change project, regenerate via `supabase init`
 5. **Vite env vars:** Must start with `VITE_` to be exposed to frontend
+6. **User ID isolation:** When adding new tables, ALWAYS add `user_id` field + RLS policies matching `add_user_id_with_rls.sql`
+7. **Demo user constant:** Demo user ID is `00000000-0000-0000-0000-000000000001` - hardcoded in all service files
 
 ## Integration Setup Docs
 - Weather API: `WEATHER_SETUP.md` (if exists)
