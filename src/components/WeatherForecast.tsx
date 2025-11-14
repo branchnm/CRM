@@ -4616,11 +4616,13 @@ export function WeatherForecast({
         </Alert>
       )}
 
-      {/* Drag preview - DISABLED to prevent ghost card */}
+      {/* Drag preview - DISABLED to prevent ghost card 
       {false && draggedJobId && dragPosition && (() => {
         const draggedJob = jobs.find(j => j.id === draggedJobId);
-        const customer = draggedJob ? customers.find(c => c.id === draggedJob.customerId) : null;
-        if (!draggedJob || !customer) return null;
+        if (!draggedJob) return null;
+        
+        const customer = customers.find(c => c.id === draggedJob.customerId);
+        if (!customer || !dragPosition) return null;
         
         // Check if this is a group drag
         const isGroupDrag = customer.groupId && draggedGroupJobs.length > 1;
@@ -4650,7 +4652,6 @@ export function WeatherForecast({
                   WebkitTouchCallout: 'none',
                 }}
               >
-                {/* Colored bar at top */}
                 <div 
                   className="w-full rounded-sm mb-[0.3vh]" 
                   style={{ 
@@ -4692,6 +4693,7 @@ export function WeatherForecast({
           </div>
         );
       })()}
+      */}
     </div>
   );
 }
