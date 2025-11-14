@@ -1161,15 +1161,9 @@ export function DailySchedule({
 
   // Drag and drop handlers
   const handleDragStart = (e: React.DragEvent, jobId: string) => {
-    e.stopPropagation();
-    setDraggedJobId(jobId);
-    setDragPosition({ x: e.clientX, y: e.clientY });
     e.dataTransfer.effectAllowed = 'move';
-    
-    // Hide the default drag ghost image
-    const img = new Image();
-    img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
-    e.dataTransfer.setDragImage(img, 0, 0);
+    setDraggedJobId(jobId);
+    setDraggedJobSourceDate(currentViewDate);
   };
 
   const handleDragOver = (e: React.DragEvent, index: number) => {
