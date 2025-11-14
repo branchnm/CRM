@@ -4121,14 +4121,14 @@ export function WeatherForecast({
                                               >
                                                 {/* Colored bar at top */}
                                                 <div 
-                                                  className="w-full h-[0.4vh] rounded-sm mb-[0.3vh] -mx-[0.58vh] -mt-[0.48vh]" 
+                                                  className="w-full h-[0.4vh] rounded-sm mb-[0.3vh] -mx-[0.58vh] -mt-[0.48vh] pointer-events-none" 
                                                   style={{ 
                                                     width: 'calc(100% + 1.16vh)',
                                                     backgroundColor: groupColor
                                                   }}
                                                 ></div>
                                                 
-                                                <div className="flex flex-col gap-[0.2vh] w-full flex-1 justify-center">
+                                                <div className="flex flex-col gap-[0.2vh] w-full flex-1 justify-center pointer-events-none">
                                                   <div className={`font-semibold text-gray-900 ${isMobile ? 'text-[1.27vh]' : 'text-[1.34vh]'}`}>
                                                     {groupSpan.group.name}
                                                   </div>
@@ -4245,7 +4245,7 @@ export function WeatherForecast({
                                                 } : {})
                                               }}
                                             >
-                                              <div className="flex items-center justify-between gap-[0.14vh] w-full overflow-hidden">
+                                              <div className="flex items-center justify-between gap-[0.14vh] w-full overflow-hidden pointer-events-none">
                                                 <div className="flex-1 min-w-0">
                                                   <div className={`font-semibold truncate w-full ${
                                                     isMobile ? 'text-[1.27vh]' : 'text-[1.34vh]'
@@ -4302,7 +4302,7 @@ export function WeatherForecast({
                                                         }}
                                                         onDragStart={(e) => e.preventDefault()}
                                                         draggable={false}
-                                                        className="w-10 bg-transparent border-b border-dashed border-gray-400 hover:border-blue-500 focus:outline-none focus:border-blue-600 text-center cursor-text"
+                                                        className="w-10 bg-transparent border-b border-dashed border-gray-400 hover:border-blue-500 focus:outline-none focus:border-blue-600 text-center cursor-text pointer-events-auto"
                                                         min="15"
                                                         max="300"
                                                         step="15"
@@ -4318,7 +4318,7 @@ export function WeatherForecast({
                                                 {isScheduled && !isDraggedItem && !isCompleted && (
                                                   <button
                                                     onClick={() => unassignJob(jobInSlot.id)}
-                                                    className="opacity-0 group-hover:opacity-100 text-red-600 hover:text-red-800 transition-opacity shrink-0 w-[0.6vh] h-[0.6vh] flex items-center justify-center"
+                                                    className="opacity-0 group-hover:opacity-100 text-red-600 hover:text-red-800 transition-opacity shrink-0 w-[0.6vh] h-[0.6vh] flex items-center justify-center pointer-events-auto"
                                                     title="Remove"
                                                   >
                                                     ✕
