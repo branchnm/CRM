@@ -4411,10 +4411,18 @@ export function WeatherForecast({
                                                           e.stopPropagation();
                                                         }}
                                                         onClick={(e) => {
+                                                          console.log('🔢 INPUT CLICKED');
                                                           e.stopPropagation();
                                                           e.currentTarget.select();
                                                         }}
-                                                        onMouseDown={(e) => e.stopPropagation()}
+                                                        onFocus={(e) => {
+                                                          console.log('🎯 INPUT FOCUSED');
+                                                          e.currentTarget.select();
+                                                        }}
+                                                        onMouseDown={(e) => {
+                                                          console.log('🖱️ INPUT MOUSEDOWN - stopping propagation');
+                                                          e.stopPropagation();
+                                                        }}
                                                         onDragStart={(e) => e.preventDefault()}
                                                         draggable={false}
                                                         className="w-10 bg-transparent border-b border-dashed border-gray-400 hover:border-blue-500 focus:outline-none focus:border-blue-600 text-center cursor-text"
