@@ -3918,12 +3918,13 @@ export function WeatherForecast({
                               const dayEndHour = dayEndTimes.get(dateStr) || 18;
                               
                               // 15-minute interval slots from 5am to 7pm (14 hours = 56 slots)
+                              // But only show labels every 4 slots (hourly)
                               const timeSlots = Array.from({ length: 56 }, (_, i) => {
-                                const totalMinutes = 5 * 60 + (i * 15); // Start at 5am (300 minutes), add 15-min intervals
+                                const totalMinutes = 5 * 60 + (i * 15);
                                 const hour = Math.floor(totalMinutes / 60);
-                                const minute = totalMinutes % 60;
-                                const timeLabel = hour > 12 ? `${hour - 12}:${minute.toString().padStart(2, '0')} PM` : hour === 12 ? `12:${minute.toString().padStart(2, '0')} PM` : `${hour}:${minute.toString().padStart(2, '0')} AM`;
-                                return { hour, minute, timeLabel, slotIndex: i };
+                                const isHourMark = i % 4 === 0; // Every 4th slot is a full hour
+                                const timeLabel = isHourMark ? (hour > 12 ? `${hour - 12} PM` : hour === 12 ? '12 PM' : `${hour} AM`) : '';
+                                return { hour, timeLabel, slotIndex: i, isHourMark };
                               });
                               
                               // Get all jobs for this day and sort
@@ -3947,26 +3948,29 @@ export function WeatherForecast({
                               const dragTargetSlot = isDraggingOverThisDay ? dragOverSlot.slot : -1;
                               
                               // Map jobs to their 15-minute time slots
+                              // Each job occupies multiple consecutive slots based on duration
                               const jobsBySlot: { [key: number]: typeof allJobs[0] } = {};
+                              const jobSlotRanges = new Map<string, { startSlot: number; slotsNeeded: number }>();
+                              
+                              let currentSlot = 0;
                               
                               allJobs.forEach((job) => {
                                 if (job.id === draggedJobId) return;
                                 
-                                const assignedSlot = jobTimeSlots.get(job.id);
-                                if (assignedSlot !== undefined) {
-                                  let targetSlot = assignedSlot + slotOffset;
-                                  
-                                  if (targetSlot < 0) targetSlot = 0;
-                                  if (targetSlot >= 56) targetSlot = 55;
-                                  
-                                  if (isDraggingOverThisDay && targetSlot >= dragTargetSlot) {
-                                    targetSlot = targetSlot + 1;
-                                  }
-                                  
-                                  if (targetSlot < 56) {
-                                    jobsBySlot[targetSlot] = job;
-                                  }
+                                // Calculate how many 15-min slots this job needs
+                                const jobDuration = job.totalTime || 60; // Default to 60 minutes
+                                const slotsNeeded = Math.ceil(jobDuration / 15); // 15 minutes per slot
+                                
+                                // Store the range for this job
+                                jobSlotRanges.set(job.id, { startSlot: currentSlot, slotsNeeded });
+                                
+                                // Place job in first slot of its range
+                                if (currentSlot < 56) {
+                                  jobsBySlot[currentSlot] = job;
                                 }
+                                
+                                // Move to next available slot
+                                currentSlot += slotsNeeded;
                               });
                               
                               // If dragging over this day, place the dragged job at the target slot
@@ -3977,9 +3981,26 @@ export function WeatherForecast({
                                 }
                               }
                               
-                              // Simple system - no duration spanning for now
+                              // Calculate job spans based on duration
                               const jobSpans = new Map<number, { job: any; slotsNeeded: number; firstSlot: number }>();
                               const slotsOccupiedByDuration = new Set<number>();
+                              
+                              jobSlotRanges.forEach((range, jobId) => {
+                                const job = allJobs.find(j => j.id === jobId);
+                                if (!job) return;
+                                
+                                // Mark first slot as having the span
+                                jobSpans.set(range.startSlot, {
+                                  job,
+                                  slotsNeeded: range.slotsNeeded,
+                                  firstSlot: range.startSlot
+                                });
+                                
+                                // Mark all other slots as occupied
+                                for (let i = 1; i < range.slotsNeeded; i++) {
+                                  slotsOccupiedByDuration.add(range.startSlot + i);
+                                }
+                              });
                               
                               // GROUPS LOGIC REMOVED - handled separately
                               // Group detection: identify which slots belong to groups and should be rendered as single tall cards
@@ -4140,6 +4161,7 @@ export function WeatherForecast({
                                   
                                   // All slots are always visible and active
                                   const isDropTarget = dragOverSlot?.date === dateStr && dragOverSlot?.slot === slot.slotIndex;
+                                  const showDropIndicator = isDropTarget && slot.isHourMark; // Only show on hour marks
                                   
                                   // Check if this is the start of a group span
                                   const groupSpan = groupSpans.get(slot.slotIndex);
@@ -4158,7 +4180,7 @@ export function WeatherForecast({
                                       key={slot.slotIndex} 
                                       className={`relative flex items-start transition-colors ${
                                         isMobile ? 'px-[0.46vh] py-[0.1vh] max-h-[2.65vh]' : 'h-[0.875vh] px-[0.48vh] py-[0.05vh]'
-                                      } ${isDropTarget ? 'bg-blue-100 border-l-4 border-blue-500' : ''}`}
+                                      } ${showDropIndicator ? 'bg-blue-100 border-l-4 border-blue-500' : ''}`}
                                       data-time-slot="true"
                                       data-slot-index={slot.slotIndex}
                                       onDragOver={(e) => !isOccupiedByDuration && handleDragOver(e, dateStr, slot.slotIndex)}
@@ -4327,8 +4349,8 @@ export function WeatherForecast({
                                                 userSelect: 'none',
                                                 WebkitUserSelect: 'none',
                                                 WebkitTouchCallout: 'none',
-                                                height: isMobile ? 'auto' : `${Math.max(2.45, ((jobInSlot.totalTime || 60) / 60) * 4.9)}vh`,
-                                                minHeight: isMobile ? '3.65vh' : '2.45vh',
+                                                height: isMobile ? 'auto' : spansMultipleSlots ? `calc(${spanInfo.slotsNeeded} * 0.925vh)` : '0.925vh',
+                                                minHeight: isMobile ? '3.65vh' : '0.925vh',
                                                 alignSelf: 'flex-start',
                                                 ...(isAffectedByRain && !isCompleted && !isSelected && !isCutItem && !isDraggedItem && !isAssigned ? {
                                                   backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 6px, rgba(59, 130, 246, 0.08) 6px, rgba(59, 130, 246, 0.08) 12px)'
