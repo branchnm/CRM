@@ -3917,11 +3917,13 @@ export function WeatherForecast({
                               const dayStartHour = dayStartTimes.get(dateStr) || 5;
                               const dayEndHour = dayEndTimes.get(dateStr) || 18;
                               
-                              // Simple hourly slots from 5am to 6pm (14 hours total)
-                              const timeSlots = Array.from({ length: 14 }, (_, i) => {
-                                const hour = 5 + i;
-                                const timeLabel = hour > 12 ? `${hour - 12} PM` : hour === 12 ? '12 PM' : `${hour} AM`;
-                                return { hour, timeLabel, slotIndex: i };
+                              // 15-minute interval slots from 5am to 7pm (14 hours = 56 slots)
+                              const timeSlots = Array.from({ length: 56 }, (_, i) => {
+                                const totalMinutes = 5 * 60 + (i * 15); // Start at 5am (300 minutes), add 15-min intervals
+                                const hour = Math.floor(totalMinutes / 60);
+                                const minute = totalMinutes % 60;
+                                const timeLabel = hour > 12 ? `${hour - 12}:${minute.toString().padStart(2, '0')} PM` : hour === 12 ? `12:${minute.toString().padStart(2, '0')} PM` : `${hour}:${minute.toString().padStart(2, '0')} AM`;
+                                return { hour, minute, timeLabel, slotIndex: i };
                               });
                               
                               // Get all jobs for this day and sort
@@ -3938,8 +3940,8 @@ export function WeatherForecast({
                                 return 0;
                               });
                               
-                              // Calculate offset based on start time
-                              const slotOffset = Math.max(0, dayStartHour - 5);
+                              // Calculate offset based on start time (multiply by 4 for 15-min slots per hour)
+                              const slotOffset = Math.max(0, (dayStartHour - 5) * 4);
                               
                               const isDraggingOverThisDay = dragOverSlot?.date === dateStr && draggedJobId;
                               const dragTargetSlot = isDraggingOverThisDay ? dragOverSlot.slot : -1;
@@ -3955,13 +3957,13 @@ export function WeatherForecast({
                                   let targetSlot = assignedSlot + slotOffset;
                                   
                                   if (targetSlot < 0) targetSlot = 0;
-                                  if (targetSlot >= 14) targetSlot = 13;
+                                  if (targetSlot >= 56) targetSlot = 55;
                                   
                                   if (isDraggingOverThisDay && targetSlot >= dragTargetSlot) {
                                     targetSlot = targetSlot + 1;
                                   }
                                   
-                                  if (targetSlot < 14) {
+                                  if (targetSlot < 56) {
                                     jobsBySlot[targetSlot] = job;
                                   }
                                 }
@@ -4155,7 +4157,7 @@ export function WeatherForecast({
                                     <div 
                                       key={slot.slotIndex} 
                                       className={`relative flex items-start transition-colors ${
-                                        isMobile ? 'px-[0.46vh] py-[0.28vh] max-h-[2.65vh]' : 'h-[3.5vh] px-[0.48vh] py-[0.2vh]'
+                                        isMobile ? 'px-[0.46vh] py-[0.1vh] max-h-[2.65vh]' : 'h-[0.875vh] px-[0.48vh] py-[0.05vh]'
                                       } ${isDropTarget ? 'bg-blue-100 border-l-4 border-blue-500' : ''}`}
                                       data-time-slot="true"
                                       data-slot-index={slot.slotIndex}
@@ -4168,7 +4170,7 @@ export function WeatherForecast({
                                           className="absolute left-0 right-0 z-10"
                                           style={{
                                             top: 0,
-                                            height: `calc(${groupSpan.jobCount} * (3.5vh + 0.2vh) - 0.2vh)`,
+                                            height: `calc(${groupSpan.jobCount} * (0.875vh + 0.05vh) - 0.05vh)`,
                                           }}
                                         >
                                           {(() => {
