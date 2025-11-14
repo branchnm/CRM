@@ -4083,7 +4083,7 @@ export function WeatherForecast({
                                             
                                             return (
                                               <div
-                                                draggable={!isDraggedItem && !isTouchDevice.current && !isCompleted}
+                                                draggable={!isDraggedItem && !isCompleted}
                                                 onDragStart={(e) => !isDraggedItem && !isCompleted && handleDragStart(e, groupSpan.firstJobId)}
                                                 className={`h-full rounded transition-all text-xs overflow-hidden flex flex-col select-none mx-auto ${
                                                   isMobile ? 'px-[0.73vh] py-[0.46vh] max-w-[90vw]' : 'px-[0.58vh] py-[0.48vh] max-w-[260px]'
@@ -4191,7 +4191,7 @@ export function WeatherForecast({
                                           // If this job spans multiple slots, render it absolutely positioned
                                           const jobCardContent = (
                                             <div
-                                              draggable={!isDraggedItem && !isTouchDevice.current && !isCompleted}
+                                              draggable={!isDraggedItem && !isCompleted}
                                               onDragStart={(e) => !isDraggedItem && !isCompleted && handleDragStart(e, jobInSlot.id)}
                                               onClick={isTouchDevice.current && !isCompleted ? () => handleJobTap(jobInSlot.id) : undefined}
                                               onTouchStart={isTouchDevice.current && !isCompleted ? (e) => handleJobTouchStart(e, jobInSlot.id) : undefined}
