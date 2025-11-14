@@ -4179,7 +4179,7 @@ export function WeatherForecast({
                                     <div 
                                       key={slot.slotIndex} 
                                       className={`relative flex items-start transition-colors ${
-                                        isMobile ? 'px-[0.46vh] py-[0.1vh] max-h-[2.65vh]' : 'h-[0.875vh] px-[0.48vh] py-[0.05vh]'
+                                        isMobile ? 'px-[0.46vh] py-[0.1vh] max-h-[2.65vh]' : 'h-[0.875vh] px-[0.2vh] py-[0.02vh]'
                                       } ${showDropIndicator ? 'bg-blue-100 border-l-4 border-blue-500' : ''}`}
                                       data-time-slot="true"
                                       data-slot-index={slot.slotIndex}
@@ -4319,19 +4319,28 @@ export function WeatherForecast({
                                           const isSelected = selectedJobIds.has(jobInSlot.id);
                                           const isAffectedByRain = affectedJobIds.has(jobInSlot.id);
                                           
-                                          // If this job spans multiple slots, render it absolutely positioned
                                           const jobCardContent = (
                                             <div
                                               draggable={!isCompleted}
                                               onDragStart={(e) => !isCompleted && handleDragStart(e, jobInSlot.id)}
                                               onDragEnd={handleDragEnd}
+                                              onDoubleClick={(e) => {
+                                                // On double-click, focus the time input
+                                                const input = document.getElementById(`job-time-${jobInSlot.id}`) as HTMLInputElement;
+                                                if (input) {
+                                                  console.log('👆 DOUBLE CLICK - focusing input');
+                                                  e.stopPropagation();
+                                                  input.focus();
+                                                  input.select();
+                                                }
+                                              }}
                                               onClick={isTouchDevice.current && !isCompleted ? () => handleJobTap(jobInSlot.id) : undefined}
                                               onTouchStart={isTouchDevice.current && !isCompleted ? (e) => handleJobTouchStart(e, jobInSlot.id) : undefined}
                                               onTouchMove={isTouchDevice.current && !isCompleted ? handleJobTouchMove : undefined}
                                               onTouchEnd={isTouchDevice.current && !isCompleted ? handleJobTouchEnd : undefined}
                                               //is where the size of the job cards are adjusted
                                               className={`rounded transition-all text-xs group overflow-hidden flex items-start select-none mx-auto ${
-                                                isMobile ? 'px-[0.73vh] py-[0.46vh] max-w-[90vw]' : 'px-[0.58vh] py-[0.48vh] max-w-[260px]'
+                                                isMobile ? 'px-[0.73vh] py-[0.46vh] max-w-[90vw]' : 'px-[0.3vh] py-[0.25vh] max-w-[270px]'
                                               } ${
                                                 isCompleted
                                                   ? 'bg-gray-200/80 border border-gray-400 cursor-default'
