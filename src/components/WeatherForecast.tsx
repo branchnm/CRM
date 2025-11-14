@@ -4179,7 +4179,7 @@ export function WeatherForecast({
                                     <div 
                                       key={slot.slotIndex} 
                                       className={`relative flex items-start transition-colors ${
-                                        isMobile ? 'px-[0.46vh] py-[0.1vh] max-h-[2.65vh]' : 'h-[0.875vh] px-[0.2vh] py-[0.02vh]'
+                                        isMobile ? 'px-[0.46vh] py-0 max-h-[2.65vh]' : 'h-[0.875vh] px-[0.3vh] py-0'
                                       } ${showDropIndicator ? 'bg-blue-100 border-l-4 border-blue-500' : ''}`}
                                       data-time-slot="true"
                                       data-slot-index={slot.slotIndex}
@@ -4340,7 +4340,7 @@ export function WeatherForecast({
                                               onTouchEnd={isTouchDevice.current && !isCompleted ? handleJobTouchEnd : undefined}
                                               //is where the size of the job cards are adjusted
                                               className={`rounded transition-all text-xs group overflow-hidden flex items-start select-none mx-auto ${
-                                                isMobile ? 'px-[0.73vh] py-[0.46vh] max-w-[90vw]' : 'px-[0.3vh] py-[0.25vh] max-w-[270px]'
+                                                isMobile ? 'px-[0.73vh] py-[0.46vh] max-w-[90vw]' : 'px-[0.4vh] py-[0.3vh] max-w-[275px]'
                                               } ${
                                                 isCompleted
                                                   ? 'bg-gray-200/80 border border-gray-400 cursor-default'
@@ -4358,8 +4358,9 @@ export function WeatherForecast({
                                                 userSelect: 'none',
                                                 WebkitUserSelect: 'none',
                                                 WebkitTouchCallout: 'none',
-                                                height: isMobile ? 'auto' : spansMultipleSlots ? `calc(${spanInfo.slotsNeeded} * 0.925vh)` : '0.925vh',
-                                                minHeight: isMobile ? '3.65vh' : '0.925vh',
+                                                height: isMobile ? 'auto' : spansMultipleSlots ? `calc((${spanInfo.slotsNeeded} * 0.875vh) + (${spanInfo.slotsNeeded - 1} * 0.15vh))` : '0.875vh',
+                                                minHeight: isMobile ? '3.65vh' : '0.875vh',
+                                                marginBottom: isMobile ? '0' : '0.15vh',
                                                 alignSelf: 'flex-start',
                                                 ...(isAffectedByRain && !isCompleted && !isSelected && !isCutItem && !isDraggedItem && !isAssigned ? {
                                                   backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 6px, rgba(59, 130, 246, 0.08) 6px, rgba(59, 130, 246, 0.08) 12px)'
