@@ -737,6 +737,11 @@ export function WeatherForecast({
   const [dragOverSlot, setDragOverSlot] = useState<{ date: string; slot: number } | null>(null);
   const [showLocationSearch, setShowLocationSearch] = useState(false);
   const [dragPosition, setDragPosition] = useState<{ x: number; y: number } | null>(null);
+  
+  // Debug log when dragPosition changes
+  useEffect(() => {
+    console.log('🔄 DRAG POSITION STATE CHANGED:', dragPosition);
+  }, [dragPosition]);
   const touchStartPos = useRef<{ x: number; y: number } | null>(null);
   const touchStartTime = useRef<number | null>(null);
   const dragDelayTimeout = useRef<number | null>(null);
@@ -2261,12 +2266,15 @@ export function WeatherForecast({
     const handleMouseMove = (e: MouseEvent) => {
       if (draggedJobId) {
         setDragPosition({ x: e.clientX, y: e.clientY });
+        console.log('🖱️ MOUSE MOVE:', { x: e.clientX, y: e.clientY, draggedJobId });
       }
     };
 
     if (draggedJobId) {
+      console.log('✅ MOUSE TRACKING ENABLED for job:', draggedJobId);
       window.addEventListener('mousemove', handleMouseMove);
       return () => {
+        console.log('❌ MOUSE TRACKING DISABLED');
         window.removeEventListener('mousemove', handleMouseMove);
       };
     }
@@ -2276,10 +2284,17 @@ export function WeatherForecast({
     e.preventDefault();
     e.stopPropagation();
     
-    console.log('📍 Drop triggered - Date:', dateStr, 'Slot:', targetSlot, 'DraggedJobId:', draggedJobId, 'GroupJobs:', draggedGroupJobs.length);
+    console.log('📍 SLOT DROP TRIGGERED:', { 
+      date: dateStr, 
+      slot: targetSlot, 
+      draggedJobId, 
+      groupJobs: draggedGroupJobs.length,
+      hasOnRescheduleJob: !!onRescheduleJob
+    });
     
     // Immediately clear drag preview to prevent ghost card
     setDragPosition(null);
+    console.log('🧹 DRAG POSITION CLEARED in handleSlotDrop');
     
     if (draggedJobId && onRescheduleJob) {
       const job = jobs.find(j => j.id === draggedJobId);
@@ -4120,6 +4135,16 @@ export function WeatherForecast({
                                             const isCompleted = groupSpan.jobs.every(j => j.status === 'completed');
                                             const anyInProgress = groupSpan.jobs.some(j => j.status === 'in-progress');
                                             const groupColor = groupSpan.group.color || '#2563eb'; // Blue default
+                                            const canDrag = !isCompleted;
+                                            
+                                            if (Math.random() < 0.05) { // Log occasionally to avoid spam
+                                              console.log('🎴 GROUP CARD:', { 
+                                                groupName: groupSpan.group.name, 
+                                                isDraggedItem, 
+                                                isCompleted, 
+                                                canDrag
+                                              });
+                                            }
                                             
                                             return (
                                               <div
