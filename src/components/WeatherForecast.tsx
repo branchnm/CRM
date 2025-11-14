@@ -4083,8 +4083,8 @@ export function WeatherForecast({
                                             
                                             return (
                                               <div
-                                                draggable={!isDraggedItem && !isCompleted}
-                                                onDragStart={(e) => !isDraggedItem && !isCompleted && handleDragStart(e, groupSpan.firstJobId)}
+                                                draggable={!isCompleted}
+                                                onDragStart={(e) => !isCompleted && handleDragStart(e, groupSpan.firstJobId)}
                                                 className={`h-full rounded transition-all text-xs overflow-hidden flex flex-col select-none mx-auto ${
                                                   isMobile ? 'px-[0.73vh] py-[0.46vh] max-w-[90vw]' : 'px-[0.58vh] py-[0.48vh] max-w-[260px]'
                                                 } ${
@@ -4191,8 +4191,8 @@ export function WeatherForecast({
                                           // If this job spans multiple slots, render it absolutely positioned
                                           const jobCardContent = (
                                             <div
-                                              draggable={!isDraggedItem && !isCompleted}
-                                              onDragStart={(e) => !isDraggedItem && !isCompleted && handleDragStart(e, jobInSlot.id)}
+                                              draggable={!isCompleted}
+                                              onDragStart={(e) => !isCompleted && handleDragStart(e, jobInSlot.id)}
                                               onClick={isTouchDevice.current && !isCompleted ? () => handleJobTap(jobInSlot.id) : undefined}
                                               onTouchStart={isTouchDevice.current && !isCompleted ? (e) => handleJobTouchStart(e, jobInSlot.id) : undefined}
                                               onTouchMove={isTouchDevice.current && !isCompleted ? handleJobTouchMove : undefined}
@@ -4207,14 +4207,12 @@ export function WeatherForecast({
                                                   ? 'bg-green-100 border-2 border-green-600 shadow-lg'
                                                   : isCutItem
                                                   ? 'bg-yellow-100 border-2 border-yellow-500 shadow-lg'
-                                                  : isDraggedItem
-                                                  ? 'bg-blue-100 border-2 border-blue-600 shadow-lg scale-105'
                                                   : isAssigned
                                                   ? 'bg-gray-100 border-2 border-gray-400 animate-pulse cursor-move hover:shadow-md'
                                                   : isAffectedByRain
                                                   ? 'bg-blue-50 border-2 border-blue-300 cursor-move hover:shadow-md'
                                                   : 'bg-white border border-gray-300 cursor-move hover:shadow-md active:bg-blue-50 active:border-blue-400'
-                                              }`}
+                                              } ${isDraggedItem ? 'opacity-50' : ''}`}
                                               style={{
                                                 userSelect: 'none',
                                                 WebkitUserSelect: 'none',
