@@ -81,6 +81,8 @@ export function DailySchedule({
   const [draggedJobId, setDraggedJobId] = useState<string | null>(null);
   const [dragPosition, setDragPosition] = useState<{ x: number; y: number } | null>(null);
   const [draggedOverIndex, setDraggedOverIndex] = useState<number | null>(null);
+  const [draggedJobSourceDate, setDraggedJobSourceDate] = useState<string | null>(null);
+  const [isDraggingOverDifferentDay, setIsDraggingOverDifferentDay] = useState(false);
   
   // Track job creation to prevent race conditions
   const creatingJobsRef = useRef<Set<string>>(new Set());
@@ -1179,6 +1181,8 @@ export function DailySchedule({
     setDraggedJobId(null);
     setDragPosition(null);
     setDraggedOverIndex(null);
+    setDraggedJobSourceDate(null);
+    setIsDraggingOverDifferentDay(false);
   };
 
   const handleDrop = async (e: React.DragEvent, targetIndex: number) => {
@@ -1252,6 +1256,45 @@ export function DailySchedule({
     setDraggedOverIndex(null);
   };
 
+  // Handle moving a job to a different day
+  const handleMoveJobToDay = async (jobId: string, newDate: string) => {
+    const job = jobs.find(j => j.id === jobId);
+    if (!job) return;
+
+    const customer = customers.find(c => c.id === job.customerId);
+    if (!customer) return;
+
+    try {
+      // Update job date
+      const updatedJob = { ...job, date: newDate };
+      await updateJob(updatedJob);
+      
+      // Update customer's next cut date
+      await updateCustomer({ ...customer, nextCutDate: newDate });
+      
+      await onRefreshJobs?.();
+      await onRefreshCustomers();
+      
+      const dateLabel = (() => {
+        const targetDate = new Date(newDate);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        targetDate.setHours(0, 0, 0, 0);
+        
+        const diffDays = Math.round((targetDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+        
+        if (diffDays === 0) return 'today';
+        if (diffDays === 1) return 'tomorrow';
+        return targetDate.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+      })();
+      
+      toast.success(`Job moved to ${dateLabel}`);
+    } catch (error) {
+      console.error('Failed to move job:', error);
+      toast.error('Failed to move job to different day');
+    }
+  };
+
   // Track mouse movement for drag preview
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -1323,6 +1366,26 @@ export function DailySchedule({
                 height: 'max(4vh, 32px)',
                 padding: 0
               }}
+              onDragOver={(e) => {
+                if (draggedJobId) {
+                  e.preventDefault();
+                  setIsDraggingOverDifferentDay(true);
+                }
+              }}
+              onDragLeave={() => setIsDraggingOverDifferentDay(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                if (draggedJobId && currentDayIndex > 0) {
+                  const newDate = (() => {
+                    const date = new Date();
+                    date.setDate(date.getDate() + currentDayIndex - 1);
+                    return date.toLocaleDateString('en-CA');
+                  })();
+                  handleMoveJobToDay(draggedJobId, newDate);
+                  setCurrentDayIndex(currentDayIndex - 1);
+                }
+                setIsDraggingOverDifferentDay(false);
+              }}
             >
               <ChevronLeft style={{ width: 'max(2vh, 16px)', height: 'max(2vh, 16px)' }} />
             </Button>
@@ -1339,6 +1402,26 @@ export function DailySchedule({
                 width: 'max(4vh, 32px)',
                 height: 'max(4vh, 32px)',
                 padding: 0
+              }}
+              onDragOver={(e) => {
+                if (draggedJobId) {
+                  e.preventDefault();
+                  setIsDraggingOverDifferentDay(true);
+                }
+              }}
+              onDragLeave={() => setIsDraggingOverDifferentDay(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                if (draggedJobId) {
+                  const newDate = (() => {
+                    const date = new Date();
+                    date.setDate(date.getDate() + currentDayIndex + 1);
+                    return date.toLocaleDateString('en-CA');
+                  })();
+                  handleMoveJobToDay(draggedJobId, newDate);
+                  setCurrentDayIndex(currentDayIndex + 1);
+                }
+                setIsDraggingOverDifferentDay(false);
               }}
             >
               <ChevronRight style={{ width: 'max(2vh, 16px)', height: 'max(2vh, 16px)' }} />
@@ -1544,6 +1627,11 @@ export function DailySchedule({
               }
               
 //this job.id is where i can control the colors of the background for the cards. 
+              // Calculate height based on totalTime (default 60 min if not set)
+              const estimatedTime = job.totalTime || 60;
+              // Height formula: 2.5vh per 15 minutes (minimum 10vh, max 40vh)
+              const cardHeight = `max(${Math.min(Math.max((estimatedTime / 15) * 2.5, 10), 40)}vh, ${Math.min(Math.max((estimatedTime / 15) * 20, 80), 320)}px)`;
+              
             return (
               <Card 
                 key={job.id} 
@@ -1559,6 +1647,7 @@ export function DailySchedule({
                 onDragOver={(e) => handleDragOver(e, index)}
                 onDragEnd={handleDragEnd}
                 onDrop={(e) => handleDrop(e, index)}
+                style={{ minHeight: cardHeight }}
               >
                 <CardContent className="p-1 sm:p-2">
                   {/* Centered layout */}
@@ -1579,6 +1668,12 @@ export function DailySchedule({
                         <Clock className="w-2 h-2 sm:w-3 sm:h-3 pointer-events-none shrink-0" />
                         <span className="truncate">{driveTime}</span>
                       </div>
+                      {estimatedTime && (
+                        <div className="flex items-center justify-center text-purple-600 font-medium gap-0.5 sm:gap-1 text-[8px] sm:text-[9px] mt-0.5">
+                          <Clock className="w-2 h-2 sm:w-3 sm:h-3 pointer-events-none shrink-0" />
+                          <span className="truncate">Est. {estimatedTime} min</span>
+                        </div>
+                      )}
                     </div>
 
                   {/* Badges row */}
