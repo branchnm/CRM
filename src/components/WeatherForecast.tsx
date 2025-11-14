@@ -4254,6 +4254,8 @@ export function WeatherForecast({
                                                       {scheduledTime && <span className="font-medium">{scheduledTime} • </span>}
                                                       ${customer?.price} • 
                                                       <input
+                                                        id={`job-time-${jobInSlot.id}`}
+                                                        name={`job-time-${jobInSlot.id}`}
                                                         type="number"
                                                         value={jobInSlot.totalTime || 60}
                                                         onChange={(e) => {
