@@ -2180,10 +2180,7 @@ export function WeatherForecast({
 
   // Drag and drop handlers
   const handleDragStart = (e: React.DragEvent, jobId: string) => {
-    e.stopPropagation();
-    
-    // Set initial drag position
-    setDragPosition({ x: e.clientX, y: e.clientY });
+    e.dataTransfer.effectAllowed = 'move';
     
     // Check if this job is part of a group
     const job = jobs.find(j => j.id === jobId);
@@ -2213,22 +2210,6 @@ export function WeatherForecast({
     }
     
     setDraggedJobId(jobId);
-    
-    // Create and use a completely transparent drag image to hide browser's default ghost
-    const dragImage = document.createElement('div');
-    dragImage.style.position = 'absolute';
-    dragImage.style.top = '-9999px';
-    dragImage.style.width = '1px';
-    dragImage.style.height = '1px';
-    dragImage.style.opacity = '0';
-    document.body.appendChild(dragImage);
-    
-    e.dataTransfer.setDragImage(dragImage, 0, 0);
-    
-    // Clean up the temporary element after a short delay
-    setTimeout(() => {
-      document.body.removeChild(dragImage);
-    }, 0);
   };
 
   const handleDragOver = (e: React.DragEvent, dateStr: string, slotIndex?: number) => {
