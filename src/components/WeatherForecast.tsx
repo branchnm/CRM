@@ -4102,7 +4102,7 @@ export function WeatherForecast({
                                       onDrop={(e) => !isOccupiedByDuration && handleSlotDrop(e, dateStr, slot.slotIndex)}
                                     >
                                       {/* Group card overlay - positioned absolutely to span multiple slots */}
-                                      {groupSpan && !groupSpan.jobs.some(j => draggedGroupJobs.includes(j.id)) && (
+                                      {groupSpan && (
                                         <div 
                                           className="absolute left-0 right-0 z-10"
                                           style={{
@@ -4202,7 +4202,7 @@ export function WeatherForecast({
                                         )}
                                         
                                         {/* Job card or empty drop zone */}
-                                        {jobInSlot && !isPartOfGroup && !draggedGroupJobs.includes(jobInSlot.id) ? (() => {
+                                        {jobInSlot && !isPartOfGroup ? (() => {
                                           // Groups are handled separately
                                           // Duration spans: job only exists in jobsBySlot at first slot
                                           
