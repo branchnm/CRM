@@ -2217,6 +2217,7 @@ export function WeatherForecast({
     }
     
     setDraggedJobId(jobId);
+    setDragPosition({ x: e.clientX, y: e.clientY });
   };
 
   const handleDragOver = (e: React.DragEvent, dateStr: string, slotIndex?: number) => {
@@ -4640,8 +4641,8 @@ export function WeatherForecast({
         </Alert>
       )}
 
-      {/* Drag preview - DISABLED to prevent ghost card 
-      {false && draggedJobId && dragPosition && (() => {
+      {/* Drag preview - shows card following cursor */}
+      {draggedJobId && dragPosition && (() => {
         const draggedJob = jobs.find(j => j.id === draggedJobId);
         if (!draggedJob) return null;
         
@@ -4717,7 +4718,6 @@ export function WeatherForecast({
           </div>
         );
       })()}
-      */}
     </div>
   );
 }
