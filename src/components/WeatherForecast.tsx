@@ -738,9 +738,13 @@ export function WeatherForecast({
   const [showLocationSearch, setShowLocationSearch] = useState(false);
   const [dragPosition, setDragPosition] = useState<{ x: number; y: number } | null>(null);
   
-  // Debug log when dragPosition changes
+  // Debug log when dragPosition changes (throttled)
   useEffect(() => {
-    console.log('🔄 DRAG POSITION STATE CHANGED:', dragPosition);
+    if (dragPosition) {
+      console.log('🔄 DRAG POSITION:', dragPosition);
+    } else {
+      console.log('🔄 DRAG POSITION CLEARED');
+    }
   }, [dragPosition]);
   const touchStartPos = useRef<{ x: number; y: number } | null>(null);
   const touchStartTime = useRef<number | null>(null);
@@ -2266,7 +2270,6 @@ export function WeatherForecast({
     const handleMouseMove = (e: MouseEvent) => {
       if (draggedJobId) {
         setDragPosition({ x: e.clientX, y: e.clientY });
-        console.log('🖱️ MOUSE MOVE:', { x: e.clientX, y: e.clientY, draggedJobId });
       }
     };
 
