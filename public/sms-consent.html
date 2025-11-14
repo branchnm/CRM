@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SMS Consent & Privacy Policy - Job Flow Co</title>
+  <title>SMS Opt-In - Job Flow Co</title>
   <style>
     * {
       margin: 0;
@@ -19,98 +19,196 @@
     }
     
     .container {
-      max-width: 800px;
-      margin: 0 auto;
+      max-width: 600px;
+      margin: 40px auto;
       padding: 20px;
     }
     
     header {
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       color: white;
-      padding: 40px 20px;
+      padding: 30px 20px;
       text-align: center;
-      border-radius: 10px;
-      margin-bottom: 30px;
+      border-radius: 10px 10px 0 0;
       box-shadow: 0 4px 6px rgba(0,0,0,0.1);
     }
     
     header h1 {
-      font-size: 2.5em;
+      font-size: 2em;
       margin-bottom: 10px;
     }
     
     header p {
-      font-size: 1.2em;
-      opacity: 0.9;
+      font-size: 1.1em;
+      opacity: 0.95;
     }
     
     .content {
       background: white;
-      padding: 40px;
-      border-radius: 10px;
+      padding: 30px;
+      border-radius: 0 0 10px 10px;
       box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .opt-in-form {
+      background: #dcfce7;
+      border: 3px solid #16a34a;
+      padding: 25px;
+      border-radius: 10px;
+      margin: 25px 0;
+    }
+    
+    .opt-in-form h2 {
+      color: #16a34a;
+      margin-top: 0;
+      margin-bottom: 15px;
+      font-size: 1.5em;
+      border: none;
+      padding: 0;
+    }
+    
+    .form-group {
       margin-bottom: 20px;
+    }
+    
+    label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #374151;
+    }
+    
+    input[type="tel"],
+    input[type="text"],
+    input[type="email"] {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 16px;
+      transition: border-color 0.3s;
+    }
+    
+    input[type="tel"]:focus,
+    input[type="text"]:focus,
+    input[type="email"]:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+    
+    .checkbox-group {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      margin: 20px 0;
+    }
+    
+    input[type="checkbox"] {
+      margin-top: 4px;
+      width: 20px;
+      height: 20px;
+      cursor: pointer;
+    }
+    
+    .checkbox-label {
+      flex: 1;
+      font-size: 0.95em;
+      line-height: 1.5;
+      cursor: pointer;
+    }
+    
+    .submit-btn {
+      width: 100%;
+      padding: 15px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 1.1em;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .submit-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+    
+    .submit-btn:active {
+      transform: translateY(0);
+    }
+    
+    .submit-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    .info-box {
+      background: #fef3c7;
+      padding: 15px;
+      border-left: 4px solid #f59e0b;
+      border-radius: 5px;
+      margin: 20px 0;
+      font-size: 0.9em;
+    }
+    
+    .success-message {
+      background: #dcfce7;
+      border: 2px solid #16a34a;
+      padding: 20px;
+      border-radius: 8px;
+      margin: 20px 0;
+      display: none;
+    }
+    
+    .success-message.show {
+      display: block;
+    }
+    
+    .success-message h3 {
+      color: #16a34a;
+      margin-top: 0;
     }
     
     h2 {
       color: #667eea;
-      margin-top: 30px;
-      margin-bottom: 15px;
-      font-size: 1.8em;
+      margin-top: 25px;
+      margin-bottom: 12px;
+      font-size: 1.4em;
       border-bottom: 2px solid #667eea;
-      padding-bottom: 10px;
+      padding-bottom: 8px;
     }
     
     h3 {
       color: #764ba2;
-      margin-top: 20px;
-      margin-bottom: 10px;
-      font-size: 1.3em;
+      margin-top: 15px;
+      margin-bottom: 8px;
+      font-size: 1.1em;
     }
     
     p {
-      margin-bottom: 15px;
-      text-align: justify;
+      margin-bottom: 12px;
     }
     
     ul, ol {
-      margin-left: 30px;
-      margin-bottom: 15px;
+      margin-left: 25px;
+      margin-bottom: 12px;
     }
     
     li {
-      margin-bottom: 10px;
+      margin-bottom: 8px;
     }
     
-    .highlight {
-      background: #fef3c7;
-      padding: 20px;
-      border-left: 4px solid #f59e0b;
-      border-radius: 5px;
-      margin: 20px 0;
+    strong {
+      color: #667eea;
     }
     
-    .message-example {
-      background: #f3f4f6;
-      padding: 15px;
-      border-radius: 8px;
-      border-left: 4px solid #667eea;
-      margin: 15px 0;
-      font-family: 'Courier New', monospace;
-      font-size: 0.95em;
-    }
-    
-    .consent-box {
-      background: #dcfce7;
-      border: 2px solid #16a34a;
-      padding: 25px;
-      border-radius: 10px;
-      margin: 30px 0;
-    }
-    
-    .consent-box h3 {
-      color: #16a34a;
-      margin-top: 0;
+    .details-section {
+      margin-top: 30px;
+      padding-top: 30px;
+      border-top: 2px solid #e5e7eb;
     }
     
     footer {
@@ -120,34 +218,17 @@
       font-size: 0.9em;
     }
     
-    .opt-out {
-      background: #fee2e2;
-      border: 2px solid #dc2626;
-      padding: 20px;
-      border-radius: 8px;
-      margin: 20px 0;
-    }
-    
-    .opt-out h3 {
-      color: #dc2626;
-      margin-top: 0;
-    }
-    
-    strong {
-      color: #667eea;
-    }
-    
     @media (max-width: 768px) {
+      .container {
+        margin: 20px auto;
+      }
+      
       header h1 {
-        font-size: 2em;
+        font-size: 1.6em;
       }
       
       .content {
         padding: 20px;
-      }
-      
-      h2 {
-        font-size: 1.5em;
       }
     }
   </style>
@@ -155,153 +236,120 @@
 <body>
   <div class="container">
     <header>
-      <h1>📱 SMS Messaging Consent</h1>
-      <p>Job Flow Co - Lawn Care & Landscaping Services</p>
+      <h1>📱 SMS Service Updates</h1>
+      <p>Get text notifications for your appointments</p>
     </header>
 
     <div class="content">
-      <h2>SMS Communication Policy</h2>
+      <div class="opt-in-form">
+        <h2>✓ Opt In to SMS Notifications</h2>
+        <p>Sign up to receive text message updates about your lawn care services.</p>
+        
+        <form id="sms-opt-in-form">
+          <div class="form-group">
+            <label for="phone">Mobile Phone Number *</label>
+            <input 
+              type="tel" 
+              id="phone" 
+              name="phone" 
+              placeholder="(555) 123-4567" 
+              required
+              pattern="[0-9]{10,}"
+            >
+          </div>
+          
+          <div class="form-group">
+            <label for="name">Full Name *</label>
+            <input 
+              type="text" 
+              id="name" 
+              name="name" 
+              placeholder="John Smith" 
+              required
+            >
+          </div>
+          
+          <div class="form-group">
+            <label for="email">Email Address (Optional)</label>
+            <input 
+              type="email" 
+              id="email" 
+              name="email" 
+              placeholder="john@example.com"
+            >
+          </div>
+          
+          <div class="checkbox-group">
+            <input 
+              type="checkbox" 
+              id="consent" 
+              name="consent" 
+              required
+            >
+            <label for="consent" class="checkbox-label">
+              I consent to receive automated text messages from Job Flow Co about my lawn care service appointments. 
+              I understand I can reply STOP to opt out at any time. Message and data rates may apply.
+            </label>
+          </div>
+          
+          <button type="submit" class="submit-btn" id="submit-btn">
+            Opt In to SMS Notifications
+          </button>
+        </form>
+        
+        <div class="success-message" id="success-message">
+          <h3>✓ Success!</h3>
+          <p>You've been successfully opted in to SMS notifications. You'll start receiving service updates via text message.</p>
+          <p><strong>To opt out:</strong> Reply STOP to any message or contact us directly.</p>
+        </div>
+      </div>
       
-      <p>
-        Job Flow Co uses SMS text messaging to communicate with customers about their lawn care and landscaping service appointments. 
-        This page outlines how we collect consent, what messages you can expect, and how to opt out at any time.
-      </p>
+      <div class="info-box">
+        <strong>What you'll receive:</strong> 1-4 messages per month with appointment confirmations, weather updates, and service completion notifications. Maximum 1-2 messages per week.
+      </div>
 
-      <div class="consent-box">
-        <h3>✅ How We Obtain Your Consent</h3>
+      <div class="details-section">
+        <h2>Message Details</h2>
+        
+        <h3>Types of Messages</h3>
+        <ul>
+          <li><strong>Appointment Confirmations:</strong> "Your service is scheduled for [Date] at [Time]"</li>
+          <li><strong>Weather Updates:</strong> "Service rescheduled to [New Date] due to rain"</li>
+          <li><strong>Service Completion:</strong> "Service complete! Your lawn has been mowed"</li>
+          <li><strong>Reminders:</strong> "Reminder: Your service is tomorrow at [Time]"</li>
+        </ul>
+        
+        <h3>How to Opt Out</h3>
+        <ul>
+          <li>Reply <strong>STOP</strong> to any text message</li>
+          <li>Reply <strong>UNSUBSCRIBE</strong> to any text message</li>
+          <li>Contact us directly via phone or email</li>
+        </ul>
+        
         <p>
-          By providing your mobile phone number to Job Flow Co when scheduling a service, you are giving us 
-          <strong>express written consent</strong> to send you text messages related to your service appointments.
+          <strong>Note:</strong> Opting out of SMS will not affect your service. 
+          You'll receive updates via email instead.
         </p>
-        <p>
-          Your consent is documented in our customer relationship management (CRM) system at the time of service booking.
-          We maintain records of when and how consent was obtained for all customers who receive SMS notifications.
-        </p>
-      </div>
-
-      <h2>Types of Messages You'll Receive</h2>
-      
-      <p>We only send <strong>transactional messages</strong> related to your service. We do NOT send marketing or promotional messages unless you separately opt in to those.</p>
-
-      <h3>1. Appointment Confirmations</h3>
-      <div class="message-example">
-        "Hi [Name], your lawn service is scheduled for [Date] at [Time]. Reply STOP to opt out."
-      </div>
-
-      <h3>2. Weather-Related Updates</h3>
-      <div class="message-example">
-        "Weather update: We've rescheduled your service to [New Date] due to rain. Reply STOP to opt out."
-      </div>
-
-      <h3>3. Service Completion Notifications</h3>
-      <div class="message-example">
-        "Service complete! Your lawn has been mowed. Thank you for choosing Job Flow Co. Reply STOP to opt out."
-      </div>
-
-      <h3>4. Reminder Messages</h3>
-      <div class="message-example">
-        "Reminder: Your lawn service is tomorrow at [Time]. We'll see you then! Reply STOP to opt out."
-      </div>
-
-      <div class="highlight">
-        <strong>Message Frequency:</strong> You can expect to receive approximately 1-4 messages per month, 
-        depending on your service schedule and weather conditions. Maximum frequency is 1-2 messages per week.
-      </div>
-
-      <h2>Your Rights & How to Opt Out</h2>
-
-      <div class="opt-out">
-        <h3>🛑 Easy Opt-Out Process</h3>
-        <p>You can stop receiving text messages at any time by:</p>
-        <ol>
-          <li><strong>Reply "STOP"</strong> to any text message from us</li>
-          <li><strong>Reply "UNSUBSCRIBE"</strong> to any text message</li>
-          <li><strong>Contact us directly</strong> via phone or email to request removal</li>
-          <li><strong>Update your preferences</strong> in your customer portal</li>
-        </ol>
-        <p>
-          <strong>Important:</strong> Opting out of SMS messages will not affect your service. 
-          We will continue to provide your lawn care services as scheduled. You will simply 
-          receive appointment confirmations via email or phone call instead.
-        </p>
-      </div>
-
-      <h2>Privacy & Data Protection</h2>
-
-      <h3>Information We Collect</h3>
-      <ul>
-        <li>Your mobile phone number</li>
-        <li>Your name and service address</li>
-        <li>Service appointment dates and times</li>
-        <li>Consent timestamp and method</li>
-      </ul>
-
-      <h3>How We Use Your Information</h3>
-      <ul>
-        <li>Send service-related notifications only</li>
-        <li>Maintain records of consent as required by law</li>
-        <li>Improve our customer communication services</li>
-      </ul>
-
-      <h3>We Will NEVER:</h3>
-      <ul>
-        <li>❌ Sell your phone number to third parties</li>
-        <li>❌ Send you spam or marketing messages (unless separately opted in)</li>
-        <li>❌ Share your information without your consent</li>
-        <li>❌ Send messages outside of reasonable business hours (8 AM - 7 PM local time)</li>
-      </ul>
-
-      <h2>Message & Data Rates</h2>
-      <p>
-        <strong>Standard message and data rates may apply.</strong> Job Flow Co does not charge for 
-        SMS messages, but your mobile carrier may charge you for text messages and data usage according 
-        to your cellular plan.
-      </p>
-
-      <h2>Supported Carriers</h2>
-      <p>
-        Our SMS service is compatible with all major U.S. carriers including AT&T, T-Mobile, Verizon, 
-        Sprint, and others. If you have issues receiving messages, please contact your carrier or reach out to us.
-      </p>
-
-      <h2>Contact Information</h2>
-      <p>If you have questions about our SMS messaging policy or need assistance:</p>
-      <ul>
-        <li><strong>Website:</strong> <a href="https://jobflowco.com">jobflowco.com</a></li>
-        <li><strong>Email:</strong> support@jobflowco.com</li>
-        <li><strong>Service Area:</strong> [Your Service Area]</li>
-      </ul>
-
-      <h2>Updates to This Policy</h2>
-      <p>
-        We may update this SMS consent policy from time to time. Any changes will be posted on this page 
-        with an updated "Last Modified" date. Continued use of our SMS service after changes constitutes 
-        acceptance of the updated policy.
-      </p>
-
-      <div class="highlight">
-        <p><strong>Last Modified:</strong> November 4, 2025</p>
-        <p><strong>Effective Date:</strong> November 4, 2025</p>
-      </div>
-
-      <h2>Legal Compliance</h2>
-      <p>
-        This SMS program complies with the Telephone Consumer Protection Act (TCPA), CAN-SPAM Act, 
-        and all applicable federal and state regulations regarding automated text messaging and consumer privacy.
-      </p>
-
-      <div class="consent-box">
-        <h3>✓ Consent Documentation</h3>
-        <p>
-          This page serves as publicly accessible proof that Job Flow Co:
-        </p>
-        <ol>
-          <li>Obtains express written consent before sending SMS messages</li>
-          <li>Clearly explains the types of messages customers will receive</li>
-          <li>Provides easy opt-out instructions in every message</li>
-          <li>Maintains transparent privacy and data usage policies</li>
-          <li>Complies with all applicable telecommunications regulations</li>
-        </ol>
+        
+        <h2>Privacy & Data</h2>
+        <p>We collect your phone number, name, and service details only to send appointment notifications. We will never:</p>
+        <ul>
+          <li>Sell your information to third parties</li>
+          <li>Send marketing messages without separate consent</li>
+          <li>Send messages outside 8 AM - 7 PM local time</li>
+        </ul>
+        
+        <h2>Contact Us</h2>
+        <p>Questions? Contact us:</p>
+        <ul>
+          <li><strong>Website:</strong> <a href="https://jobflowco.com">jobflowco.com</a></li>
+          <li><strong>Email:</strong> support@jobflowco.com</li>
+        </ul>
+        
+        <div class="info-box" style="margin-top: 20px;">
+          <p><strong>Last Modified:</strong> November 14, 2025</p>
+          <p>This page complies with TCPA and all applicable SMS regulations.</p>
+        </div>
       </div>
     </div>
 
@@ -312,5 +360,57 @@
       </p>
     </footer>
   </div>
+
+  <script>
+    // Handle form submission
+    document.getElementById('sms-opt-in-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      const submitBtn = document.getElementById('submit-btn');
+      const successMessage = document.getElementById('success-message');
+      const form = document.getElementById('sms-opt-in-form');
+      
+      // Disable submit button
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Processing...';
+      
+      // Get form data
+      const formData = {
+        phone: document.getElementById('phone').value,
+        name: document.getElementById('name').value,
+        email: document.getElementById('email').value,
+        consent: document.getElementById('consent').checked,
+        timestamp: new Date().toISOString()
+      };
+      
+      // Simulate submission (in production, this would POST to your backend)
+      console.log('SMS Opt-in submitted:', formData);
+      
+      // Store consent locally for demo purposes
+      localStorage.setItem('sms_consent', JSON.stringify(formData));
+      
+      // Show success message after short delay
+      setTimeout(function() {
+        form.style.display = 'none';
+        successMessage.classList.add('show');
+      }, 1000);
+    });
+    
+    // Format phone number as user types
+    document.getElementById('phone').addEventListener('input', function(e) {
+      let value = e.target.value.replace(/\D/g, '');
+      if (value.length > 10) {
+        value = value.slice(0, 10);
+      }
+      
+      if (value.length >= 6) {
+        e.target.value = `(${value.slice(0,3)}) ${value.slice(3,6)}-${value.slice(6)}`;
+      } else if (value.length >= 3) {
+        e.target.value = `(${value.slice(0,3)}) ${value.slice(3)}`;
+      } else {
+        e.target.value = value;
+      }
+    });
+  </script>
 </body>
 </html>
