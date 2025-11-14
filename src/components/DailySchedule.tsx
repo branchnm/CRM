@@ -1518,7 +1518,7 @@ export function DailySchedule({
                     onDrop={(e) => handleDrop(e, index)}
                     style={{ minHeight }}
                   >
-                    <CardContent className="p-1 sm:p-2">
+                    <CardContent className="p-1 sm:p-2 pointer-events-none">
                       <div className="flex flex-col items-center text-center gap-0.5 sm:gap-1">
                         {/* Colored top bar */}
                         <div 
@@ -1558,7 +1558,7 @@ export function DailySchedule({
                         </div>
                         
                         {/* Action buttons for group */}
-                        <div className="flex w-full mt-1 sm:mt-2 gap-1">
+                        <div className="flex w-full mt-1 sm:mt-2 gap-1 pointer-events-auto">
                           {!allCompleted && !anyInProgress && (
                             <Button
                               onClick={() => handleStartJobClick(firstJob)}
@@ -1643,7 +1643,7 @@ export function DailySchedule({
                 onDrop={(e) => handleDrop(e, index)}
                 style={{ minHeight: cardHeight }}
               >
-                <CardContent className="p-1 sm:p-2">
+                <CardContent className="p-1 sm:p-2 pointer-events-none">
                   {/* Centered layout */}
                   <div className="flex flex-col items-center text-center gap-0.5 sm:gap-1">
                     <div className="w-full">
@@ -1681,7 +1681,7 @@ export function DailySchedule({
                   </div>
 
                   {/* Action buttons row */}
-                  <div className="flex w-full gap-1">
+                  <div className="flex w-full gap-1 pointer-events-auto">
 
                       {job.status === 'scheduled' && (
                         <Button
