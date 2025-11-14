@@ -4107,8 +4107,8 @@ export function WeatherForecast({
                                   const isSlotHovered = dragOverSlot?.date === dateStr && dragOverSlot?.slot === slot.slotIndex;
                                   const isFirstSlot = slot.slotIndex === 0; // First time slot of the day (5 AM)
                                   
-                                  // Show weather icons at 5am, 8am, 11am, 2pm, 5pm
-                                  const shouldShowWeatherIcon = weatherForDay && [5, 8, 11, 14, 17].includes(slot.hour);
+                                  // Show weather icons at 5am, 8am, 11am, 2pm, 5pm - ONLY on hour marks
+                                  const shouldShowWeatherIcon = slot.isHourMark && weatherForDay && [5, 8, 11, 14, 17].includes(slot.hour);
                                   
                                   // Get weather icon component for this hour (if should show)
                                   const getWeatherForHour = () => {
