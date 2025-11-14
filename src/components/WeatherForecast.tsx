@@ -2187,6 +2187,13 @@ export function WeatherForecast({
     const customer = customers.find(c => c.id === job?.customerId);
     const groupId = customer?.groupId;
     
+    console.log('🎯 DRAG START:', {
+      jobId,
+      customerName: customer?.name,
+      currentDate: job?.date,
+      groupId: groupId || 'none'
+    });
+    
     if (groupId) {
       // Find the group details
       const group = customerGroups.find(g => g.id === groupId);
@@ -2217,10 +2224,12 @@ export function WeatherForecast({
     // Only set dragOverDay if not already set (prevents flicker)
     if (dragOverDay !== dateStr) {
       setDragOverDay(dateStr);
+      console.log('🎯 DRAG OVER NEW DAY:', { date: dateStr });
     }
     // Always set slot for preview
     if (slotIndex !== undefined) {
       setDragOverSlot({ date: dateStr, slot: slotIndex });
+      console.log('🎯 DRAG OVER SLOT:', { date: dateStr, slot: slotIndex });
     }
   };
 
@@ -2323,6 +2332,12 @@ export function WeatherForecast({
   const handleDrop = async (e: React.DragEvent, dateStr: string) => {
     e.preventDefault();
     
+    console.log('🎯 DROP ATTEMPT:', {
+      targetDate: dateStr,
+      draggedJobId,
+      isGroupDrag: draggedGroupJobs.length > 1
+    });
+    
     // Immediately clear drag preview to prevent ghost card
     setDragPosition(null);
     
@@ -2340,10 +2355,12 @@ export function WeatherForecast({
             await onRescheduleJob(groupJobId, dateStr, timeSlot);
           }
           
+          console.log('✅ GROUP DROP SUCCESS:', { movedJobs: draggedGroupJobs.length, toDate: dateStr });
           toast.success(`Moved ${draggedGroupJobs.length} properties`);
         } else if (job.date !== dateStr) {
           // Single job move
           const timeSlot = jobTimeSlots.get(draggedJobId);
+          console.log('✅ SINGLE JOB DROP SUCCESS:', { jobId: draggedJobId, fromDate: job.date, toDate: dateStr, timeSlot });
           
           // Save last action for undo
           setLastAction({
@@ -2371,6 +2388,24 @@ export function WeatherForecast({
       setDraggedGroupJobs([]);
       setDragPosition(null);
     }
+    setDragOverDay(null);
+    setDragOverSlot(null);
+  };
+
+  const handleDragEnd = (e: React.DragEvent) => {
+    console.log('🎯 DRAG END:', {
+      dropEffect: e.dataTransfer.dropEffect,
+      wasCancelled: e.dataTransfer.dropEffect === 'none'
+    });
+    
+    if (e.dataTransfer.dropEffect === 'none') {
+      console.log('↩️ DRAG CANCELLED: Card returned to original position');
+    }
+    
+    // Clean up drag state
+    setDraggedJobId(null);
+    setDraggedGroupJobs([]);
+    setDragPosition(null);
     setDragOverDay(null);
     setDragOverSlot(null);
   };
@@ -4085,6 +4120,7 @@ export function WeatherForecast({
                                               <div
                                                 draggable={!isCompleted}
                                                 onDragStart={(e) => !isCompleted && handleDragStart(e, groupSpan.firstJobId)}
+                                                onDragEnd={handleDragEnd}
                                                 className={`h-full rounded transition-all text-xs overflow-hidden flex flex-col select-none mx-auto ${
                                                   isMobile ? 'px-[0.73vh] py-[0.46vh] max-w-[90vw]' : 'px-[0.58vh] py-[0.48vh] max-w-[260px]'
                                                 } ${
@@ -4193,6 +4229,7 @@ export function WeatherForecast({
                                             <div
                                               draggable={!isCompleted}
                                               onDragStart={(e) => !isCompleted && handleDragStart(e, jobInSlot.id)}
+                                              onDragEnd={handleDragEnd}
                                               onClick={isTouchDevice.current && !isCompleted ? () => handleJobTap(jobInSlot.id) : undefined}
                                               onTouchStart={isTouchDevice.current && !isCompleted ? (e) => handleJobTouchStart(e, jobInSlot.id) : undefined}
                                               onTouchMove={isTouchDevice.current && !isCompleted ? handleJobTouchMove : undefined}
