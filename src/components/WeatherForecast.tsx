@@ -4179,7 +4179,7 @@ export function WeatherForecast({
                                     <div 
                                       key={slot.slotIndex} 
                                       className={`relative flex items-start transition-colors ${
-                                        isMobile ? 'px-[0.46vh] py-0 max-h-[2.65vh]' : 'h-[0.875vh] px-[0.3vh] py-0'
+                                        isMobile ? 'px-[0.46vh] py-0 max-h-[2.65vh]' : 'h-[0.7vh] px-[0.3vh] py-0'
                                       } ${showDropIndicator ? 'bg-blue-100 border-l-4 border-blue-500' : ''}`}
                                       data-time-slot="true"
                                       data-slot-index={slot.slotIndex}
@@ -4192,7 +4192,7 @@ export function WeatherForecast({
                                           className="absolute left-0 right-0 z-10"
                                           style={{
                                             top: 0,
-                                            height: `calc(${groupSpan.jobCount} * (0.875vh + 0.05vh) - 0.05vh)`,
+                                            height: `calc(${groupSpan.jobCount} * 0.7vh)`,
                                           }}
                                         >
                                           {(() => {
@@ -4339,8 +4339,8 @@ export function WeatherForecast({
                                               onTouchMove={isTouchDevice.current && !isCompleted ? handleJobTouchMove : undefined}
                                               onTouchEnd={isTouchDevice.current && !isCompleted ? handleJobTouchEnd : undefined}
                                               //is where the size of the job cards are adjusted
-                                              className={`rounded transition-all text-xs group overflow-hidden flex items-start select-none mx-auto ${
-                                                isMobile ? 'px-[0.73vh] py-[0.46vh] max-w-[90vw]' : 'px-[0.4vh] py-[0.3vh] max-w-[275px]'
+                                              className={`rounded transition-all text-xs group overflow-hidden flex items-start select-none w-full ${
+                                                isMobile ? 'px-[0.73vh] py-[0.46vh]' : 'px-[0.3vh] py-[0.25vh]'
                                               } ${
                                                 isCompleted
                                                   ? 'bg-gray-200/80 border border-gray-400 cursor-default'
@@ -4358,17 +4358,18 @@ export function WeatherForecast({
                                                 userSelect: 'none',
                                                 WebkitUserSelect: 'none',
                                                 WebkitTouchCallout: 'none',
-                                                height: isMobile ? 'auto' : spansMultipleSlots ? `calc((${spanInfo.slotsNeeded} * 0.875vh) + (${spanInfo.slotsNeeded - 1} * 0.15vh))` : '0.875vh',
-                                                minHeight: isMobile ? '3.65vh' : '0.875vh',
-                                                marginBottom: isMobile ? '0' : '0.15vh',
+                                                height: isMobile ? 'auto' : spansMultipleSlots ? `calc(${spanInfo.slotsNeeded} * 0.7vh)` : '0.7vh',
+                                                minHeight: isMobile ? '3.65vh' : '0.7vh',
+                                                marginBottom: isMobile ? '0' : '0',
                                                 alignSelf: 'flex-start',
+                                                pointerEvents: 'auto',
                                                 ...(isAffectedByRain && !isCompleted && !isSelected && !isCutItem && !isDraggedItem && !isAssigned ? {
                                                   backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 6px, rgba(59, 130, 246, 0.08) 6px, rgba(59, 130, 246, 0.08) 12px)'
                                                 } : {})
                                               }}
                                             >
-                                              <div className="flex items-center justify-between gap-[0.14vh] w-full overflow-hidden">
-                                                <div className="flex-1 min-w-0">
+                                              <div className="flex items-center justify-between gap-[0.14vh] w-full overflow-hidden" onDragStart={(e) => e.preventDefault()}>
+                                                <div className="flex-1 min-w-0" onDragStart={(e) => e.preventDefault()}>
                                                   <div className={`font-semibold truncate w-full ${
                                                     isMobile ? 'text-[1.27vh]' : 'text-[1.34vh]'
                                                   } ${isCompleted ? 'text-gray-600' : 'text-gray-900'}`}>
