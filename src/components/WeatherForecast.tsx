@@ -4155,7 +4155,7 @@ export function WeatherForecast({
                                     <div 
                                       key={slot.slotIndex} 
                                       className={`relative flex items-start transition-colors ${
-                                        isMobile ? 'px-[0.46vh] py-[0.28vh] max-h-[2.65vh]' : 'h-[4.9vh] px-[0.48vh]'
+                                        isMobile ? 'px-[0.46vh] py-[0.28vh] max-h-[2.65vh]' : 'h-[3.5vh] px-[0.48vh] py-[0.2vh]'
                                       } ${isDropTarget ? 'bg-blue-100 border-l-4 border-blue-500' : ''}`}
                                       data-time-slot="true"
                                       data-slot-index={slot.slotIndex}
@@ -4168,7 +4168,7 @@ export function WeatherForecast({
                                           className="absolute left-0 right-0 z-10"
                                           style={{
                                             top: 0,
-                                            height: `calc(${groupSpan.jobCount} * (4.9vh + 0.28vh) - 0.28vh)`,
+                                            height: `calc(${groupSpan.jobCount} * (3.5vh + 0.2vh) - 0.2vh)`,
                                           }}
                                         >
                                           {(() => {
