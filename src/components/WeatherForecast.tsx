@@ -2396,14 +2396,18 @@ export function WeatherForecast({
   const handleDragEnd = (e: React.DragEvent) => {
     console.log('🎯 DRAG END:', {
       dropEffect: e.dataTransfer.dropEffect,
-      wasCancelled: e.dataTransfer.dropEffect === 'none'
+      wasCancelled: e.dataTransfer.dropEffect === 'none',
+      draggedJobId,
+      hadDragPosition: !!dragPosition
     });
     
     if (e.dataTransfer.dropEffect === 'none') {
       console.log('↩️ DRAG CANCELLED: Card returned to original position');
+    } else {
+      console.log('✅ DRAG COMPLETED: Preview removed');
     }
     
-    // Clean up drag state
+    // Clean up drag state - ALWAYS clear on drag end
     setDraggedJobId(null);
     setDraggedGroupJobs([]);
     setDragPosition(null);
