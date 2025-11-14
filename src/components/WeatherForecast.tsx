@@ -2273,12 +2273,50 @@ export function WeatherForecast({
       }
     };
 
+    const handleMouseUp = (e: MouseEvent) => {
+      if (draggedJobId) {
+        console.log('🖱️ MOUSE UP - Ending drag', { x: e.clientX, y: e.clientY });
+        
+        // Find what element we're over
+        const elementUnderMouse = document.elementFromPoint(e.clientX, e.clientY);
+        const slotElement = elementUnderMouse?.closest('[data-time-slot]');
+        
+        if (slotElement) {
+          const slotIndex = slotElement.getAttribute('data-slot-index');
+          const dayCard = elementUnderMouse?.closest('[data-day-card]');
+          const dateStr = dayCard?.getAttribute('data-date');
+          
+          console.log('📍 DROPPED ON SLOT:', { dateStr, slotIndex });
+          
+          if (dateStr && slotIndex) {
+            // Manually trigger the drop
+            handleSlotDrop({
+              preventDefault: () => {},
+              stopPropagation: () => {}
+            } as any, dateStr, parseInt(slotIndex));
+          } else {
+            console.log('❌ INVALID DROP TARGET - clearing drag');
+            setDraggedJobId(null);
+            setDraggedGroupJobs([]);
+            setDragPosition(null);
+          }
+        } else {
+          console.log('❌ NO SLOT FOUND - clearing drag');
+          setDraggedJobId(null);
+          setDraggedGroupJobs([]);
+          setDragPosition(null);
+        }
+      }
+    };
+
     if (draggedJobId) {
       console.log('✅ MOUSE TRACKING ENABLED for job:', draggedJobId);
       window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
       return () => {
         console.log('❌ MOUSE TRACKING DISABLED');
         window.removeEventListener('mousemove', handleMouseMove);
+        window.removeEventListener('mouseup', handleMouseUp);
       };
     }
   }, [draggedJobId]);
