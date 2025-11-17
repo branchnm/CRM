@@ -2191,22 +2191,10 @@ export function WeatherForecast({
   const handleDragStart = (e: React.DragEvent, jobId: string) => {
     e.dataTransfer.effectAllowed = 'move';
     
-    // Create custom drag image from the actual job card element
-    const target = e.currentTarget as HTMLElement;
-    const clone = target.cloneNode(true) as HTMLElement;
-    clone.style.position = 'absolute';
-    clone.style.top = '-9999px';
-    clone.style.left = '-9999px';
-    clone.style.width = target.offsetWidth + 'px';
-    clone.style.pointerEvents = 'none';
-    document.body.appendChild(clone);
-    
-    e.dataTransfer.setDragImage(clone, e.nativeEvent.offsetX, e.nativeEvent.offsetY);
-    
-    // Clean up clone after drag starts
-    setTimeout(() => {
-      document.body.removeChild(clone);
-    }, 0);
+    // Hide default drag image but we'll show our own custom preview
+    const img = new Image();
+    img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+    e.dataTransfer.setDragImage(img, 0, 0);
     
     // Check if this job is part of a group
     const job = jobs.find(j => j.id === jobId);
@@ -2248,15 +2236,11 @@ export function WeatherForecast({
 
   const handleDragOver = (e: React.DragEvent, dateStr: string, slotIndex?: number) => {
     e.preventDefault();
-    // Only set dragOverDay if not already set (prevents flicker)
     if (dragOverDay !== dateStr) {
       setDragOverDay(dateStr);
-      console.log('🎯 DRAG OVER NEW DAY:', { date: dateStr });
     }
-    // Always set slot for preview
     if (slotIndex !== undefined) {
       setDragOverSlot({ date: dateStr, slot: slotIndex });
-      console.log('🎯 DRAG OVER SLOT:', { date: dateStr, slot: slotIndex });
     }
   };
 
@@ -4274,7 +4258,6 @@ export function WeatherForecast({
                                   
                                   // All slots are always visible and active
                                   const isDropTarget = dragOverSlot?.date === dateStr && dragOverSlot?.slot === slot.slotIndex;
-                                  const showDropIndicator = isDropTarget && slot.isHourMark; // Only show on hour marks
                                   
                                   // Check if this is the start of a group span
                                   const groupSpan = groupSpans.get(slot.slotIndex);
@@ -4285,17 +4268,31 @@ export function WeatherForecast({
                                   // Check if this is the start of a duration span
                                   const jobSpan = jobSpans.get(slot.slotIndex);
                                   
+                                  // Don't show drop indicator if this slot contains the dragged job
+                                  const containsDraggedJob = jobInSlot?.id === draggedJobId || 
+                                    (groupSpan && groupSpan.jobs.some(j => j.id === draggedJobId)) ||
+                                    (jobSpan && jobSpan.job.id === draggedJobId);
+                                  
+                                  const showDropIndicator = isDropTarget && !containsDraggedJob && slot.isHourMark; // Only show on hour marks
+                                  
                                   // Check if this slot is occupied by a duration span from a previous slot
                                   const isOccupiedByDuration = slotsOccupiedByDuration.has(slot.slotIndex);
                                   
                                   return (
                                     <div 
                                       key={slot.slotIndex} 
-                                      className={`relative flex items-start transition-colors ${
+                                      className={`relative flex items-start ${
                                         isMobile ? 'px-[0.46vh] py-0 max-h-[2.65vh]' : 'px-[0.3vh] py-0'
-                                      } ${showDropIndicator ? 'bg-blue-100 border-l-4 border-blue-500' : ''}`}
+                                      } ${
+                                        showDropIndicator 
+                                          ? 'bg-green-50 border-l-2 border-green-500' 
+                                          : draggedJobId && !containsDraggedJob && !isOccupiedByDuration
+                                          ? 'hover:bg-blue-50/30'
+                                          : ''
+                                      }`}
                                       style={{
-                                        height: isMobile ? 'auto' : '1.25vh'
+                                        height: isMobile ? 'auto' : '1.25vh',
+                                        transition: 'background-color 0.1s ease',
                                       }}
                                       data-time-slot="true"
                                       data-slot-index={slot.slotIndex}
@@ -4341,14 +4338,14 @@ export function WeatherForecast({
                                                 draggable={!isCompleted}
                                                 onDragStart={(e) => !isCompleted && handleDragStart(e, groupSpan.firstJobId)}
                                                 onDragEnd={handleDragEnd}
-                                                className={`h-full rounded transition-all text-xs overflow-hidden flex flex-col select-none mx-auto ${
+                                                className={`h-full rounded text-xs overflow-hidden flex flex-col select-none mx-auto ${
                                                   isMobile ? 'px-[0.73vh] py-[0.46vh] max-w-[90vw]' : 'px-[0.58vh] py-[0.48vh] max-w-[260px]'
                                                 } ${
                                                   isCompleted
                                                     ? 'bg-gray-100 border border-gray-300 cursor-default'
                                                     : isDraggedItem
-                                                      ? 'bg-blue-50 border-2 border-blue-500 shadow-xl opacity-70'
-                                                      : 'bg-white border border-gray-300 cursor-move hover:shadow-md hover:border-blue-400'
+                                                      ? 'bg-white border-2 border-blue-500'
+                                                      : 'bg-white border border-gray-300 cursor-move'
                                                 }`}
                                                 style={{
                                                   marginLeft: overlapsWeatherIcon ? '5vh' : '0',
@@ -4356,6 +4353,7 @@ export function WeatherForecast({
                                                   userSelect: 'none',
                                                   WebkitUserSelect: 'none',
                                                   WebkitTouchCallout: 'none',
+                                                  opacity: isDraggedItem ? 0 : 1,
                                                 }}
                                               >
                                                 {/* Colored bar at top */}
@@ -4451,25 +4449,26 @@ export function WeatherForecast({
                                                   const nextRowIndent = rowIndex < rowIndents.length - 1 ? rowIndents[rowIndex + 1] : null;
                                                   
                                                   // Determine which corners should be rounded
-                                                  const roundTopLeft = isFirstRow || (prevRowIndent !== null && prevRowIndent !== needsIndent);
+                                                  // Left side should NOT be rounded when indented (next to weather icon)
+                                                  // Only round right-side corners and left corners when full-width
+                                                  const roundTopLeft = isFirstRow && !needsIndent;
                                                   const roundTopRight = isFirstRow;
-                                                  const roundBottomLeft = isLastRow || (nextRowIndent !== null && nextRowIndent !== needsIndent);
+                                                  const roundBottomLeft = isLastRow && !needsIndent;
                                                   const roundBottomRight = isLastRow;
                                                   
-                                                  // Build border radius style
-                                                  const borderRadius = `${roundTopLeft ? '0.5vh' : '0'} ${roundTopRight ? '0.5vh' : '0'} ${roundBottomRight ? '0.5vh' : '0'} ${roundBottomLeft ? '0.5vh' : '0'}`;
+                                                  const borderRadius = `${roundTopLeft ? '3vh' : '0'} ${roundTopRight ? '3vh' : '0'} ${roundBottomRight ? '3vh' : '0'} ${roundBottomLeft ? '3vh' : '0'}`;
                                                   
                                                   const borderColor = isCompleted
-                                                    ? 'rgb(156, 163, 175)' // gray-400
+                                                    ? 'rgb(107, 114, 128)' // gray-500 (medium gray)
                                                     : isSelected
-                                                    ? 'rgb(22, 163, 74)' // green-600
+                                                    ? 'rgb(21, 128, 61)' // green-700
                                                     : isCutItem
-                                                    ? 'rgb(234, 179, 8)' // yellow-500
+                                                    ? 'rgb(202, 138, 4)' // yellow-600
                                                     : isAssigned
-                                                    ? 'rgb(156, 163, 175)' // gray-400
+                                                    ? 'rgb(107, 114, 128)' // gray-500 (medium gray)
                                                     : isAffectedByRain
-                                                    ? 'rgb(147, 197, 253)' // blue-300
-                                                    : 'rgb(209, 213, 219)'; // gray-300
+                                                    ? 'rgb(59, 130, 246)' // blue-500
+                                                    : 'rgb(107, 114, 128)'; // gray-500 (medium gray)
                                                   
                                                   const borderWidth = 1; // Consistent border width
                                                   
@@ -4481,7 +4480,7 @@ export function WeatherForecast({
                                                     <div key={rowIndex} className="relative">
                                                       {/* Background */}
                                                       <div
-                                                        className={`transition-all text-xs select-none shrink-0 ${
+                                                        className={`text-xs select-none shrink-0 ${
                                                           isCompleted
                                                             ? 'bg-gray-200/80'
                                                             : isSelected
@@ -4495,12 +4494,13 @@ export function WeatherForecast({
                                                             : 'bg-white'
                                                         }`}
                                                         style={{
-                                                          marginLeft: needsIndent ? '-1.0vh' : '-4.3vh',
-                                                          width: needsIndent ? 'calc(100% + 1.0vh)' : 'calc(100% + 4.3vh)',
+                                                          marginLeft: needsIndent ? '-1.0vh' : '-4.8vh',
+                                                          width: needsIndent ? 'calc(100% + 1.0vh)' : 'calc(100% + 4.8vh)',
                                                           height: isFirstRow || isLastRow ? '1.0vh' : '1.25vh',
                                                           marginTop: isFirstRow ? '0.125vh' : '0',
                                                           marginBottom: isLastRow ? '0.125vh' : '0',
-                                                          borderRadius,
+                                                          borderRadius: isFirstRow && isLastRow ? '3vh' : borderRadius,
+                                                          opacity: isDraggedItem ? 0 : 1,
                                                         }}
                                                       />
                                                       {/* Borders - only exterior edges */}
@@ -4510,12 +4510,11 @@ export function WeatherForecast({
                                                           className="absolute pointer-events-none"
                                                           style={{
                                                             top: '0.125vh',
-                                                            left: needsIndent ? '-1.0vh' : '-4.3vh',
-                                                            width: needsIndent ? 'calc(100% + 1.0vh)' : 'calc(100% + 4.3vh)',
-                                                            height: '0.75px',
+                                                            left: needsIndent ? '-1.0vh' : '-4.8vh',
+                                                            width: needsIndent ? 'calc(100% + 1.0vh)' : 'calc(100% + 4.8vh)',
+                                                            height: '1.5px',
                                                             background: borderColor,
-                                                            borderRadius: '0.5vh 0.5vh 0 0',
-                                                            zIndex: 15,
+                                                            zIndex: 999,
                                                           }}
                                                         />
                                                       )}
@@ -4525,11 +4524,11 @@ export function WeatherForecast({
                                                           className="absolute pointer-events-none"
                                                           style={{
                                                             top: '0',
-                                                            left: '-4.3vh',
-                                                            width: 'calc(3.3vh + 0.75px)',
-                                                            height: '0.75px',
+                                                            left: '-4.8vh',
+                                                            width: 'calc(3.8vh + 1.5px)',
+                                                            height: '1.5px',
                                                             background: borderColor,
-                                                            zIndex: 15,
+                                                            zIndex: 999,
                                                           }}
                                                         />
                                                       )}
@@ -4539,12 +4538,11 @@ export function WeatherForecast({
                                                           className="absolute pointer-events-none"
                                                           style={{
                                                             bottom: '0.125vh',
-                                                            left: needsIndent ? '-1.0vh' : '-4.3vh',
-                                                            width: needsIndent ? 'calc(100% + 1.0vh)' : 'calc(100% + 4.3vh)',
-                                                            height: '0.75px',
+                                                            left: needsIndent ? '-1.0vh' : '-4.8vh',
+                                                            width: needsIndent ? 'calc(100% + 1.0vh)' : 'calc(100% + 4.8vh)',
+                                                            height: '1.5px',
                                                             background: borderColor,
-                                                            borderRadius: '0 0 0.5vh 0.5vh',
-                                                            zIndex: 15,
+                                                            zIndex: 999,
                                                           }}
                                                         />
                                                       )}
@@ -4554,11 +4552,11 @@ export function WeatherForecast({
                                                           className="absolute pointer-events-none"
                                                           style={{
                                                             bottom: '0',
-                                                            left: '-4.3vh',
-                                                            width: 'calc(3.3vh + 0.75px)',
-                                                            height: '0.75px',
+                                                            left: '-4.8vh',
+                                                            width: 'calc(3.8vh + 1.5px)',
+                                                            height: '1.5px',
                                                             background: borderColor,
-                                                            zIndex: 15,
+                                                            zIndex: 999,
                                                           }}
                                                         />
                                                       )}
@@ -4567,11 +4565,11 @@ export function WeatherForecast({
                                                         className="absolute pointer-events-none"
                                                         style={{
                                                           top: isFirstRow ? '0.125vh' : '0',
-                                                          left: needsIndent ? '-1.0vh' : '-4.3vh',
-                                                          width: '0.75px',
+                                                          left: needsIndent ? '-1.0vh' : '-4.8vh',
+                                                          width: '1.5px',
                                                           height: isFirstRow || isLastRow ? '1.0vh' : '1.25vh',
                                                           background: borderColor,
-                                                          zIndex: 15,
+                                                          zIndex: 999,
                                                         }}
                                                       />
                                                       {/* Right border - always on the right edge */}
@@ -4579,10 +4577,10 @@ export function WeatherForecast({
                                                         className="absolute right-0 pointer-events-none"
                                                         style={{
                                                           top: isFirstRow ? '0.125vh' : '0',
-                                                          width: '0.75px',
+                                                          width: '1.5px',
                                                           height: isFirstRow || isLastRow ? '1.0vh' : '1.25vh',
                                                           background: borderColor,
-                                                          zIndex: 15,
+                                                          zIndex: 999,
                                                         }}
                                                       />
                                                     </div>
@@ -4603,11 +4601,16 @@ export function WeatherForecast({
                                                     input.select();
                                                   }
                                                 }}
-                                                className={`absolute top-0 left-0 right-0 ${!isCompleted ? 'cursor-move' : 'cursor-default'}`}
+                                                className={`absolute top-0 left-0 right-0 overflow-hidden ${!isCompleted ? 'cursor-move' : 'cursor-default'}`}
                                                 style={{ 
                                                   paddingLeft: '1.3vh',
                                                   paddingRight: '0.3vh',
                                                   paddingTop: '0.25vh',
+                                                  paddingBottom: '0.25vh',
+                                                  // Only round right corners always, left corners only when NOT indented (full width)
+                                                  borderRadius: spansMultipleSlots 
+                                                    ? `${rowIndents[0] ? '0' : '3vh'} 3vh 3vh ${rowIndents[rowIndents.length - 1] ? '0' : '3vh'}`
+                                                    : startsAtWeatherIcon ? '0 3vh 3vh 0' : '3vh',
                                                   zIndex: 20
                                                 }}
                                               >
@@ -4696,7 +4699,7 @@ export function WeatherForecast({
                                               onTouchStart={isTouchDevice.current && !isCompleted ? (e) => handleJobTouchStart(e, jobInSlot.id) : undefined}
                                               onTouchMove={isTouchDevice.current && !isCompleted ? handleJobTouchMove : undefined}
                                               onTouchEnd={isTouchDevice.current && !isCompleted ? handleJobTouchEnd : undefined}
-                                              className={`rounded transition-all text-xs group overflow-hidden flex items-start select-none w-full ${
+                                              className={`rounded text-xs group overflow-hidden flex items-start select-none w-full ${
                                                 isMobile ? 'px-[0.73vh] py-[0.46vh]' : 'px-[0.3vh] py-[0.25vh]'
                                               } ${
                                                 isCompleted
@@ -4706,11 +4709,11 @@ export function WeatherForecast({
                                                   : isCutItem
                                                   ? 'bg-yellow-100 border-2 border-yellow-500 shadow-lg'
                                                   : isAssigned
-                                                  ? 'bg-gray-100 border-2 border-gray-400 animate-pulse cursor-move hover:shadow-md'
+                                                  ? 'bg-gray-100 border-2 border-gray-400 animate-pulse cursor-move'
                                                   : isAffectedByRain
-                                                  ? 'bg-blue-50 border-2 border-blue-300 cursor-move hover:shadow-md'
-                                                  : 'bg-white border border-gray-300 cursor-move hover:shadow-md active:bg-blue-50 active:border-blue-400'
-                                              } ${isDraggedItem ? 'opacity-50' : ''}`}
+                                                  ? 'bg-blue-50 border-2 border-blue-300 cursor-move'
+                                                  : 'bg-white border border-gray-300 cursor-move active:bg-blue-50 active:border-blue-400'
+                                              }`}
                                               style={{
                                                 marginLeft: startsAtWeatherIcon ? '5vh' : '0',
                                                 width: startsAtWeatherIcon ? 'calc(100% - 5vh)' : '100%',
@@ -4722,6 +4725,7 @@ export function WeatherForecast({
                                                 marginBottom: isMobile ? '0' : '2.5vh',
                                                 alignSelf: 'flex-start',
                                                 pointerEvents: 'auto',
+                                                opacity: isDraggedItem ? 0 : 1,
                                                 ...(isAffectedByRain && !isCompleted && !isSelected && !isCutItem && !isDraggedItem && !isAssigned ? {
                                                   backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 6px, rgba(59, 130, 246, 0.08) 6px, rgba(59, 130, 246, 0.08) 12px)'
                                                 } : {})
@@ -5111,77 +5115,81 @@ export function WeatherForecast({
         </Alert>
       )}
 
-      {/* Drag preview - shows card following cursor */}
+      {/* Drag preview - mini version of actual job card */}
       {draggedJobId && dragPosition && (() => {
         const draggedJob = jobs.find(j => j.id === draggedJobId);
-        if (!draggedJob) return null;
+        if (!draggedJob) {
+          console.log('❌ Drag preview: draggedJob not found');
+          return null;
+        }
         
         const customer = customers.find(c => c.id === draggedJob.customerId);
-        if (!customer || !dragPosition) return null;
+        if (!customer) {
+          console.log('❌ Drag preview: customer not found');
+          return null;
+        }
         
-        // Check if this is a group drag
+        console.log('✅ Rendering drag preview', { customerName: customer.name, position: dragPosition });
+        
+        const isCompleted = draggedJob.status === 'completed';
         const isGroupDrag = customer.groupId && draggedGroupJobs.length > 1;
         const group = isGroupDrag ? customerGroups.find(g => g.id === customer.groupId) : null;
-        const groupColor = group?.color || '#2563eb';
         
         return (
           <div
             className="fixed pointer-events-none"
             style={{
-              left: `${dragPosition.x}px`,
-              top: `${dragPosition.y}px`,
-              transform: 'translate(-50%, -50%)',
-              zIndex: 9999,
+              left: `${dragPosition.x + 15}px`,
+              top: `${dragPosition.y + 15}px`,
+              zIndex: 999999,
             }}
           >
             {isGroupDrag && group ? (
-              // Group drag preview - matches forecast card styling exactly
+              // Mini group card
               <div
-                className="rounded text-xs overflow-hidden flex flex-col select-none bg-white border-2 border-blue-500 shadow-xl opacity-90"
+                className="text-xs overflow-hidden flex flex-col select-none shadow-2xl"
                 style={{
-                  padding: 'max(0.58vh, 5px)',
-                  minWidth: '120px',
-                  minHeight: '60px',
-                  userSelect: 'none',
-                  WebkitUserSelect: 'none',
-                  WebkitTouchCallout: 'none',
+                  backgroundColor: 'white',
+                  border: '2px solid rgb(107, 114, 128)',
+                  borderRadius: '3vh',
+                  padding: '8px',
+                  minWidth: '140px',
+                  opacity: 0.95,
                 }}
               >
                 <div 
-                  className="w-full rounded-sm mb-[0.3vh]" 
+                  className="w-full h-[4px] rounded-sm -mx-2 -mt-2 mb-2"
                   style={{ 
-                    height: 'max(0.4vh, 3px)',
-                    width: 'calc(100% + max(1.16vh, 10px))',
-                    marginLeft: 'calc(-1 * max(0.58vh, 5px))',
-                    marginTop: 'calc(-1 * max(0.48vh, 4px))',
-                    backgroundColor: groupColor
+                    width: 'calc(100% + 16px)',
+                    backgroundColor: group.color || '#2563eb'
                   }}
-                ></div>
-                
-                <div className="flex flex-col gap-[0.2vh] w-full flex-1 justify-center">
-                  <div className="font-semibold text-gray-900" style={{ fontSize: 'max(1.34vh, 11px)' }}>
-                    {group.name}
-                  </div>
-                  <div className="text-gray-600" style={{ fontSize: 'max(1.1vh, 9px)' }}>
-                    {draggedGroupJobs.length} properties • {group.workTimeMinutes} min
-                  </div>
+                />
+                <div className="font-semibold text-gray-900 text-sm">
+                  {group.name}
+                </div>
+                <div className="text-gray-600 text-xs mt-1">
+                  {draggedGroupJobs.length} properties • {group.workTimeMinutes} min
                 </div>
               </div>
             ) : (
-              // Single job drag preview - simplified version
-              <div 
-                className="rounded text-xs overflow-hidden flex flex-col select-none bg-white border-2 border-blue-500 shadow-xl opacity-90"
+              // Mini single job card - matches actual card styling
+              <div
+                className={`text-xs overflow-hidden flex flex-col select-none shadow-2xl ${
+                  isCompleted ? 'bg-gray-200/80' : 'bg-white'
+                }`}
                 style={{
-                  padding: 'max(0.58vh, 5px)',
-                  minWidth: '120px',
-                  minHeight: '60px',
+                  border: '2px solid rgb(107, 114, 128)',
+                  borderRadius: '3vh',
+                  padding: '6px 8px',
+                  minWidth: '140px',
+                  opacity: 0.95,
                 }}
               >
-                <div className="flex flex-col gap-1 justify-center items-center text-center h-full">
-                  <div className="font-semibold text-gray-900" style={{ fontSize: 'max(1.34vh, 11px)' }}>
-                    {customer.name}
-                  </div>
-                  <div className="text-gray-600 text-[10px]">{customer.address}</div>
+                <div className="font-semibold text-gray-900 text-sm truncate">
+                  {customer.name}
+                </div>
+                <div className="text-gray-600 text-xs mt-1">
+                  ${customer.price} • {draggedJob.totalTime || 60} min
                 </div>
               </div>
             )}
