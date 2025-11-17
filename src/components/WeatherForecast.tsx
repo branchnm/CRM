@@ -2191,6 +2191,23 @@ export function WeatherForecast({
   const handleDragStart = (e: React.DragEvent, jobId: string) => {
     e.dataTransfer.effectAllowed = 'move';
     
+    // Create custom drag image from the actual job card element
+    const target = e.currentTarget as HTMLElement;
+    const clone = target.cloneNode(true) as HTMLElement;
+    clone.style.position = 'absolute';
+    clone.style.top = '-9999px';
+    clone.style.left = '-9999px';
+    clone.style.width = target.offsetWidth + 'px';
+    clone.style.pointerEvents = 'none';
+    document.body.appendChild(clone);
+    
+    e.dataTransfer.setDragImage(clone, e.nativeEvent.offsetX, e.nativeEvent.offsetY);
+    
+    // Clean up clone after drag starts
+    setTimeout(() => {
+      document.body.removeChild(clone);
+    }, 0);
+    
     // Check if this job is part of a group
     const job = jobs.find(j => j.id === jobId);
     const customer = customers.find(c => c.id === job?.customerId);
@@ -4480,7 +4497,9 @@ export function WeatherForecast({
                                                         style={{
                                                           marginLeft: needsIndent ? '-1.0vh' : '-4.3vh',
                                                           width: needsIndent ? 'calc(100% + 1.0vh)' : 'calc(100% + 4.3vh)',
-                                                          height: '1.25vh',
+                                                          height: isFirstRow || isLastRow ? '1.0vh' : '1.25vh',
+                                                          marginTop: isFirstRow ? '0.125vh' : '0',
+                                                          marginBottom: isLastRow ? '0.125vh' : '0',
                                                           borderRadius,
                                                         }}
                                                       />
@@ -4488,11 +4507,12 @@ export function WeatherForecast({
                                                       {/* Top border */}
                                                       {isFirstRow && (
                                                         <div
-                                                          className="absolute top-0 pointer-events-none"
+                                                          className="absolute pointer-events-none"
                                                           style={{
+                                                            top: '0.125vh',
                                                             left: needsIndent ? '-1.0vh' : '-4.3vh',
                                                             width: needsIndent ? 'calc(100% + 1.0vh)' : 'calc(100% + 4.3vh)',
-                                                            height: `${borderWidth}px`,
+                                                            height: '0.75px',
                                                             background: borderColor,
                                                             borderRadius: '0.5vh 0.5vh 0 0',
                                                             zIndex: 15,
@@ -4502,13 +4522,13 @@ export function WeatherForecast({
                                                       {/* Partial top border when going from indented to full */}
                                                       {!isFirstRow && isWidthChangingFromPrev && !needsIndent && prevRowIndent && (
                                                         <div
-                                                          className="absolute top-0 pointer-events-none"
+                                                          className="absolute pointer-events-none"
                                                           style={{
+                                                            top: '0',
                                                             left: '-4.3vh',
-                                                            width: '3.3vh',
-                                                            height: `${borderWidth}px`,
+                                                            width: 'calc(3.3vh + 0.75px)',
+                                                            height: '0.75px',
                                                             background: borderColor,
-                                                            borderRadius: '0.5vh 0 0 0.5vh',
                                                             zIndex: 15,
                                                           }}
                                                         />
@@ -4516,11 +4536,12 @@ export function WeatherForecast({
                                                       {/* Bottom border */}
                                                       {isLastRow && (
                                                         <div
-                                                          className="absolute bottom-0 pointer-events-none"
+                                                          className="absolute pointer-events-none"
                                                           style={{
+                                                            bottom: '0.125vh',
                                                             left: needsIndent ? '-1.0vh' : '-4.3vh',
                                                             width: needsIndent ? 'calc(100% + 1.0vh)' : 'calc(100% + 4.3vh)',
-                                                            height: `${borderWidth}px`,
+                                                            height: '0.75px',
                                                             background: borderColor,
                                                             borderRadius: '0 0 0.5vh 0.5vh',
                                                             zIndex: 15,
@@ -4530,34 +4551,36 @@ export function WeatherForecast({
                                                       {/* Partial bottom border when going from indented to full */}
                                                       {!isLastRow && isWidthChangingToNext && !needsIndent && nextRowIndent && (
                                                         <div
-                                                          className="absolute bottom-0 pointer-events-none"
+                                                          className="absolute pointer-events-none"
                                                           style={{
+                                                            bottom: '0',
                                                             left: '-4.3vh',
-                                                            width: '3.3vh',
-                                                            height: `${borderWidth}px`,
+                                                            width: 'calc(3.3vh + 0.75px)',
+                                                            height: '0.75px',
                                                             background: borderColor,
-                                                            borderRadius: '0 0 0.5vh 0.5vh',
                                                             zIndex: 15,
                                                           }}
                                                         />
                                                       )}
                                                       {/* Left border - only the outer-most edge */}
                                                       <div
-                                                        className="absolute top-0 pointer-events-none"
+                                                        className="absolute pointer-events-none"
                                                         style={{
+                                                          top: isFirstRow ? '0.125vh' : '0',
                                                           left: needsIndent ? '-1.0vh' : '-4.3vh',
-                                                          width: `${borderWidth}px`,
-                                                          height: '1.25vh',
+                                                          width: '0.75px',
+                                                          height: isFirstRow || isLastRow ? '1.0vh' : '1.25vh',
                                                           background: borderColor,
                                                           zIndex: 15,
                                                         }}
                                                       />
                                                       {/* Right border - always on the right edge */}
                                                       <div
-                                                        className="absolute top-0 right-0 pointer-events-none"
+                                                        className="absolute right-0 pointer-events-none"
                                                         style={{
-                                                          width: `${borderWidth}px`,
-                                                          height: '1.25vh',
+                                                          top: isFirstRow ? '0.125vh' : '0',
+                                                          width: '0.75px',
+                                                          height: isFirstRow || isLastRow ? '1.0vh' : '1.25vh',
                                                           background: borderColor,
                                                           zIndex: 15,
                                                         }}
