@@ -4059,7 +4059,7 @@ export function WeatherForecast({
                               return (
                                 <div className={`relative flex flex-col time-slots-container overflow-hidden ${
                                   isMobile ? 'space-y-0 flex-1 justify-between gap-y-[0.42vh]' : 'flex-1 justify-between'
-                                }`} data-date={dateStr}>
+                                }`} data-date={dateStr} style={{ display: 'grid', gridTemplateColumns: '4.5vh 1fr', gap: '0.5vh', height: '70vh' }}>
                                 {/* Blocked time overlays */}
                                 {(() => {
                                   const currentStartTime = dayStartTimes.get(dateStr) || 5;
@@ -4081,6 +4081,7 @@ export function WeatherForecast({
                                         <div 
                                           className="absolute top-0 left-0 right-0 bg-blue-50/60 pointer-events-none z-20"
                                           style={{ 
+                                            gridColumn: '1 / -1',
                                             height: `${blockedStartPercent}%`,
                                             backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(59, 130, 246, 0.2) 4px, rgba(59, 130, 246, 0.2) 8px)'
                                           }}
@@ -4092,6 +4093,7 @@ export function WeatherForecast({
                                         <div 
                                           className="absolute left-0 right-0 bg-blue-50/60 pointer-events-none z-20"
                                           style={{ 
+                                            gridColumn: '1 / -1',
                                             top: `${blockedEndTopPercent}%`,
                                             height: `${blockedEndPercent}%`,
                                             backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(59, 130, 246, 0.2) 4px, rgba(59, 130, 246, 0.2) 8px)'
@@ -4102,7 +4104,101 @@ export function WeatherForecast({
                                   );
                                 })()}
                                 
-                                {timeSlots.map((slot) => {
+                                {/* Weather symbols column - always visible with absolute positioning */}
+                                <div className="relative" style={{ gridColumn: '1', height: '100%' }}>
+                                  {[
+                                    { hour: 5, position: 0 },      // 5 AM - 0% from top (slot 0/56)
+                                    { hour: 8, position: 21.43 },  // 8 AM - 21.43% from top (slot 12/56)
+                                    { hour: 11, position: 42.86 }, // 11 AM - 42.86% from top (slot 24/56)
+                                    { hour: 14, position: 64.29 }, // 2 PM - 64.29% from top (slot 36/56)
+                                    { hour: 17, position: 85.71 }  // 5 PM - 85.71% from top (slot 48/56)
+                                  ].map(({ hour, position }) => {
+                                    const isFirstSlot = hour === 5;
+                                    
+                                    // Weather icon function
+                                    const getWeatherForHour = () => {
+                                      if (!weatherForDay) return null;
+                                      
+                                      let forecast = null;
+                                      if (weatherForDay.hourlyForecasts && weatherForDay.hourlyForecasts.length > 0) {
+                                        forecast = weatherForDay.hourlyForecasts.find((f: any) => f.hour24 === hour);
+                                        
+                                        if (!forecast) {
+                                          const closestForecast = weatherForDay.hourlyForecasts.reduce((prev: any, curr: any) => {
+                                            const prevDiff = Math.abs((prev.hour24 || 0) - hour);
+                                            const currDiff = Math.abs((curr.hour24 || 0) - hour);
+                                            return currDiff < prevDiff ? curr : prev;
+                                          });
+                                          forecast = closestForecast;
+                                        }
+                                      }
+                                      
+                                      if (!forecast) {
+                                        forecast = { 
+                                          description: weatherForDay.description, 
+                                          precipitation: rainChance, 
+                                          rainAmount: weatherForDay.precipitation || 0, 
+                                          hour24: hour 
+                                        };
+                                      }
+                                      
+                                      const effectivePrecipitation = Math.max(forecast.precipitation || 0, rainChance);
+                                      const { Icon: HourIcon, color: hourColor } = getWeatherIcon(
+                                        forecast.description, 
+                                        effectivePrecipitation,
+                                        forecast.rainAmount,
+                                        hour
+                                      );
+                                      
+                                      const timeLabel = hour > 12 ? `${hour - 12} PM` : hour === 12 ? '12 PM' : `${hour} AM`;
+                                      
+                                      return (
+                                        <div className="flex flex-col items-center gap-[0.19vh] w-full shrink-0">
+                                          <HourIcon className={`${isMobile ? 'w-[2.74vh] h-[2.74vh]' : 'w-[3.07vh] h-[3.07vh]'} ${hourColor} stroke-[1.5]`} />
+                                          <span className={`text-gray-500 font-medium whitespace-nowrap ${isMobile ? 'text-[1.09vh]' : 'text-[1.06vh]'}`}>
+                                            {timeLabel}
+                                          </span>
+                                        </div>
+                                      );
+                                    };
+                                    
+                                    return (
+                                      <div 
+                                        key={`weather-${hour}`} 
+                                        className="absolute flex items-start justify-center w-full" 
+                                        style={{ 
+                                          top: `${position}%`,
+                                          paddingTop: '0.2vh',
+                                          paddingBottom: '0.5vh',
+                                        }}
+                                      >
+                                        {isFirstSlot && hasOvernightRain ? (
+                                          <div className="flex flex-col items-center gap-[0.14vh]">
+                                            {getWeatherForHour()}
+                                            <div className="flex flex-col items-center gap-[0.19vh] mt-[0.5vh]">
+                                              <div className={`relative flex items-center justify-center bg-blue-50 rounded-full border border-blue-200 ${
+                                                isMobile ? 'w-[2.74vh] h-[2.74vh]' : 'w-[3.07vh] h-[3.07vh]'
+                                              }`}>
+                                                <svg className={`text-blue-600 ${isMobile ? 'w-[1.82vh] h-[1.82vh]' : 'w-[1.92vh] h-[1.92vh]'}`} fill="currentColor" viewBox="0 0 20 20">
+                                                  <path fillRule="evenodd" d="M10 2a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0110 2zM10 15a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0110 15zM10 7a3 3 0 100 6 3 3 0 000-6zM15.657 5.404a.75.75 0 10-1.06-1.06l-1.061 1.06a.75.75 0 001.06 1.06l1.06-1.06zM6.464 14.596a.75.75 0 10-1.06-1.06l-1.06 1.06a.75.75 0 001.06 1.06l1.06-1.06zM18 10a.75.75 0 01-.75.75h-1.5a.75.75 0 010-1.5h1.5A.75.75 0 0118 10zM5 10a.75.75 0 01-.75.75h-1.5a.75.75 0 010-1.5h1.5A.75.75 0 015 10zM14.596 15.657a.75.75 0 001.06-1.06l-1.06-1.061a.75.75 0 10-1.06 1.06l1.06 1.06zM5.404 6.464a.75.75 0 001.06-1.06l-1.06-1.06a.75.75 0 10-1.061 1.06l1.06 1.06z" clipRule="evenodd" />
+                                                </svg>
+                                              </div>
+                                              <span className={`text-blue-700 font-bold whitespace-nowrap tracking-tight ${
+                                                isMobile ? 'text-[0.91vh]' : 'text-[0.96vh]'
+                                              }`}>WET</span>
+                                            </div>
+                                          </div>
+                                        ) : (
+                                          getWeatherForHour()
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                                
+                                {/* Job cards column - flows naturally */}
+                                <div className="flex flex-col" style={{ gridColumn: '2' }}>
+                                  {timeSlots.map((slot) => {
                                   const jobInSlot = jobsBySlot[slot.slotIndex];
                                   const isSlotHovered = dragOverSlot?.date === dateStr && dragOverSlot?.slot === slot.slotIndex;
                                   const isFirstSlot = slot.slotIndex === 0; // First time slot of the day (5 AM)
@@ -4179,8 +4275,11 @@ export function WeatherForecast({
                                     <div 
                                       key={slot.slotIndex} 
                                       className={`relative flex items-start transition-colors ${
-                                        isMobile ? 'px-[0.46vh] py-0 max-h-[2.65vh]' : 'h-[0.7vh] px-[0.3vh] py-0'
+                                        isMobile ? 'px-[0.46vh] py-0 max-h-[2.65vh]' : 'px-[0.3vh] py-0'
                                       } ${showDropIndicator ? 'bg-blue-100 border-l-4 border-blue-500' : ''}`}
+                                      style={{
+                                        height: isMobile ? 'auto' : '1.25vh'
+                                      }}
                                       data-time-slot="true"
                                       data-slot-index={slot.slotIndex}
                                       onDragOver={(e) => !isOccupiedByDuration && handleDragOver(e, dateStr, slot.slotIndex)}
@@ -4192,7 +4291,8 @@ export function WeatherForecast({
                                           className="absolute left-0 right-0 z-10"
                                           style={{
                                             top: 0,
-                                            height: `calc(${groupSpan.jobCount} * 0.7vh)`,
+                                            height: `calc(${groupSpan.jobCount} * 1.25vh)`,
+                                            marginBottom: '0.3vh',
                                           }}
                                         >
                                           {(() => {
@@ -4201,6 +4301,14 @@ export function WeatherForecast({
                                             const anyInProgress = groupSpan.jobs.some(j => j.status === 'in-progress');
                                             const groupColor = groupSpan.group.color || '#2563eb'; // Blue default
                                             const canDrag = !isCompleted;
+                                            
+                                            // Calculate if group overlaps with weather icons
+                                            const weatherIconSlots = [0, 12, 24, 36, 48];
+                                            const groupStartSlot = slot.slotIndex;
+                                            const groupEndSlot = groupStartSlot + groupSpan.jobCount - 1;
+                                            const overlapsWeatherIcon = weatherIconSlots.some(iconSlot => 
+                                              groupStartSlot <= iconSlot && groupEndSlot >= iconSlot
+                                            );
                                             
                                             if (Math.random() < 0.05) { // Log occasionally to avoid spam
                                               console.log('🎴 GROUP CARD:', { 
@@ -4226,6 +4334,8 @@ export function WeatherForecast({
                                                       : 'bg-white border border-gray-300 cursor-move hover:shadow-md hover:border-blue-400'
                                                 }`}
                                                 style={{
+                                                  marginLeft: overlapsWeatherIcon ? '5vh' : '0',
+                                                  width: overlapsWeatherIcon ? 'calc(100% - 5vh)' : '100%',
                                                   userSelect: 'none',
                                                   WebkitUserSelect: 'none',
                                                   WebkitTouchCallout: 'none',
@@ -4265,39 +4375,8 @@ export function WeatherForecast({
                                         </div>
                                       )}
                                       
-                                      <div className={`flex items-start w-full ${shouldShowWeatherIcon ? 'gap-[0.48vh]' : 'gap-0'}`}>
-                                        {/* Show weather icon with time, or just empty space for alignment */}
-                                        {shouldShowWeatherIcon ? (() => {
-                                          const weatherIcon = getWeatherForHour();
-                                          
-                                          // For first slot (5 AM), add wet grass indicator if overnight rain
-                                          if (isFirstSlot && hasOvernightRain) {
-                                            return (
-                                              <div className="flex items-center gap-[0.14vh]">
-                                                {weatherIcon}
-                                                <div className="flex flex-col items-center gap-[0.19vh]">
-                                                  <div className={`relative flex items-center justify-center bg-blue-50 rounded-full border border-blue-200 ${
-                                                    isMobile ? 'w-[2.74vh] h-[2.74vh]' : 'w-[3.07vh] h-[3.07vh]'
-                                                  }`}>
-                                                    <svg className={`text-blue-600 ${isMobile ? 'w-[1.82vh] h-[1.82vh]' : 'w-[1.92vh] h-[1.92vh]'}`} fill="currentColor" viewBox="0 0 20 20">
-                                                      <path fillRule="evenodd" d="M10 2a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0110 2zM10 15a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0110 15zM10 7a3 3 0 100 6 3 3 0 000-6zM15.657 5.404a.75.75 0 10-1.06-1.06l-1.061 1.06a.75.75 0 001.06 1.06l1.06-1.06zM6.464 14.596a.75.75 0 10-1.06-1.06l-1.06 1.06a.75.75 0 001.06 1.06l1.06-1.06zM18 10a.75.75 0 01-.75.75h-1.5a.75.75 0 010-1.5h1.5A.75.75 0 0118 10zM5 10a.75.75 0 01-.75.75h-1.5a.75.75 0 010-1.5h1.5A.75.75 0 015 10zM14.596 15.657a.75.75 0 001.06-1.06l-1.06-1.061a.75.75 0 10-1.06 1.06l1.06 1.06zM5.404 6.464a.75.75 0 001.06-1.06l-1.06-1.06a.75.75 0 10-1.061 1.06l1.06 1.06z" clipRule="evenodd" />
-                                                    </svg>
-                                                  </div>
-                                                  <span className={`text-blue-700 font-bold whitespace-nowrap tracking-tight ${
-                                                    isMobile ? 'text-[0.91vh]' : 'text-[0.96vh]'
-                                                  }`}>WET</span>
-                                                </div>
-                                              </div>
-                                            );
-                                          }
-                                          
-                                          return weatherIcon;
-                                        })() : (
-                                          <div className="w-[1.92vh] shrink-0"></div>
-                                        )}
-                                        
-                                        {/* Job card or empty drop zone */}
-                                        {jobInSlot && !isPartOfGroup ? (() => {
+                                      {/* Job card or empty drop zone */}
+                                      {jobInSlot && !isPartOfGroup ? (() => {
                                           // Groups are handled separately
                                           // Duration spans: job only exists in jobsBySlot at first slot
                                           
@@ -4319,7 +4398,263 @@ export function WeatherForecast({
                                           const isSelected = selectedJobIds.has(jobInSlot.id);
                                           const isAffectedByRain = affectedJobIds.has(jobInSlot.id);
                                           
-                                          const jobCardContent = (
+                                          // Calculate which rows need indentation for wrapping
+                                          const weatherIconSlots = [0, 12, 24, 36, 48];
+                                          const startsAtWeatherIcon = weatherIconSlots.includes(slot.slotIndex);
+                                          
+                                          // For multi-slot cards, determine which rows overlap with weather icons
+                                          const rowIndents: boolean[] = [];
+                                          if (spansMultipleSlots && spanInfo) {
+                                            for (let i = 0; i < spanInfo.slotsNeeded; i++) {
+                                              const currentSlot = slot.slotIndex + i;
+                                              
+                                              // Check if this specific slot is within any weather icon's 4-slot (1 hour) range
+                                              let isInWeatherRange = false;
+                                              for (const weatherSlot of weatherIconSlots) {
+                                                // Weather icon occupies slots: weatherSlot, weatherSlot+1, weatherSlot+2, weatherSlot+3
+                                                if (currentSlot >= weatherSlot && currentSlot < weatherSlot + 4) {
+                                                  isInWeatherRange = true;
+                                                  break;
+                                                }
+                                              }
+                                              
+                                              rowIndents.push(isInWeatherRange);
+                                            }
+                                          }
+                                          
+                                          const jobCardContent = spansMultipleSlots && spanInfo && rowIndents.length > 0 ? (
+                                            // Multi-slot card with row-by-row sections  
+                                            <div className="w-full relative" style={{ marginBottom: '2.5vh' }}>
+                                              {/* Background shape sections */}
+                                              <div className="relative flex flex-col" style={{ height: `calc(${spanInfo.slotsNeeded} * 1.25vh)` }}>
+                                                {rowIndents.map((needsIndent, rowIndex) => {
+                                                  const isFirstRow = rowIndex === 0;
+                                                  const isLastRow = rowIndex === rowIndents.length - 1;
+                                                  const prevRowIndent = rowIndex > 0 ? rowIndents[rowIndex - 1] : null;
+                                                  const nextRowIndent = rowIndex < rowIndents.length - 1 ? rowIndents[rowIndex + 1] : null;
+                                                  
+                                                  // Determine which corners should be rounded
+                                                  const roundTopLeft = isFirstRow || (prevRowIndent !== null && prevRowIndent !== needsIndent);
+                                                  const roundTopRight = isFirstRow;
+                                                  const roundBottomLeft = isLastRow || (nextRowIndent !== null && nextRowIndent !== needsIndent);
+                                                  const roundBottomRight = isLastRow;
+                                                  
+                                                  // Build border radius style
+                                                  const borderRadius = `${roundTopLeft ? '0.5vh' : '0'} ${roundTopRight ? '0.5vh' : '0'} ${roundBottomRight ? '0.5vh' : '0'} ${roundBottomLeft ? '0.5vh' : '0'}`;
+                                                  
+                                                  const borderColor = isCompleted
+                                                    ? 'rgb(156, 163, 175)' // gray-400
+                                                    : isSelected
+                                                    ? 'rgb(22, 163, 74)' // green-600
+                                                    : isCutItem
+                                                    ? 'rgb(234, 179, 8)' // yellow-500
+                                                    : isAssigned
+                                                    ? 'rgb(156, 163, 175)' // gray-400
+                                                    : isAffectedByRain
+                                                    ? 'rgb(147, 197, 253)' // blue-300
+                                                    : 'rgb(209, 213, 219)'; // gray-300
+                                                  
+                                                  const borderWidth = 1; // Consistent border width
+                                                  
+                                                  // Check if this is a transition section
+                                                  const isWidthChangingFromPrev = prevRowIndent !== null && prevRowIndent !== needsIndent;
+                                                  const isWidthChangingToNext = nextRowIndent !== null && nextRowIndent !== needsIndent;
+                                                  
+                                                  return (
+                                                    <div key={rowIndex} className="relative">
+                                                      {/* Background */}
+                                                      <div
+                                                        className={`transition-all text-xs select-none shrink-0 ${
+                                                          isCompleted
+                                                            ? 'bg-gray-200/80'
+                                                            : isSelected
+                                                            ? 'bg-green-100'
+                                                            : isCutItem
+                                                            ? 'bg-yellow-100'
+                                                            : isAssigned
+                                                            ? 'bg-gray-100'
+                                                            : isAffectedByRain
+                                                            ? 'bg-blue-50'
+                                                            : 'bg-white'
+                                                        }`}
+                                                        style={{
+                                                          marginLeft: needsIndent ? '-1.0vh' : '-4.3vh',
+                                                          width: needsIndent ? 'calc(100% + 1.0vh)' : 'calc(100% + 4.3vh)',
+                                                          height: '1.25vh',
+                                                          borderRadius,
+                                                        }}
+                                                      />
+                                                      {/* Borders - only exterior edges */}
+                                                      {/* Top border */}
+                                                      {isFirstRow && (
+                                                        <div
+                                                          className="absolute top-0 pointer-events-none"
+                                                          style={{
+                                                            left: needsIndent ? '-1.0vh' : '-4.3vh',
+                                                            width: needsIndent ? 'calc(100% + 1.0vh)' : 'calc(100% + 4.3vh)',
+                                                            height: `${borderWidth}px`,
+                                                            background: borderColor,
+                                                            borderRadius: '0.5vh 0.5vh 0 0',
+                                                            zIndex: 15,
+                                                          }}
+                                                        />
+                                                      )}
+                                                      {/* Partial top border when going from indented to full */}
+                                                      {!isFirstRow && isWidthChangingFromPrev && !needsIndent && prevRowIndent && (
+                                                        <div
+                                                          className="absolute top-0 pointer-events-none"
+                                                          style={{
+                                                            left: '-4.3vh',
+                                                            width: '3.3vh',
+                                                            height: `${borderWidth}px`,
+                                                            background: borderColor,
+                                                            borderRadius: '0.5vh 0 0 0.5vh',
+                                                            zIndex: 15,
+                                                          }}
+                                                        />
+                                                      )}
+                                                      {/* Bottom border */}
+                                                      {isLastRow && (
+                                                        <div
+                                                          className="absolute bottom-0 pointer-events-none"
+                                                          style={{
+                                                            left: needsIndent ? '-1.0vh' : '-4.3vh',
+                                                            width: needsIndent ? 'calc(100% + 1.0vh)' : 'calc(100% + 4.3vh)',
+                                                            height: `${borderWidth}px`,
+                                                            background: borderColor,
+                                                            borderRadius: '0 0 0.5vh 0.5vh',
+                                                            zIndex: 15,
+                                                          }}
+                                                        />
+                                                      )}
+                                                      {/* Partial bottom border when going from indented to full */}
+                                                      {!isLastRow && isWidthChangingToNext && !needsIndent && nextRowIndent && (
+                                                        <div
+                                                          className="absolute bottom-0 pointer-events-none"
+                                                          style={{
+                                                            left: '-4.3vh',
+                                                            width: '3.3vh',
+                                                            height: `${borderWidth}px`,
+                                                            background: borderColor,
+                                                            borderRadius: '0 0 0.5vh 0.5vh',
+                                                            zIndex: 15,
+                                                          }}
+                                                        />
+                                                      )}
+                                                      {/* Left border - only the outer-most edge */}
+                                                      <div
+                                                        className="absolute top-0 pointer-events-none"
+                                                        style={{
+                                                          left: needsIndent ? '-1.0vh' : '-4.3vh',
+                                                          width: `${borderWidth}px`,
+                                                          height: '1.25vh',
+                                                          background: borderColor,
+                                                          zIndex: 15,
+                                                        }}
+                                                      />
+                                                      {/* Right border - always on the right edge */}
+                                                      <div
+                                                        className="absolute top-0 right-0 pointer-events-none"
+                                                        style={{
+                                                          width: `${borderWidth}px`,
+                                                          height: '1.25vh',
+                                                          background: borderColor,
+                                                          zIndex: 15,
+                                                        }}
+                                                      />
+                                                    </div>
+                                                  );
+                                                })}
+                                              </div>
+                                              
+                                              {/* Overlay content on top of all rows */}
+                                              <div 
+                                                draggable={!isCompleted}
+                                                onDragStart={(e) => !isCompleted && handleDragStart(e, jobInSlot.id)}
+                                                onDragEnd={!isCompleted ? handleDragEnd : undefined}
+                                                onDoubleClick={(e) => {
+                                                  const input = document.getElementById(`job-time-${jobInSlot.id}`) as HTMLInputElement;
+                                                  if (input) {
+                                                    e.stopPropagation();
+                                                    input.focus();
+                                                    input.select();
+                                                  }
+                                                }}
+                                                className={`absolute top-0 left-0 right-0 ${!isCompleted ? 'cursor-move' : 'cursor-default'}`}
+                                                style={{ 
+                                                  paddingLeft: '1.3vh',
+                                                  paddingRight: '0.3vh',
+                                                  paddingTop: '0.25vh',
+                                                  zIndex: 20
+                                                }}
+                                              >
+                                                <div className="flex items-center justify-between gap-[0.14vh] w-full overflow-hidden">
+                                                  <div className="flex-1 min-w-0">
+                                                    <div className={`font-semibold truncate ${isMobile ? 'text-[1.27vh]' : 'text-[1.34vh]'} ${isCompleted ? 'text-gray-600' : 'text-gray-900'}`}>
+                                                      {customer?.name}
+                                                    </div>
+                                                  </div>
+                                                  {!isDraggedItem && !isAssigned && !isCutItem && (
+                                                    <button
+                                                      onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        unassignJob(jobInSlot.id);
+                                                      }}
+                                                      className="shrink-0 text-red-500 hover:text-red-700 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                      style={{ fontSize: isMobile ? '1.46vh' : '1.34vh', pointerEvents: 'auto' }}
+                                                      aria-label="Delete job"
+                                                      onDragStart={(e) => e.preventDefault()}
+                                                    >
+                                                      ×
+                                                    </button>
+                                                  )}
+                                                </div>
+                                                <div className={`truncate ${isMobile ? 'text-[1.14vh]' : 'text-[1.1vh]'} ${isCompleted ? 'text-gray-500' : 'text-gray-600'}`}>
+                                                  {!isDraggedItem && !isAssigned && !isCutItem && (
+                                                    <>
+                                                      {scheduledTime && <span className="font-medium">{scheduledTime} • </span>}
+                                                      ${customer?.price} • 
+                                                      <input
+                                                        id={`job-time-${jobInSlot.id}`}
+                                                        type="number"
+                                                        value={jobInSlot.totalTime || 60}
+                                                        onChange={(e) => {
+                                                          const newTime = parseInt(e.target.value) || 60;
+                                                          if (onUpdateJobTime && newTime >= 15 && newTime <= 300) {
+                                                            onUpdateJobTime(jobInSlot.id, newTime);
+                                                          }
+                                                        }}
+                                                        onBlur={(e) => {
+                                                          const value = parseInt(e.target.value);
+                                                          if (!value || value < 15) {
+                                                            if (onUpdateJobTime) onUpdateJobTime(jobInSlot.id, 15);
+                                                          } else if (value > 300) {
+                                                            if (onUpdateJobTime) onUpdateJobTime(jobInSlot.id, 300);
+                                                          }
+                                                        }}
+                                                        onClick={(e) => e.stopPropagation()}
+                                                        onFocus={(e) => e.currentTarget.select()}
+                                                        onMouseDown={(e) => e.stopPropagation()}
+                                                        onDragStart={(e) => e.preventDefault()}
+                                                        className="w-10 bg-transparent border-b border-dashed border-gray-400 hover:border-blue-500 focus:outline-none focus:border-blue-600 text-center cursor-text"
+                                                        min="15"
+                                                        max="300"
+                                                        step="15"
+                                                        style={{ pointerEvents: 'auto' }}
+                                                      /> min
+                                                    </>
+                                                  )}
+                                                  {(isDraggedItem || isAssigned || isCutItem) && (
+                                                    <>
+                                                      {scheduledTime && <span className="font-medium">{scheduledTime} • </span>}
+                                                      ${customer?.price} • {jobInSlot.totalTime || 60} min
+                                                    </>
+                                                  )}
+                                                </div>
+                                              </div>
+                                            </div>
+                                          ) : (
+                                            // Single-slot card (original)
                                             <div
                                               draggable={!isCompleted}
                                               onDragStart={(e) => !isCompleted && handleDragStart(e, jobInSlot.id)}
@@ -4338,7 +4673,6 @@ export function WeatherForecast({
                                               onTouchStart={isTouchDevice.current && !isCompleted ? (e) => handleJobTouchStart(e, jobInSlot.id) : undefined}
                                               onTouchMove={isTouchDevice.current && !isCompleted ? handleJobTouchMove : undefined}
                                               onTouchEnd={isTouchDevice.current && !isCompleted ? handleJobTouchEnd : undefined}
-                                              //is where the size of the job cards are adjusted
                                               className={`rounded transition-all text-xs group overflow-hidden flex items-start select-none w-full ${
                                                 isMobile ? 'px-[0.73vh] py-[0.46vh]' : 'px-[0.3vh] py-[0.25vh]'
                                               } ${
@@ -4355,12 +4689,14 @@ export function WeatherForecast({
                                                   : 'bg-white border border-gray-300 cursor-move hover:shadow-md active:bg-blue-50 active:border-blue-400'
                                               } ${isDraggedItem ? 'opacity-50' : ''}`}
                                               style={{
+                                                marginLeft: startsAtWeatherIcon ? '5vh' : '0',
+                                                width: startsAtWeatherIcon ? 'calc(100% - 5vh)' : '100%',
                                                 userSelect: 'none',
                                                 WebkitUserSelect: 'none',
                                                 WebkitTouchCallout: 'none',
-                                                height: isMobile ? 'auto' : spansMultipleSlots ? `calc(${spanInfo.slotsNeeded} * 0.7vh)` : '0.7vh',
-                                                minHeight: isMobile ? '3.65vh' : '0.7vh',
-                                                marginBottom: isMobile ? '0' : '0',
+                                                height: isMobile ? 'auto' : spansMultipleSlots ? `calc(${spanInfo.slotsNeeded} * 1.25vh)` : '1.25vh',
+                                                minHeight: isMobile ? '3.65vh' : '1.25vh',
+                                                marginBottom: isMobile ? '0' : '2.5vh',
                                                 alignSelf: 'flex-start',
                                                 pointerEvents: 'auto',
                                                 ...(isAffectedByRain && !isCompleted && !isSelected && !isCutItem && !isDraggedItem && !isAssigned ? {
@@ -4490,15 +4826,13 @@ export function WeatherForecast({
                                               : 'Drop job here'}
                                           </div>
                                         )}
-                                      </div>
                                     </div>
-                                  );
+                                      );
                                 })}
+                                </div>
                               </div>
                             );
-                          })()}
-                          
-                          {/* Draggable END Time Bar - At very bottom after all time slots */}
+                          })()}                          {/* Draggable END Time Bar - At very bottom after all time slots */}
                           {(() => {
                             const currentEndTime = dayEndTimes.get(dateStr) || 18;
                             
