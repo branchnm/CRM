@@ -35,6 +35,8 @@ interface DailyScheduleProps {
   onJobChangesDetected?: (hasChanges: boolean) => void;
   scrollToTodayRef?: React.MutableRefObject<(() => void) | null>;
   resetToTodayRef?: React.MutableRefObject<(() => void) | null>;
+  visibleForecastDay?: number; // Day offset from forecast (0 = today, negative = past, positive = future)
+  onVisibleForecastDayChange?: (dayOffset: number) => void; // Notify parent when forecast day changes
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -56,8 +58,21 @@ export function DailySchedule({
   onOptimizationStatusChange,
   onJobChangesDetected,
   scrollToTodayRef,
-  resetToTodayRef
+  resetToTodayRef,
+  visibleForecastDay = 0,
+  onVisibleForecastDayChange
 }: DailyScheduleProps) {
+  console.log('🔧 DailySchedule render:', { 
+    visibleForecastDay, 
+    hasCallback: !!onVisibleForecastDayChange,
+    callbackType: typeof onVisibleForecastDayChange 
+  });
+  
+  const [slideDirection, setSlideDirection] = useState<'left' | 'right' | null>(null);
+  const prevDayRef = useRef(visibleForecastDay);
+  
+  console.log('🎬 Current slide direction:', slideDirection);
+  
   const [jobNotes, setJobNotes] = useState('');
   const [elapsedTime, setElapsedTime] = useState<{ [jobId: string]: number }>({});
   const [showStartDialog, setShowStartDialog] = useState(false);
@@ -84,20 +99,123 @@ export function DailySchedule({
   const [draggedJobSourceDate, setDraggedJobSourceDate] = useState<string | null>(null);
   const [isDraggingOverDifferentDay, setIsDraggingOverDifferentDay] = useState(false);
   
+  // Swipe gesture state for route section day navigation
+  const [swipeStartX, setSwipeStartX] = useState<number | null>(null);
+  const [swipeStartY, setSwipeStartY] = useState<number | null>(null);
+  const [isSwipeGesture, setIsSwipeGesture] = useState(false);
+  
   // Track job creation to prevent race conditions
   const creatingJobsRef = useRef<Set<string>>(new Set());
 
-  // Day navigation state (0 = today, 1 = tomorrow, 2 = day after, etc.)
-  const [currentDayIndex, setCurrentDayIndex] = useState(0);
+  // Detect day changes and trigger slide animation
+  useEffect(() => {
+    console.log('🔄 visibleForecastDay changed:', visibleForecastDay, 'prev:', prevDayRef.current);
+    if (prevDayRef.current !== visibleForecastDay) {
+      const direction = visibleForecastDay > prevDayRef.current ? 'left' : 'right';
+      console.log('🎨 Triggering slide animation:', direction);
+      setSlideDirection(direction);
+      prevDayRef.current = visibleForecastDay;
+      
+      // Clear animation after it completes
+      const timer = setTimeout(() => {
+        console.log('🎨 Animation complete, clearing direction');
+        setSlideDirection(null);
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [visibleForecastDay]);
+
+  // Route section swipe gesture handlers
+  const handleRouteTouchStart = (e: React.TouchEvent) => {
+    // Single finger swipe only
+    if (e.touches.length === 1) {
+      setSwipeStartX(e.touches[0].clientX);
+      setSwipeStartY(e.touches[0].clientY);
+      setIsSwipeGesture(false);
+      console.log('📱 Route section touch start at:', e.touches[0].clientX, e.touches[0].clientY);
+    } else {
+      console.log('📱 Route section touch start - ignoring (multiple fingers):', e.touches.length);
+    }
+  };
+
+  const handleRouteTouchMove = (e: React.TouchEvent) => {
+    if (swipeStartX === null || swipeStartY === null || e.touches.length !== 1) return;
+
+    const deltaX = e.touches[0].clientX - swipeStartX;
+    const deltaY = e.touches[0].clientY - swipeStartY;
+
+    // Detect horizontal swipe (more horizontal than vertical)
+    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 20) {
+      setIsSwipeGesture(true);
+      console.log('📱 Route section horizontal swipe detected', deltaX);
+      // Prevent default scrolling during swipe
+      e.preventDefault();
+    }
+  };
+
+  const handleRouteTouchEnd = (e: React.TouchEvent) => {
+    console.log('📱 Route section touch end - start values:', { swipeStartX, swipeStartY, isSwipeGesture });
+    
+    if (swipeStartX === null || swipeStartY === null) {
+      console.log('📱 No swipe start position, clearing');
+      setSwipeStartX(null);
+      setSwipeStartY(null);
+      setIsSwipeGesture(false);
+      return;
+    }
+
+    if (!isSwipeGesture) {
+      console.log('📱 Not a swipe gesture, clearing');
+      setSwipeStartX(null);
+      setSwipeStartY(null);
+      return;
+    }
+
+    const deltaX = e.changedTouches[0].clientX - swipeStartX;
+    const minSwipeDistance = 50;
+
+    const isLeftSwipe = deltaX < -minSwipeDistance;
+    const isRightSwipe = deltaX > minSwipeDistance;
+
+    console.log('📱 Route section swipe complete', { deltaX, isLeftSwipe, isRightSwipe, currentDay: visibleForecastDay });
+
+    if (isLeftSwipe) {
+      // Swipe left = go to next day
+      console.log('📱 Route swipe LEFT: Going to next day', visibleForecastDay + 1);
+      if (onVisibleForecastDayChange) {
+        onVisibleForecastDayChange(visibleForecastDay + 1);
+        console.log('✅ Callback executed');
+      } else {
+        console.error('❌ onVisibleForecastDayChange is undefined!');
+      }
+    } else if (isRightSwipe) {
+      // Swipe right = go to previous day
+      console.log('📱 Route swipe RIGHT: Going to previous day', visibleForecastDay - 1);
+      if (onVisibleForecastDayChange) {
+        onVisibleForecastDayChange(visibleForecastDay - 1);
+        console.log('✅ Callback executed');
+      } else {
+        console.error('❌ onVisibleForecastDayChange is undefined!');
+      }
+    } else {
+      console.log('📱 Swipe distance too short:', deltaX);
+    }
+
+    setSwipeStartX(null);
+    setSwipeStartY(null);
+    setIsSwipeGesture(false);
+  };
 
   // Use local date (YYYY-MM-DD) to match stored nextCutDate values
   const today = new Date().toLocaleDateString('en-CA');
   
-  // Calculate the currently viewed date based on currentDayIndex
+  // Calculate the currently viewed date based on visibleForecastDay from parent
   const currentViewDate = (() => {
     const date = new Date();
-    date.setDate(date.getDate() + currentDayIndex);
-    return date.toLocaleDateString('en-CA');
+    date.setDate(date.getDate() + visibleForecastDay);
+    const dateStr = date.toLocaleDateString('en-CA');
+    console.log(`📅 Route section viewing: ${dateStr} (offset: ${visibleForecastDay})`);
+    return dateStr;
   })();
 
   // Get readable date string for display
@@ -110,6 +228,7 @@ export function DailySchedule({
   };
   
   // Get customers who need service on the current viewed date
+  // Note: This will re-calculate when visibleForecastDay changes
   const customersDueOnDate = customers.filter(c => c.nextCutDate === currentViewDate);
   
   //console.log('📅 Current view date:', currentViewDate);
@@ -237,10 +356,11 @@ export function DailySchedule({
   useEffect(() => {
     if (resetToTodayRef) {
       resetToTodayRef.current = () => {
-        setCurrentDayIndex(0);
+        // Reset to today by notifying parent to change forecast day to 0
+        onVisibleForecastDayChange?.(0);
       };
     }
-  }, [resetToTodayRef]);
+  }, [resetToTodayRef, onVisibleForecastDayChange]);
 
   // Auto-create jobs for customers due on the currently viewed date who don't have a job yet (in Supabase)
   useEffect(() => {
@@ -1344,87 +1464,28 @@ export function DailySchedule({
         onCloseAddressEditor={onCloseAddressEditor}
         isEditingAddress={isEditingAddress}
         scrollToTodayRef={scrollToTodayRef}
+        onVisibleDayChange={onVisibleForecastDayChange}
       />
 
-      {/* Jobs Section Header with Day Navigation */}
-      {displayedJobs.length > 0 && (
-        <div className="space-y-3 mb-4">
+      {/* Jobs Section Header + Cards with Swipe Navigation */}
+      <div
+        onTouchStart={handleRouteTouchStart}
+        onTouchMove={handleRouteTouchMove}
+        onTouchEnd={handleRouteTouchEnd}
+      >
+      {/* Jobs Section Header - navigation controlled by forecast section above */}
+      <div className="space-y-3 mb-4">
           <div className="flex items-center justify-center gap-2">
-            <Button
-              size="sm"
-              onClick={() => setCurrentDayIndex(Math.max(0, currentDayIndex - 1))}
-              disabled={currentDayIndex === 0}
-              className="shrink-0 bg-blue-600 hover:bg-blue-700 text-white disabled:bg-gray-300 disabled:text-gray-500"
-              style={{
-                width: 'max(4vh, 32px)',
-                height: 'max(4vh, 32px)',
-                padding: 0
-              }}
-              onDragOver={(e) => {
-                if (draggedJobId) {
-                  e.preventDefault();
-                  setIsDraggingOverDifferentDay(true);
-                }
-              }}
-              onDragLeave={() => setIsDraggingOverDifferentDay(false)}
-              onDrop={(e) => {
-                e.preventDefault();
-                if (draggedJobId && currentDayIndex > 0) {
-                  const newDate = (() => {
-                    const date = new Date();
-                    date.setDate(date.getDate() + currentDayIndex - 1);
-                    return date.toLocaleDateString('en-CA');
-                  })();
-                  handleMoveJobToDay(draggedJobId, newDate);
-                  setCurrentDayIndex(currentDayIndex - 1);
-                }
-                setIsDraggingOverDifferentDay(false);
-              }}
-            >
-              <ChevronLeft style={{ width: 'max(2vh, 16px)', height: 'max(2vh, 16px)' }} />
-            </Button>
             <div className="h-1 bg-linear-to-r from-blue-200 via-yellow-200 to-blue-200 rounded-full" style={{ width: 'max(8vw, 60px)' }}></div>
             <h2 className="text-blue-900 uppercase tracking-wide whitespace-nowrap font-bold" style={{ fontSize: 'max(2.5vh, 18px)' }}>
-              {getDateLabel(currentDayIndex)}'s Jobs
+              {getDateLabel(visibleForecastDay)}'s Jobs {slideDirection && `(${slideDirection})`}
             </h2>
             <div className="h-1 bg-linear-to-l from-blue-200 via-yellow-200 to-blue-200 rounded-full" style={{ width: 'max(8vw, 60px)' }}></div>
-            <Button
-              size="sm"
-              onClick={() => setCurrentDayIndex(currentDayIndex + 1)}
-              className="shrink-0 bg-blue-600 hover:bg-blue-700 text-white"
-              style={{
-                width: 'max(4vh, 32px)',
-                height: 'max(4vh, 32px)',
-                padding: 0
-              }}
-              onDragOver={(e) => {
-                if (draggedJobId) {
-                  e.preventDefault();
-                  setIsDraggingOverDifferentDay(true);
-                }
-              }}
-              onDragLeave={() => setIsDraggingOverDifferentDay(false)}
-              onDrop={(e) => {
-                e.preventDefault();
-                if (draggedJobId) {
-                  const newDate = (() => {
-                    const date = new Date();
-                    date.setDate(date.getDate() + currentDayIndex + 1);
-                    return date.toLocaleDateString('en-CA');
-                  })();
-                  handleMoveJobToDay(draggedJobId, newDate);
-                  setCurrentDayIndex(currentDayIndex + 1);
-                }
-                setIsDraggingOverDifferentDay(false);
-              }}
-            >
-              <ChevronRight style={{ width: 'max(2vh, 16px)', height: 'max(2vh, 16px)' }} />
-            </Button>
           </div>
           
-          {/* Navigate Full Route Button */}
-          {startingAddress && displayedJobs.length > 0 && (
-            <div className="flex justify-center">
+          {/* Navigate Full Route Button - always visible to keep arrows in same position */}
+          <div className="flex justify-center mt-3" style={{ minHeight: 'max(5vh, 40px)' }}>
+            {startingAddress && displayedJobs.length > 0 ? (
               <Button
                 onClick={() => {
                   const routeUrl = generateRouteUrl(displayedJobs);
@@ -1439,17 +1500,21 @@ export function DailySchedule({
                 <Navigation className="h-4 w-4 mr-2" />
                 Navigate Full Route ({displayedJobs.length} stops)
               </Button>
-            </div>
-          )}
+            ) : (
+              <div style={{ height: 'max(5vh, 40px)' }} />
+            )}
+          </div>
         </div>
-      )}
 
       {/* Job List */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-3 justify-items-center max-w-7xl mx-auto">
+      <div className={`grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-3 justify-items-center max-w-7xl mx-auto transition-all duration-300 ${
+        slideDirection === 'left' ? 'animate-slide-in-right' : 
+        slideDirection === 'right' ? 'animate-slide-in-left' : ''
+      }`}>
         {customersDueOnDate.length === 0 && displayedJobs.length === 0 ? (
           <Card className="bg-white/80 backdrop-blur col-span-full">
             <CardContent className="pt-6">
-              <p className="text-center text-gray-600">No customers scheduled for {getDateLabel(currentDayIndex).toLowerCase()}.</p>
+              <p className="text-center text-gray-600">No customers scheduled for {getDateLabel(visibleForecastDay).toLowerCase()}.</p>
             </CardContent>
           </Card>
         ) : (
@@ -1954,6 +2019,7 @@ export function DailySchedule({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      </div>
 
       {/* Drag Preview - Shows the job being dragged */}
       {draggedJobId && dragPosition && (() => {

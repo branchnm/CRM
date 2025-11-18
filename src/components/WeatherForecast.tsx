@@ -81,6 +81,7 @@ interface WeatherForecastProps {
   onCloseAddressEditor?: () => void; // Close without reverting
   isEditingAddress?: boolean;
   scrollToTodayRef?: React.MutableRefObject<(() => void) | null>;
+  onVisibleDayChange?: (dayOffset: number) => void; // NEW: Notify when visible day changes
 }
 
 export function WeatherForecast({ 
@@ -100,7 +101,8 @@ export function WeatherForecast({
   onCancelEditAddress,
   onCloseAddressEditor,
   isEditingAddress: isEditingAddressProp,
-  scrollToTodayRef
+  scrollToTodayRef,
+  onVisibleDayChange
 }: WeatherForecastProps) {
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
   const [historicalWeatherCache, setHistoricalWeatherCache] = useState<Map<string, any>>(new Map());
@@ -126,10 +128,12 @@ export function WeatherForecast({
   const dropdownRef = useRef<HTMLDivElement>(null);
   const forecastScrollContainerRef = useRef<HTMLDivElement>(null);
   const hasScrolledToTodayRef = useRef(false); // Track if we've scrolled to today on initial load
+  const hasRestoredPositionRef = useRef(false); // Track if we've restored scroll position on this mount
   const [userGPSLocation, setUserGPSLocation] = useState<{ lat: number; lon: number } | null>(null);
   const [jobAssignments, setJobAssignments] = useState<Map<string, string>>(new Map()); // jobId -> date mapping
   const [jobTimeSlots, setJobTimeSlots] = useState<Map<string, number>>(new Map()); // jobId -> timeSlot (0-11 for 6am-6pm)
   const [dayOffset, setDayOffset] = useState(0); // 0 = today, -1 = yesterday, 1 = tomorrow, etc.
+  const lastDayOffsetRef = useRef(0); // Track last day offset to avoid unnecessary updates
   
   // Track jobs being dragged as a group
   const [draggedGroupJobs, setDraggedGroupJobs] = useState<string[]>([]); // Array of job IDs in the dragged group
@@ -182,6 +186,9 @@ export function WeatherForecast({
   const scrollToToday = useCallback(() => {
     setDayOffset(0); // Reset offset to show today
     
+    // Notify parent that we're viewing today
+    onVisibleDayChange?.(0);
+    
     if (isMobile) {
       // Mobile: just scroll to top
       scrollToTop();
@@ -190,15 +197,19 @@ export function WeatherForecast({
       if (forecastScrollContainerRef.current) {
         const todayCard = forecastScrollContainerRef.current.querySelector('[data-date="' + new Date().toLocaleDateString('en-CA') + '"]');
         if (todayCard) {
+          const cardLeft = (todayCard as HTMLElement).offsetLeft;
           todayCard.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
+          // Update saved position
+          sessionStorage.setItem('forecastScrollPosition', cardLeft.toString());
         } else {
           // If Today card not in DOM yet, scroll to start
           forecastScrollContainerRef.current.scrollTo({ left: 0, behavior: 'smooth' });
+          sessionStorage.setItem('forecastScrollPosition', '0');
         }
       }
       scrollToTop();
     }
-  }, [scrollToTop, isMobile]);
+  }, [scrollToTop, isMobile, onVisibleDayChange]);
 
   // Expose scrollToToday function via ref
   useEffect(() => {
@@ -206,6 +217,18 @@ export function WeatherForecast({
       scrollToTodayRef.current = scrollToToday;
     }
   }, [scrollToToday, scrollToTodayRef]);
+
+  // Notify parent when visible day changes
+  useEffect(() => {
+    console.log('📅 WeatherForecast useEffect triggered - dayOffset:', dayOffset, 'hasCallback:', !!onVisibleDayChange);
+    if (onVisibleDayChange) {
+      console.log(`📅 Calling onVisibleDayChange with offset: ${dayOffset}`);
+      onVisibleDayChange(dayOffset);
+      console.log('✅ onVisibleDayChange called successfully');
+    } else {
+      console.warn('⚠️ onVisibleDayChange callback is undefined!');
+    }
+  }, [dayOffset, onVisibleDayChange]);
 
   // Handler to dismiss tutorial banner
   const dismissTutorial = useCallback(() => {
@@ -522,10 +545,58 @@ export function WeatherForecast({
     const container = forecastScrollContainerRef.current;
 
     const handleScroll = () => {
+      console.log('📜 Forecast scroll event fired, scrollLeft:', container.scrollLeft);
       setIsDesktopScrolling(true);
+      
+      // Save scroll position to sessionStorage so it persists when switching tabs
+      if (container) {
+        sessionStorage.setItem('forecastScrollPosition', container.scrollLeft.toString());
+      }
       
       // Check if Today card is visible
       checkTodayCardVisibility();
+      
+      // Update dayOffset based on the leftmost visible card during scroll
+      const scrollLeft = container.scrollLeft;
+      const containerLeft = container.getBoundingClientRect().left;
+      const cards = container.querySelectorAll('[data-date]');
+      
+      // Find the leftmost card that's at least partially visible
+      let leftmostCard: Element | null = null;
+      let minDistance = Infinity;
+      
+      cards.forEach((card) => {
+        const cardElement = card as HTMLElement;
+        const cardRect = cardElement.getBoundingClientRect();
+        const cardLeft = cardRect.left;
+        
+        // Check if card is visible (right edge is past container left)
+        if (cardRect.right > containerLeft) {
+          const distance = Math.abs(cardLeft - containerLeft);
+          if (distance < minDistance) {
+            minDistance = distance;
+            leftmostCard = card;
+          }
+        }
+      });
+      
+      if (leftmostCard) {
+        const cardDateStr = (leftmostCard as HTMLElement).getAttribute('data-date');
+        if (cardDateStr) {
+          const todayStr = new Date().toLocaleDateString('en-CA');
+          const cardDate = new Date(cardDateStr + 'T00:00:00');
+          const today = new Date(todayStr + 'T00:00:00');
+          const daysDiff = Math.round((cardDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+          const clampedDaysDiff = Math.max(-30, daysDiff);
+          
+          // Only update if the day offset actually changed
+          if (clampedDaysDiff !== lastDayOffsetRef.current) {
+            console.log('🔄 WeatherForecast: dayOffset changing from', lastDayOffsetRef.current, 'to', clampedDaysDiff);
+            lastDayOffsetRef.current = clampedDaysDiff;
+            setDayOffset(clampedDaysDiff);
+          }
+        }
+      }
       
       // Clear existing timeout
       if (desktopScrollTimeout.current) {
@@ -2853,32 +2924,49 @@ export function WeatherForecast({
 
   // Scroll to today card ONLY on initial load (not on page navigation) - position it on the left
   useEffect(() => {
-    // Only scroll if we haven't scrolled yet, and only on desktop
-    if (!isMobile && !hasScrolledToTodayRef.current && forecastScrollContainerRef.current && next30Days.length > 0 && weatherData) {
-      // Use longer delay and requestAnimationFrame to ensure DOM is fully rendered
-      const timer = setTimeout(() => {
-        requestAnimationFrame(() => {
-          const todayStr = new Date().toLocaleDateString('en-CA');
-          const todayCard = forecastScrollContainerRef.current?.querySelector(`[data-date="${todayStr}"]`);
-          
-          if (todayCard) {
-            // Calculate scroll position to place today's card at the left edge
-            const container = forecastScrollContainerRef.current;
-            if (container) {
+    if (!isMobile && forecastScrollContainerRef.current && next30Days.length > 0 && weatherData) {
+      const container = forecastScrollContainerRef.current;
+      
+      // Check session flags
+      const hasScrolledInSession = sessionStorage.getItem('hasScrolledToToday') === 'true';
+      const savedScrollPosition = sessionStorage.getItem('forecastScrollPosition');
+      
+      // ONLY scroll if this is the very first time (no session flags set)
+      if (!hasScrolledInSession) {
+        // First load ever - scroll to today
+        const timer = setTimeout(() => {
+          requestAnimationFrame(() => {
+            const todayStr = new Date().toLocaleDateString('en-CA');
+            const todayCard = container?.querySelector(`[data-date="${todayStr}"]`);
+            
+            if (todayCard) {
               const cardLeft = (todayCard as HTMLElement).offsetLeft;
               container.scrollTo({ left: cardLeft, behavior: 'auto' });
-              console.log(`✅ Scrolled to today's card at ${todayStr}, offset: ${cardLeft}px`);
-              hasScrolledToTodayRef.current = true; // Mark that we've scrolled
+              console.log(`✅ Initial scroll to today's card at ${todayStr}, offset: ${cardLeft}px`);
+              sessionStorage.setItem('hasScrolledToToday', 'true');
+              sessionStorage.setItem('forecastScrollPosition', cardLeft.toString());
             }
-          } else {
-            console.log(`⚠️ Today's card not found for ${todayStr}`);
-          }
-        });
-      }, 500); // Increased delay to ensure weather data is rendered
-      
-      return () => clearTimeout(timer);
+          });
+        }, 500);
+        return () => clearTimeout(timer);
+      } else if (savedScrollPosition) {
+        // Restore saved position (from switching tabs) - but only if current position is different
+        const timer = setTimeout(() => {
+          requestAnimationFrame(() => {
+            const targetPosition = parseInt(savedScrollPosition);
+            // Only scroll if we're not already at the saved position (tolerance of 5px)
+            if (Math.abs(container.scrollLeft - targetPosition) > 5) {
+              container.scrollLeft = targetPosition; // Direct assignment, no animation
+              console.log(`✅ Restored scroll position: ${savedScrollPosition}px (was ${container.scrollLeft})`);
+            } else {
+              console.log(`✅ Already at saved position: ${savedScrollPosition}px`);
+            }
+          });
+        }, 50); // Shorter delay
+        return () => clearTimeout(timer);
+      }
     }
-  }, [isMobile, next30Days.length, weatherData]); // weatherData ensures we wait for data to load
+  }, [isMobile, next30Days.length, weatherData]);
 
   // Load historical weather data from database
   useEffect(() => {
@@ -3496,11 +3584,11 @@ export function WeatherForecast({
                   } else {
                     // Future day - use forecast data
                     // Calculate weather index based on actual day offset from today
-                    // For desktop: startOffset=-30, so actualIndex 30 = today
-                    // For mobile: startOffset=dayOffset, so actualIndex 0 = today+dayOffset
+                    // For desktop: next30Days array is fixed from -30 to +30, index 30 = today
+                    // For mobile: next30Days array starts at dayOffset, index 0 = current day
                     const daysFromToday = isMobile 
-                      ? actualIndex + dayOffset 
-                      : actualIndex - 30 + dayOffset; // Adjust for 30 past days on desktop
+                      ? actualIndex // Mobile: index 0 is already at dayOffset
+                      : actualIndex - 30; // Desktop: index 30 is today, so actualIndex-30 gives days from today
                     
                     // Only use weather data if it's within the forecast range (typically 5-7 days)
                     if (daysFromToday >= 0 && daysFromToday < (weatherData?.daily?.length || 0)) {

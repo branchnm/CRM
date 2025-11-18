@@ -118,8 +118,18 @@ function App() {
   const [tempLocationName, setTempLocationName] = useState<string>(''); // Store location before editing
   const [optimizationStatus, setOptimizationStatus] = useState<'idle' | 'optimizing' | 'optimized'>('idle');
   const [hasJobChanges, setHasJobChanges] = useState(false);
+  const [visibleForecastDay, setVisibleForecastDay] = useState(0); // Track which day is visible in forecast (0 = today)
   const scrollToTodayRef = useRef<(() => void) | null>(null);
   const resetToTodayRef = useRef<(() => void) | null>(null);
+
+  // Log when visibleForecastDay changes
+  useEffect(() => {
+    console.log('🎯 App.tsx: visibleForecastDay state changed to:', visibleForecastDay);
+  }, [visibleForecastDay]);
+
+  // Page-wide swipe gesture state for day navigation
+  const [swipeStartX, setSwipeStartX] = useState<number | null>(null);
+  const [swipeStartY, setSwipeStartY] = useState<number | null>(null);
 
   // Don't auto-hide optimize button - keep it showing "Optimized" until jobs change
   // The optimization status is now controlled by job changes detection in DailySchedule
@@ -394,6 +404,59 @@ function App() {
     { id: "settings", label: "Settings", icon: SettingsIcon },
   ];
 
+  // Page-wide swipe gesture handlers for day navigation
+  const handlePageTouchStart = (e: React.TouchEvent) => {
+    // Only handle two-finger swipes
+    if (e.touches.length === 2) {
+      setSwipeStartX((e.touches[0].clientX + e.touches[1].clientX) / 2);
+      setSwipeStartY((e.touches[0].clientY + e.touches[1].clientY) / 2);
+      console.log('📱 Two-finger swipe started');
+    }
+  };
+
+  const handlePageTouchMove = (e: React.TouchEvent) => {
+    // Only handle two-finger swipes
+    if (e.touches.length === 2 && swipeStartX !== null && swipeStartY !== null) {
+      const currentX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+      const deltaX = currentX - swipeStartX;
+      
+      // Detect horizontal swipe
+      if (Math.abs(deltaX) > 10) {
+        e.preventDefault(); // Prevent page scrolling during swipe
+      }
+    }
+  };
+
+  const handlePageTouchEnd = (e: React.TouchEvent) => {
+    if (swipeStartX === null || swipeStartY === null) return;
+
+    // Calculate swipe based on the remaining touch or the last position
+    const currentX = e.changedTouches.length >= 2 
+      ? (e.changedTouches[0].clientX + e.changedTouches[1].clientX) / 2
+      : e.changedTouches[0].clientX;
+    
+    const deltaX = currentX - swipeStartX;
+    const minSwipeDistance = 50;
+
+    const isLeftSwipe = deltaX < -minSwipeDistance;
+    const isRightSwipe = deltaX > minSwipeDistance;
+
+    console.log('📱 Two-finger swipe ended', { deltaX, isLeftSwipe, isRightSwipe });
+
+    if (isLeftSwipe) {
+      // Swipe left = next day
+      console.log('📱 Page swipe: Going to next day');
+      setVisibleForecastDay(prev => prev + 1);
+    } else if (isRightSwipe) {
+      // Swipe right = previous day
+      console.log('📱 Page swipe: Going to previous day');
+      setVisibleForecastDay(prev => prev - 1);
+    }
+
+    setSwipeStartX(null);
+    setSwipeStartY(null);
+  };
+
   // Show loading state while checking auth (skip in demo mode)
   if (!DEMO_MODE && authLoading) {
     return (
@@ -417,7 +480,12 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-yellow-50 pb-20 md:pb-0">
+    <div 
+      className="min-h-screen bg-linear-to-br from-blue-50 via-white to-yellow-50 pb-20 md:pb-0"
+      onTouchStart={handlePageTouchStart}
+      onTouchMove={handlePageTouchMove}
+      onTouchEnd={handlePageTouchEnd}
+    >
       {/* Desktop Top Navigation Bar - Fixed and full width with vh-based height */}
       <div className="hidden md:block fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 shadow-sm" style={{ height: '5vh', minHeight: '50px' }}>
         <div className="w-full px-4 h-full flex items-center">
@@ -487,7 +555,6 @@ function App() {
             <Button
               onClick={() => {
                 scrollToTodayRef.current?.();
-                resetToTodayRef.current?.();
               }}
               size="sm"
               variant="outline"
@@ -600,6 +667,8 @@ function App() {
               onJobChangesDetected={setHasJobChanges}
               scrollToTodayRef={scrollToTodayRef}
               resetToTodayRef={resetToTodayRef}
+              visibleForecastDay={visibleForecastDay}
+              onVisibleForecastDayChange={setVisibleForecastDay}
             />
           )}
           {activeTab === "calendar" && (
@@ -672,7 +741,6 @@ function App() {
             <Button
               onClick={() => {
                 scrollToTodayRef.current?.();
-                resetToTodayRef.current?.();
               }}
               size="sm"
               variant="outline"
