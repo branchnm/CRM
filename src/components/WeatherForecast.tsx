@@ -82,6 +82,7 @@ interface WeatherForecastProps {
   isEditingAddress?: boolean;
   scrollToTodayRef?: React.MutableRefObject<(() => void) | null>;
   onVisibleDayChange?: (dayOffset: number) => void; // NEW: Notify when visible day changes
+  visibleForecastDay?: number; // NEW: Receive day offset from parent for bidirectional sync
 }
 
 export function WeatherForecast({ 
@@ -102,8 +103,10 @@ export function WeatherForecast({
   onCloseAddressEditor,
   isEditingAddress: isEditingAddressProp,
   scrollToTodayRef,
-  onVisibleDayChange
+  onVisibleDayChange,
+  visibleForecastDay
 }: WeatherForecastProps) {
+  console.log('🌤️ WeatherForecast render - onVisibleDayChange:', !!onVisibleDayChange, typeof onVisibleDayChange);
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
   const [historicalWeatherCache, setHistoricalWeatherCache] = useState<Map<string, any>>(new Map());
   const [loading, setLoading] = useState(false);
@@ -134,6 +137,8 @@ export function WeatherForecast({
   const [jobTimeSlots, setJobTimeSlots] = useState<Map<string, number>>(new Map()); // jobId -> timeSlot (0-11 for 6am-6pm)
   const [dayOffset, setDayOffset] = useState(0); // 0 = today, -1 = yesterday, 1 = tomorrow, etc.
   const lastDayOffsetRef = useRef(0); // Track last day offset to avoid unnecessary updates
+  const isInternalUpdateRef = useRef(false); // Track if update is from internal scroll vs external prop
+  const isSyncingFromParentRef = useRef(false); // Track if we're currently syncing from parent to prevent loop
   
   // Track jobs being dragged as a group
   const [draggedGroupJobs, setDraggedGroupJobs] = useState<string[]>([]); // Array of job IDs in the dragged group
@@ -184,10 +189,19 @@ export function WeatherForecast({
 
   // Scroll to today function - exposed via ref for nav bar button
   const scrollToToday = useCallback(() => {
+    console.log('📍 scrollToToday called - resetting to day 0');
+    
+    // Update our tracking immediately
+    lastDayOffsetRef.current = 0;
     setDayOffset(0); // Reset offset to show today
     
     // Notify parent that we're viewing today
+    isInternalUpdateRef.current = true; // Mark as internal since user clicked today button
     onVisibleDayChange?.(0);
+    
+    // Block position checks during the scroll animation
+    isSyncingFromParentRef.current = true;
+    console.log('🔒 Blocking checks during scroll to Today');
     
     if (isMobile) {
       // Mobile: just scroll to top
@@ -209,6 +223,13 @@ export function WeatherForecast({
       }
       scrollToTop();
     }
+    
+    // Re-enable checks after scroll animation completes
+    setTimeout(() => {
+      console.log('🔓 Re-enabling checks after scroll to Today');
+      isSyncingFromParentRef.current = false;
+      isInternalUpdateRef.current = false;
+    }, 500);
   }, [scrollToTop, isMobile, onVisibleDayChange]);
 
   // Expose scrollToToday function via ref
@@ -218,17 +239,45 @@ export function WeatherForecast({
     }
   }, [scrollToToday, scrollToTodayRef]);
 
-  // Notify parent when visible day changes
+  // Notify parent when visible day changes from internal scroll
   useEffect(() => {
-    console.log('📅 WeatherForecast useEffect triggered - dayOffset:', dayOffset, 'hasCallback:', !!onVisibleDayChange);
-    if (onVisibleDayChange) {
-      console.log(`📅 Calling onVisibleDayChange with offset: ${dayOffset}`);
+    console.log('📅📅📅 WeatherForecast useEffect - dayOffset:', dayOffset, 'isInternal:', isInternalUpdateRef.current, 'isSyncing:', isSyncingFromParentRef.current);
+    if (isInternalUpdateRef.current && onVisibleDayChange && !isSyncingFromParentRef.current) {
+      console.log(`📅📅📅 CALLING PARENT CALLBACK with offset: ${dayOffset}`);
       onVisibleDayChange(dayOffset);
-      console.log('✅ onVisibleDayChange called successfully');
-    } else {
-      console.warn('⚠️ onVisibleDayChange callback is undefined!');
+      console.log('✅✅✅ PARENT CALLBACK EXECUTED SUCCESSFULLY');
+      isInternalUpdateRef.current = false; // Reset flag after calling
     }
   }, [dayOffset, onVisibleDayChange]);
+
+  // Sync forecast scroll when visibleForecastDay changes from parent (route section)
+  useEffect(() => {
+    if (visibleForecastDay !== undefined && visibleForecastDay !== lastDayOffsetRef.current) {
+      console.log('🔄 Syncing forecast to match route section day:', visibleForecastDay, 'current:', lastDayOffsetRef.current);
+      isInternalUpdateRef.current = false; // Mark as external update
+      isSyncingFromParentRef.current = true; // Flag that we're syncing from parent
+      setDayOffset(visibleForecastDay);
+      lastDayOffsetRef.current = visibleForecastDay; // Update last known offset
+      
+      // Scroll forecast to show the correct day
+      if (!isMobile && forecastScrollContainerRef.current) {
+        const targetDate = new Date();
+        targetDate.setDate(targetDate.getDate() + visibleForecastDay);
+        const targetDateStr = targetDate.toLocaleDateString('en-CA');
+        const targetCard = forecastScrollContainerRef.current.querySelector(`[data-date="${targetDateStr}"]`);
+        
+        if (targetCard) {
+          targetCard.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
+        }
+      }
+      
+      // Clear sync flag after scroll completes
+      setTimeout(() => {
+        isSyncingFromParentRef.current = false;
+        console.log('🔓 Parent sync complete, re-enabling position checks');
+      }, 200); // Short delay just for smooth scroll to complete
+    }
+  }, [visibleForecastDay, isMobile]); // Removed dayOffset - compare with lastDayOffsetRef instead
 
   // Handler to dismiss tutorial banner
   const dismissTutorial = useCallback(() => {
@@ -242,7 +291,8 @@ export function WeatherForecast({
   // Detect if device is mobile
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth <= 768 || 'ontouchstart' in window);
+      // Only use screen width - touchscreen laptops should use desktop layout
+      setIsMobile(window.innerWidth <= 768);
     };
     checkMobile();
     window.addEventListener('resize', checkMobile);
@@ -538,26 +588,106 @@ export function WeatherForecast({
     }
   }, [isMobile]); // Removed dayOffset from dependencies to prevent infinite loops
 
-  // Handle desktop scroll with snap
+  // Handle mobile scroll - update dayOffset based on visible card
   useEffect(() => {
-    if (isMobile || !forecastScrollContainerRef.current) return;
+    if (!isMobile || !forecastScrollContainerRef.current) {
+      console.log('❌ Mobile scroll handler NOT attached - isMobile:', isMobile, 'hasRef:', !!forecastScrollContainerRef.current);
+      return;
+    }
 
+    console.log('✅ Mobile scroll handler ATTACHED');
     const container = forecastScrollContainerRef.current;
+    let mobileScrollTimeout: number | undefined;
 
-    const handleScroll = () => {
-      console.log('📜 Forecast scroll event fired, scrollLeft:', container.scrollLeft);
-      setIsDesktopScrolling(true);
+    const handleMobileScroll = () => {
+      console.log('📱 Mobile forecast scroll detected, scrollLeft:', container.scrollLeft);
       
-      // Save scroll position to sessionStorage so it persists when switching tabs
-      if (container) {
-        sessionStorage.setItem('forecastScrollPosition', container.scrollLeft.toString());
+      // Save scroll position
+      sessionStorage.setItem('forecastScrollPosition', container.scrollLeft.toString());
+      
+      // Update dayOffset in real-time based on leftmost visible card
+      const containerLeft = container.getBoundingClientRect().left;
+      const cards = container.querySelectorAll('[data-date]');
+      
+      // Find the leftmost visible card
+      let leftmostCard: Element | null = null;
+      let minDistance = Infinity;
+      
+      cards.forEach((card) => {
+        const cardElement = card as HTMLElement;
+        const cardRect = cardElement.getBoundingClientRect();
+        const cardLeft = cardRect.left;
+        
+        if (cardRect.right > containerLeft) {
+          const distance = Math.abs(cardLeft - containerLeft);
+          if (distance < minDistance) {
+            minDistance = distance;
+            leftmostCard = card;
+          }
+        }
+      });
+      
+      if (leftmostCard) {
+        const cardDateStr = (leftmostCard as HTMLElement).getAttribute('data-date');
+        if (cardDateStr) {
+          const todayStr = new Date().toLocaleDateString('en-CA');
+          const cardDate = new Date(cardDateStr + 'T00:00:00');
+          const today = new Date(todayStr + 'T00:00:00');
+          const daysDiff = Math.round((cardDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+          const clampedDaysDiff = Math.max(-30, daysDiff);
+          
+          if (clampedDaysDiff !== lastDayOffsetRef.current) {
+            console.log('📱 Mobile: dayOffset changing from', lastDayOffsetRef.current, 'to', clampedDaysDiff);
+            lastDayOffsetRef.current = clampedDaysDiff;
+            isInternalUpdateRef.current = true; // Mark as internal update
+            setDayOffset(clampedDaysDiff);
+          }
+        }
       }
       
-      // Check if Today card is visible
-      checkTodayCardVisibility();
+      // Clear existing timeout
+      if (mobileScrollTimeout) {
+        clearTimeout(mobileScrollTimeout);
+      }
+
+      // Set timeout just for cleanup
+      mobileScrollTimeout = window.setTimeout(() => {
+        // Final update when scrolling stops (in case we missed any)
+        // This is just a safety net, main updates happen above
+      }, 150);
+    };
+
+    container.addEventListener('scroll', handleMobileScroll, { passive: true });
+
+    return () => {
+      container.removeEventListener('scroll', handleMobileScroll);
+      if (mobileScrollTimeout) {
+        clearTimeout(mobileScrollTimeout);
+      }
+    };
+  }, [isMobile]);
+
+  // Handle desktop scroll with snap
+  useEffect(() => {
+    console.log('🔍🔍🔍 Desktop scroll useEffect RUNNING - isMobile:', isMobile, 'hasRef:', !!forecastScrollContainerRef.current, 'weatherData:', !!weatherData);
+    if (isMobile || !forecastScrollContainerRef.current) {
+      console.log('❌❌❌ Desktop scroll handler NOT attached - isMobile:', isMobile, 'hasRef:', !!forecastScrollContainerRef.current);
+      return;
+    }
+
+    console.log('✅✅✅ Desktop scroll handler ATTACHING NOW');
+    const container = forecastScrollContainerRef.current;
+    console.log('📦 Container element:', container, 'scrollLeft:', container.scrollLeft);
+    let scrollCheckTimer: number | undefined;
+
+    const checkLeftmostCardPosition = () => {
+      // Skip if we're currently syncing from parent to avoid loop
+      if (isSyncingFromParentRef.current) {
+        console.log('⏭️ Skipping leftmost check - syncing from parent');
+        return;
+      }
       
-      // Update dayOffset based on the leftmost visible card during scroll
-      const scrollLeft = container.scrollLeft;
+      console.log('🔍 Checking leftmost card position...');
       const containerLeft = container.getBoundingClientRect().left;
       const cards = container.querySelectorAll('[data-date]');
       
@@ -589,39 +719,91 @@ export function WeatherForecast({
           const daysDiff = Math.round((cardDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
           const clampedDaysDiff = Math.max(-30, daysDiff);
           
-          // Only update if the day offset actually changed
+          console.log('🎯 Leftmost card:', cardDateStr, 'Days from today:', clampedDaysDiff, 'Current dayOffset:', lastDayOffsetRef.current);
+          
+          // Only update if position actually changed from our last known position
           if (clampedDaysDiff !== lastDayOffsetRef.current) {
-            console.log('🔄 WeatherForecast: dayOffset changing from', lastDayOffsetRef.current, 'to', clampedDaysDiff);
+            console.log('🔄 Updating dayOffset from', lastDayOffsetRef.current, 'to', clampedDaysDiff);
             lastDayOffsetRef.current = clampedDaysDiff;
+            isInternalUpdateRef.current = true;
             setDayOffset(clampedDaysDiff);
+          } else {
+            console.log('✅ Position unchanged, no update needed');
           }
         }
       }
+    };
+
+    const handleScroll = () => {
+      console.log('📜📜📜 FORECAST SCROLL EVENT!!! scrollLeft:', container.scrollLeft);
+      setIsDesktopScrolling(true);
       
-      // Clear existing timeout
-      if (desktopScrollTimeout.current) {
-        clearTimeout(desktopScrollTimeout.current);
+      // Save scroll position to sessionStorage
+      sessionStorage.setItem('forecastScrollPosition', container.scrollLeft.toString());
+      
+      // Check if Today card is visible
+      checkTodayCardVisibility();
+      
+      // Clear existing timer
+      if (scrollCheckTimer) {
+        clearTimeout(scrollCheckTimer);
       }
 
-      // Set new timeout to detect when scrolling stops
-      desktopScrollTimeout.current = window.setTimeout(() => {
+      // Check position immediately after a brief delay for snap to complete
+      scrollCheckTimer = window.setTimeout(() => {
+        console.log('⏸️ Scrolling stopped - checking position immediately');
         setIsDesktopScrolling(false);
         snapToNearestCard();
         
-        // Final check of Today card visibility after snap
+        // Check leftmost card immediately (no extra delay)
+        checkLeftmostCardPosition();
         checkTodayCardVisibility();
-      }, 150);
+      }, 150); // Reduced from 300ms - just enough for snap
+    };
+
+    const handleWheel = (e: WheelEvent) => {
+      console.log('🎡🎡🎡 WHEEL EVENT FIRED!!! deltaX:', e.deltaX, 'deltaY:', e.deltaY, 'target:', e.target);
+      // Detect horizontal scrolling (trackpad swipe)
+      if (Math.abs(e.deltaX) > 0) {
+        console.log('🖱️🖱️🖱️ WHEEL EVENT (horizontal): deltaX =', e.deltaX, 'deltaY =', e.deltaY);
+        // The scroll event should fire, but let's trigger check as backup
+        if (scrollCheckTimer) {
+          clearTimeout(scrollCheckTimer);
+        }
+        scrollCheckTimer = window.setTimeout(() => {
+          console.log('⏸️⏸️⏸️ Wheel scrolling stopped - checking position immediately');
+          checkLeftmostCardPosition();
+        }, 150); // Check immediately after brief delay
+      } else {
+        console.log('⬆️⬇️ Vertical wheel event (deltaY > deltaX), ignoring');
+      }
     };
 
     container.addEventListener('scroll', handleScroll, { passive: true });
+    container.addEventListener('wheel', handleWheel, { passive: true });
+    console.log('🎧🎧🎧 Desktop scroll and wheel listeners ADDED to container:', container);
+    console.log('🎧 Listener verification - scroll:', !!container.onscroll, 'wheel events should fire now');
+    
+    // Test that wheel events work at all
+    const testWheel = (e: WheelEvent) => {
+      console.log('🧪 TEST WHEEL FIRED:', e.deltaX, e.deltaY);
+    };
+    container.addEventListener('wheel', testWheel, { passive: true });
+    console.log('🧪 Test wheel listener also added');
 
     return () => {
+      console.log('🗑️🗑️🗑️ Desktop scroll and wheel listeners BEING REMOVED NOW!!!');
       container.removeEventListener('scroll', handleScroll);
+      container.removeEventListener('wheel', handleWheel);
+      container.removeEventListener('wheel', testWheel);
+      if (scrollCheckTimer) {
+        clearTimeout(scrollCheckTimer);
+      }
       if (desktopScrollTimeout.current) {
         clearTimeout(desktopScrollTimeout.current);
       }
     };
-  }, [isMobile, snapToNearestCard, checkTodayCardVisibility]);
+  }, [isMobile, weatherData]); // Add weatherData to trigger when forecast renders
 
   // Check Today card visibility on mount and when forecast renders
   useEffect(() => {
@@ -3493,7 +3675,14 @@ export function WeatherForecast({
               {!isMobile && (
                 <button
                   onClick={() => {
-                    // Scroll the forecast container left by one card width
+                    console.log('⬅️ LEFT ARROW CLICKED - current dayOffset:', dayOffset);
+                    // Directly update dayOffset to go to previous day
+                    const newDayOffset = dayOffset - 1;
+                    console.log('⬅️ Updating dayOffset to:', newDayOffset);
+                    isInternalUpdateRef.current = true;
+                    setDayOffset(newDayOffset);
+                    
+                    // Also scroll the forecast container
                     if (forecastScrollContainerRef.current) {
                       const cardWidth = 280 + 20; // Card width + gap
                       forecastScrollContainerRef.current.scrollBy({ left: -cardWidth, behavior: 'smooth' });
@@ -3510,6 +3699,38 @@ export function WeatherForecast({
               {/* Flex wrapper - horizontal scroll container with snap */}
               <div 
                 ref={forecastScrollContainerRef}
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'ArrowLeft') {
+                    e.preventDefault();
+                    console.log('⌨️ KEYBOARD LEFT ARROW - current dayOffset:', dayOffset);
+                    const newDayOffset = dayOffset - 1;
+                    console.log('⌨️ Updating dayOffset to:', newDayOffset);
+                    isInternalUpdateRef.current = true;
+                    setDayOffset(newDayOffset);
+                    
+                    // Also scroll the forecast container
+                    if (forecastScrollContainerRef.current) {
+                      const cardWidth = 280 + 20;
+                      forecastScrollContainerRef.current.scrollBy({ left: -cardWidth, behavior: 'smooth' });
+                    }
+                    scrollToTop();
+                  } else if (e.key === 'ArrowRight') {
+                    e.preventDefault();
+                    console.log('⌨️ KEYBOARD RIGHT ARROW - current dayOffset:', dayOffset);
+                    const newDayOffset = dayOffset + 1;
+                    console.log('⌨️ Updating dayOffset to:', newDayOffset);
+                    isInternalUpdateRef.current = true;
+                    setDayOffset(newDayOffset);
+                    
+                    // Also scroll the forecast container
+                    if (forecastScrollContainerRef.current) {
+                      const cardWidth = 280 + 20;
+                      forecastScrollContainerRef.current.scrollBy({ left: cardWidth, behavior: 'smooth' });
+                    }
+                    scrollToTop();
+                  }
+                }}
                 className={`forecast-grid-container ${
                   isMobile ? 'overflow-y-auto snap-y snap-mandatory' : 'overflow-x-auto overflow-y-visible scrollbar-hide'
                 }`}
@@ -5160,7 +5381,14 @@ export function WeatherForecast({
               {!isMobile && (
                 <button
                   onClick={() => {
-                    // Scroll the forecast container right by one card width
+                    console.log('➡️ RIGHT ARROW CLICKED - current dayOffset:', dayOffset);
+                    // Directly update dayOffset to go to next day
+                    const newDayOffset = dayOffset + 1;
+                    console.log('➡️ Updating dayOffset to:', newDayOffset);
+                    isInternalUpdateRef.current = true;
+                    setDayOffset(newDayOffset);
+                    
+                    // Also scroll the forecast container
                     if (forecastScrollContainerRef.current) {
                       const cardWidth = 280 + 20; // Card width + gap
                       forecastScrollContainerRef.current.scrollBy({ left: cardWidth, behavior: 'smooth' });

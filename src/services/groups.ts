@@ -1,5 +1,11 @@
 import { supabase } from "../lib/supabase";
 import type { CustomerGroup } from "../App";
+import { 
+  isOfflineMode, 
+  getOfflineGroups, 
+  saveOfflineGroup, 
+  deleteOfflineGroup 
+} from "./offlineStorage";
 
 // Demo user ID - fixed UUID for all demo mode data
 const DEMO_USER_ID = '00000000-0000-0000-0000-000000000001';
@@ -26,6 +32,11 @@ async function getCurrentUserId(): Promise<string> {
  * Fetch all customer groups for current user
  */
 export async function fetchCustomerGroups(): Promise<CustomerGroup[]> {
+  if (isOfflineMode()) {
+    console.log('📴 OFFLINE MODE: Fetching groups from localStorage');
+    return getOfflineGroups();
+  }
+  
   const userId = await getCurrentUserId();
   
   const { data: { user } } = await supabase.auth.getUser();
@@ -62,6 +73,17 @@ export async function fetchCustomerGroups(): Promise<CustomerGroup[]> {
 export async function createCustomerGroup(
   group: Omit<CustomerGroup, "id" | "createdAt" | "updatedAt">
 ): Promise<CustomerGroup> {
+  if (isOfflineMode()) {
+    const newGroup: CustomerGroup = {
+      ...group,
+      id: Date.now().toString(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    console.log('📴 OFFLINE MODE: Creating group in localStorage');
+    return saveOfflineGroup(newGroup);
+  }
+  
   const userId = await getCurrentUserId();
 
   const dbGroup = {
@@ -100,6 +122,15 @@ export async function createCustomerGroup(
  * Update an existing customer group
  */
 export async function updateCustomerGroup(group: CustomerGroup): Promise<CustomerGroup> {
+  if (isOfflineMode()) {
+    const updatedGroup = {
+      ...group,
+      updatedAt: new Date().toISOString()
+    };
+    console.log('📴 OFFLINE MODE: Updating group in localStorage');
+    return saveOfflineGroup(updatedGroup);
+  }
+  
   const dbGroup = {
     name: group.name,
     work_time_minutes: group.workTimeMinutes,
@@ -136,6 +167,12 @@ export async function updateCustomerGroup(group: CustomerGroup): Promise<Custome
  * Delete a customer group
  */
 export async function deleteCustomerGroup(groupId: string): Promise<void> {
+  if (isOfflineMode()) {
+    console.log('📴 OFFLINE MODE: Deleting group from localStorage');
+    deleteOfflineGroup(groupId);
+    return;
+  }
+  
   const { error } = await supabase
     .from("customer_groups")
     .delete()

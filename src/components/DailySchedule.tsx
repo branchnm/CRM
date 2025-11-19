@@ -71,7 +71,12 @@ export function DailySchedule({
   const [slideDirection, setSlideDirection] = useState<'left' | 'right' | null>(null);
   const prevDayRef = useRef(visibleForecastDay);
   
-  console.log('🎬 Current slide direction:', slideDirection);
+  // Update prevDayRef on mount if visibleForecastDay has changed
+  useEffect(() => {
+    if (prevDayRef.current === undefined || prevDayRef.current === 0) {
+      prevDayRef.current = visibleForecastDay;
+    }
+  }, []);
   
   const [jobNotes, setJobNotes] = useState('');
   const [elapsedTime, setElapsedTime] = useState<{ [jobId: string]: number }>({});
@@ -204,6 +209,65 @@ export function DailySchedule({
     setSwipeStartX(null);
     setSwipeStartY(null);
     setIsSwipeGesture(false);
+  };
+
+  // Trackpad/wheel scroll handler for route section
+  const wheelScrollAccumulator = useRef(0);
+  const wheelScrollTimeout = useRef<number | undefined>(undefined);
+  const lastWheelUpdateRef = useRef(0);
+  const isWheelGestureActive = useRef(false);
+  
+  const handleRouteWheel = (e: React.WheelEvent) => {
+    // Only respond to horizontal scrolling (trackpad swipe)
+    if (Math.abs(e.deltaX) < Math.abs(e.deltaY)) {
+      return; // Vertical scroll, ignore
+    }
+    
+    const threshold = 50; // Minimum scroll to detect swipe direction
+    const now = Date.now();
+    
+    // Start a new gesture if enough time has passed (500ms cooldown)
+    if (!isWheelGestureActive.current && now - lastWheelUpdateRef.current > 500) {
+      wheelScrollAccumulator.current = 0;
+      isWheelGestureActive.current = true;
+    }
+    
+    // Accumulate scroll within this gesture
+    wheelScrollAccumulator.current += e.deltaX;
+    
+    // Clear existing timeout
+    if (wheelScrollTimeout.current) {
+      clearTimeout(wheelScrollTimeout.current);
+    }
+    
+    // Wait for gesture to complete (no more wheel events for 200ms)
+    wheelScrollTimeout.current = window.setTimeout(() => {
+      // Gesture completed - check total accumulated scroll
+      if (Math.abs(wheelScrollAccumulator.current) >= threshold && isWheelGestureActive.current) {
+        console.log('🖱️ Route section wheel gesture complete:', wheelScrollAccumulator.current);
+        
+        // Move exactly ONE day based on direction
+        if (wheelScrollAccumulator.current > 0) {
+          // Scroll right = next day (ONE day only)
+          console.log('🖱️ Wheel RIGHT: Going to next day', visibleForecastDay + 1);
+          if (onVisibleForecastDayChange) {
+            onVisibleForecastDayChange(visibleForecastDay + 1);
+          }
+        } else {
+          // Scroll left = previous day (ONE day only)
+          console.log('🖱️ Wheel LEFT: Going to previous day', visibleForecastDay - 1);
+          if (onVisibleForecastDayChange) {
+            onVisibleForecastDayChange(visibleForecastDay - 1);
+          }
+        }
+        
+        lastWheelUpdateRef.current = Date.now();
+      }
+      
+      // Reset gesture state
+      wheelScrollAccumulator.current = 0;
+      isWheelGestureActive.current = false;
+    }, 200);
   };
 
   // Use local date (YYYY-MM-DD) to match stored nextCutDate values
@@ -1465,20 +1529,23 @@ export function DailySchedule({
         isEditingAddress={isEditingAddress}
         scrollToTodayRef={scrollToTodayRef}
         onVisibleDayChange={onVisibleForecastDayChange}
+        visibleForecastDay={visibleForecastDay}
       />
 
-      {/* Jobs Section Header + Cards with Swipe Navigation */}
+      {/* Jobs Section Header + Cards with Smooth Scrolling */}
       <div
         onTouchStart={handleRouteTouchStart}
         onTouchMove={handleRouteTouchMove}
         onTouchEnd={handleRouteTouchEnd}
+        onWheel={handleRouteWheel}
+        className="overflow-hidden"
       >
-      {/* Jobs Section Header - navigation controlled by forecast section above */}
+      {/* Jobs Section Header */}
       <div className="space-y-3 mb-4">
           <div className="flex items-center justify-center gap-2">
             <div className="h-1 bg-linear-to-r from-blue-200 via-yellow-200 to-blue-200 rounded-full" style={{ width: 'max(8vw, 60px)' }}></div>
             <h2 className="text-blue-900 uppercase tracking-wide whitespace-nowrap font-bold" style={{ fontSize: 'max(2.5vh, 18px)' }}>
-              {getDateLabel(visibleForecastDay)}'s Jobs {slideDirection && `(${slideDirection})`}
+              {getDateLabel(visibleForecastDay)}'s Jobs
             </h2>
             <div className="h-1 bg-linear-to-l from-blue-200 via-yellow-200 to-blue-200 rounded-full" style={{ width: 'max(8vw, 60px)' }}></div>
           </div>
@@ -1507,10 +1574,13 @@ export function DailySchedule({
         </div>
 
       {/* Job List */}
-      <div className={`grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-3 justify-items-center max-w-7xl mx-auto transition-all duration-300 ${
-        slideDirection === 'left' ? 'animate-slide-in-right' : 
-        slideDirection === 'right' ? 'animate-slide-in-left' : ''
-      }`}>
+      <div 
+        key={`route-jobs-${currentViewDate}`}
+        className={`grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-3 justify-items-center max-w-7xl mx-auto ${
+          slideDirection === 'left' ? 'animate-slide-in-right' : 
+          slideDirection === 'right' ? 'animate-slide-in-left' : ''
+        }`}
+      >
         {customersDueOnDate.length === 0 && displayedJobs.length === 0 ? (
           <Card className="bg-white/80 backdrop-blur col-span-full">
             <CardContent className="pt-6">

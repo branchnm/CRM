@@ -1,5 +1,11 @@
 import { supabase } from "../lib/supabase";
 import type { Job } from "../App";
+import { 
+  isOfflineMode, 
+  getOfflineJobs, 
+  saveOfflineJob, 
+  deleteOfflineJob 
+} from "./offlineStorage";
 
 // Demo user ID - fixed UUID for all demo mode data
 const DEMO_USER_ID = '00000000-0000-0000-0000-000000000001';
@@ -25,6 +31,12 @@ async function getCurrentUserId(): Promise<string> {
 }
 
 export async function fetchJobs(date?: string): Promise<Job[]> {
+  if (isOfflineMode()) {
+    console.log('📴 OFFLINE MODE: Fetching jobs from localStorage');
+    const jobs = getOfflineJobs();
+    return date ? jobs.filter(j => j.date === date) : jobs;
+  }
+  
   const userId = await getCurrentUserId();
   
   // Debug: Check who is authenticated
@@ -69,6 +81,15 @@ export async function fetchJobs(date?: string): Promise<Job[]> {
 }
 
 export async function upsertJob(job: Omit<Job, "id"> & { id?: string }): Promise<Job> {
+  if (isOfflineMode()) {
+    const newJob: Job = {
+      ...job,
+      id: job.id || Date.now().toString()
+    };
+    console.log('📴 OFFLINE MODE: Upserting job to localStorage');
+    return saveOfflineJob(newJob);
+  }
+  
   const userId = await getCurrentUserId();
   
   const db = {
@@ -118,6 +139,15 @@ export async function upsertJob(job: Omit<Job, "id"> & { id?: string }): Promise
 }
 
 export async function addJob(job: Omit<Job, "id">): Promise<Job> {
+  if (isOfflineMode()) {
+    const newJob: Job = {
+      ...job,
+      id: Date.now().toString()
+    };
+    console.log('📴 OFFLINE MODE: Adding job to localStorage');
+    return saveOfflineJob(newJob);
+  }
+  
   const userId = await getCurrentUserId();
   
   const db = {
@@ -167,6 +197,11 @@ export async function addJob(job: Omit<Job, "id">): Promise<Job> {
 }
 
 export async function updateJob(job: Job): Promise<Job> {
+  if (isOfflineMode()) {
+    console.log('📴 OFFLINE MODE: Updating job in localStorage');
+    return saveOfflineJob(job);
+  }
+  
   const userId = await getCurrentUserId();
   
   const db = {
@@ -217,6 +252,12 @@ export async function updateJob(job: Job): Promise<Job> {
 }
 
 export async function deleteJob(id: string): Promise<void> {
+  if (isOfflineMode()) {
+    console.log('📴 OFFLINE MODE: Deleting job from localStorage');
+    deleteOfflineJob(id);
+    return;
+  }
+  
   const { error } = await supabase.from("jobs").delete().eq("id", id);
   if (error) throw new Error(`Failed to delete job: ${error.message}`);
 }

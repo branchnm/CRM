@@ -1,6 +1,12 @@
 import { supabase } from "../lib/supabase";
 import type { Customer } from "../App";
 import { calculateNextCutDate } from "../utils/dateHelpers";
+import { 
+  isOfflineMode, 
+  getOfflineCustomers, 
+  saveOfflineCustomer, 
+  deleteOfflineCustomer 
+} from "./offlineStorage";
 
 // Demo user ID - fixed UUID for all demo mode data
 const DEMO_USER_ID = '00000000-0000-0000-0000-000000000001';
@@ -26,9 +32,14 @@ async function getCurrentUserId(): Promise<string> {
 }
 
 /**
- * Delete a customer from Supabase
+ * Delete a customer from Supabase (or offline storage)
  */
 export async function deleteCustomer(customerId: string): Promise<void> {
+  if (isOfflineMode()) {
+    deleteOfflineCustomer(customerId);
+    return;
+  }
+  
   const { error } = await supabase
     .from("customers")
     .delete()
@@ -57,8 +68,14 @@ export async function deleteAllCustomers(): Promise<void> {
 
 /**
  * Fetch all customers from Supabase (filtered by current user or demo user)
+ * In offline mode, returns customers from localStorage
  */
 export async function fetchCustomers(): Promise<Customer[]> {
+  if (isOfflineMode()) {
+    console.log('📴 OFFLINE MODE: Fetching customers from localStorage');
+    return getOfflineCustomers();
+  }
+  
   const userId = await getCurrentUserId();
   
   // Debug: Check who is authenticated
@@ -133,9 +150,18 @@ export async function fetchCustomers(): Promise<Customer[]> {
 }
 
 /**
- * Add a new customer to Supabase
+ * Add a new customer to Supabase (or offline storage)
  */
 export async function addCustomer(customer: Omit<Customer, "id">): Promise<Customer> {
+  if (isOfflineMode()) {
+    const newCustomer: Customer = {
+      ...customer,
+      id: Date.now().toString()
+    };
+    console.log('📴 OFFLINE MODE: Adding customer to localStorage');
+    return saveOfflineCustomer(newCustomer);
+  }
+  
   const userId = await getCurrentUserId();
   
   // Convert from camelCase to snake_case for database
@@ -193,9 +219,14 @@ export async function addCustomer(customer: Omit<Customer, "id">): Promise<Custo
 }
 
 /**
- * Update an existing customer in Supabase
+ * Update an existing customer in Supabase (or offline storage)
  */
 export async function updateCustomer(customer: Customer): Promise<Customer> {
+  if (isOfflineMode()) {
+    console.log('📴 OFFLINE MODE: Updating customer in localStorage');
+    return saveOfflineCustomer(customer);
+  }
+  
   // Convert from camelCase to snake_case for database
   const dbCustomer = {
     name: customer.name,
