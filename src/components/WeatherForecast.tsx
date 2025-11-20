@@ -4020,10 +4020,10 @@ export function WeatherForecast({
                       {/* Day Header - Improved with work/drive time stats */}
                       <div className={`bg-white border-b border-gray-200 ${isMobile ? 'px-2 py-[0.6vh] flex-shrink-0' : 'px-[0.44vh] py-[0.53vh]'}`}>
                         {/* Day and Date on same line with rain badge - CENTERED */}
-                        <div className={`flex items-center justify-center ${isMobile ? 'mb-[0.3vh]' : 'mb-[0.27vh]'}`}>
+                        <div className={`flex items-center justify-center ${isMobile ? 'mb-[0.2vh]' : 'mb-[0.27vh]'}`}>
                           <div className="flex items-center gap-[0.44vh]">
-                            <span className={`font-bold text-gray-900 ${isMobile ? 'text-[1.7vh]' : 'text-[1.95vh]'}`}>{dayName}</span>
-                            <span className={`text-gray-500 ${isMobile ? 'text-[1.4vh]' : 'text-[1.59vh]'}`}>{dayDate}</span>
+                            <span className={`font-bold text-gray-900 ${isMobile ? 'text-[1.5vh]' : 'text-[1.95vh]'}`}>{dayName}</span>
+                            <span className={`text-gray-500 ${isMobile ? 'text-[1.25vh]' : 'text-[1.59vh]'}`}>{dayDate}</span>
                           </div>
                           
                           {/* Rain Chance Badge */}
@@ -4036,10 +4036,10 @@ export function WeatherForecast({
                         </div>
                         
                         {/* Work Stats Row - Centered - Always show job count - LARGER TEXT */}
-                        <div className={`flex items-center justify-center gap-[0.53vh] ${isMobile ? 'text-[1.1vh]' : 'text-[1.24vh]'}`}>
+                        <div className={`flex items-center justify-center gap-[0.53vh] ${isMobile ? 'text-[1vh]' : 'text-[1.24vh]'}`}>
                           <div className="flex items-center gap-[0.27vh] text-gray-700">
-                            <span className={`font-bold text-blue-600 ${isMobile ? 'text-[1.4vh]' : 'text-[1.59vh]'}`}>{totalJobs}</span>
-                            <span className={`text-gray-600 font-medium ${isMobile ? 'text-[1.1vh]' : 'text-[1.24vh]'}`}>job{totalJobs !== 1 ? 's' : ''}</span>
+                            <span className={`font-bold text-blue-600 ${isMobile ? 'text-[1.3vh]' : 'text-[1.59vh]'}`}>{totalJobs}</span>
+                            <span className={`text-gray-600 font-medium ${isMobile ? 'text-[1vh]' : 'text-[1.24vh]'}`}>job{totalJobs !== 1 ? 's' : ''}</span>
                           </div>
                           {totalJobs > 0 && (() => {
                             const totalWorkMinutes = [...scheduledJobsForDay, ...assignedJobs].reduce((sum, job) => sum + (job.totalTime || 30), 0);
@@ -4372,12 +4372,12 @@ export function WeatherForecast({
                                 }`} data-date={dateStr} style={{ 
                                   display: 'grid', 
                                   gridTemplateColumns: isMobile ? '3vh 1fr' : '4.5vh 1fr', 
-                                  gridTemplateRows: 'repeat(56, 1fr)', 
+                                  gridTemplateRows: 'repeat(56, calc(70vh / 56))', 
                                   gap: 0, 
                                   height: isMobile ? 'auto' : '70vh',
                                   minHeight: isMobile ? '0' : '70vh',
                                   flex: isMobile ? '1 1 auto' : 'initial',
-                                  alignContent: 'stretch'
+                                  alignContent: 'start'
                                 }}>
                                 {/* Blocked time overlays */}
                                 {(() => {
@@ -4486,7 +4486,7 @@ export function WeatherForecast({
                                         key={`weather-${hour}`} 
                                         className="flex items-center justify-center" 
                                         style={{ 
-                                          gridRow: `${slotIndex + 1} / span 1`,
+                                          gridRow: `${slotIndex + 1} / span 4`,
                                           gridColumn: '1'
                                         }}
                                       >
@@ -4758,10 +4758,13 @@ export function WeatherForecast({
                                           
                                           const jobCardContent = spansMultipleSlots && spanInfo && rowIndents.length > 0 ? (
                                             // Multi-slot card with row-by-row sections  
-                                            <div className="w-full relative" style={{ marginBottom: '2.5vh' }}>
+                                            <div className="w-full relative" style={{ 
+                                              height: isMobile ? 'auto' : `calc(${spanInfo.slotsNeeded} * (70vh / 56) - 0.2vh)`,
+                                              marginBottom: '0'
+                                            }}>
                                               {/* Background shape sections */}
                                               <div className="relative flex flex-col" style={{ 
-                                                height: `100%`
+                                                height: '100%'
                                               }}>
                                                 {rowIndents.map((needsIndent, rowIndex) => {
                                                   const isFirstRow = rowIndex === 0;
@@ -4797,11 +4800,17 @@ export function WeatherForecast({
                                                   const isWidthChangingFromPrev = prevRowIndent !== null && prevRowIndent !== needsIndent;
                                                   const isWidthChangingToNext = nextRowIndent !== null && nextRowIndent !== needsIndent;
                                                   
+                                                  // Each row gets equal height from parent
+                                                  const rowHeight = `calc(((${spanInfo.slotsNeeded} * (70vh / 56)) - 0.2vh) / ${spanInfo.slotsNeeded})`;
+                                                  
                                                   return (
-                                                    <div key={rowIndex} className="relative">
+                                                    <div key={rowIndex} className="relative" style={{
+                                                      height: rowHeight,
+                                                      flex: 'none'
+                                                    }}>
                                                       {/* Background */}
                                                       <div
-                                                        className={`text-xs select-none shrink-0 ${
+                                                        className={`text-xs select-none h-full ${
                                                           isCompleted
                                                             ? 'bg-gray-200/80'
                                                             : isSelected
@@ -4815,11 +4824,8 @@ export function WeatherForecast({
                                                             : 'bg-white'
                                                         }`}
                                                         style={{
-                                                          marginLeft: needsIndent ? (isMobile ? '-0.5vh' : '-1.0vh') : (isMobile ? '-3.5vh' : '-4.8vh'),
-                                                          width: needsIndent ? (isMobile ? 'calc(100% + 0.5vh)' : 'calc(100% + 1.0vh)') : (isMobile ? 'calc(100% + 3.5vh)' : 'calc(100% + 4.8vh)'),
-                                                          height: isFirstRow || isLastRow ? '1.0vh' : '1.25vh',
-                                                          marginTop: isFirstRow ? '0.125vh' : '0',
-                                                          marginBottom: isLastRow ? '0.125vh' : '0',
+                                                          marginLeft: needsIndent ? (isMobile ? '0' : '0') : (isMobile ? '-3vh' : '-4.5vh'),
+                                                          width: needsIndent ? '100%' : (isMobile ? 'calc(100% + 3vh)' : 'calc(100% + 4.5vh)'),
                                                           borderRadius: isFirstRow && isLastRow ? '3vh' : borderRadius,
                                                           opacity: isDraggedItem ? 0 : 1,
                                                         }}
@@ -4830,9 +4836,9 @@ export function WeatherForecast({
                                                         <div
                                                           className="absolute pointer-events-none"
                                                           style={{
-                                                            top: '0.125vh',
-                                                            left: needsIndent ? (isMobile ? '-0.5vh' : '-1.0vh') : (isMobile ? '-3.5vh' : '-4.8vh'),
-                                                            width: needsIndent ? (isMobile ? 'calc(100% + 0.5vh)' : 'calc(100% + 1.0vh)') : (isMobile ? 'calc(100% + 3.5vh)' : 'calc(100% + 4.8vh)'),
+                                                            top: 0,
+                                                            left: needsIndent ? '0' : (isMobile ? '-3vh' : '-4.5vh'),
+                                                            width: needsIndent ? '100%' : (isMobile ? 'calc(100% + 3vh)' : 'calc(100% + 4.5vh)'),
                                                             height: '1.5px',
                                                             background: borderColor,
                                                             zIndex: 999,
@@ -4845,8 +4851,8 @@ export function WeatherForecast({
                                                           className="absolute pointer-events-none"
                                                           style={{
                                                             top: '0',
-                                                            left: isMobile ? '-3.5vh' : '-4.8vh',
-                                                            width: isMobile ? 'calc(3vh + 1.5px)' : 'calc(3.8vh + 1.5px)',
+                                                            left: isMobile ? '-3vh' : '-4.5vh',
+                                                            width: isMobile ? '3vh' : '4.5vh',
                                                             height: '1.5px',
                                                             background: borderColor,
                                                             zIndex: 999,
@@ -4858,9 +4864,9 @@ export function WeatherForecast({
                                                         <div
                                                           className="absolute pointer-events-none"
                                                           style={{
-                                                            bottom: '0.125vh',
-                                                            left: needsIndent ? (isMobile ? '-0.5vh' : '-1.0vh') : (isMobile ? '-3.5vh' : '-4.8vh'),
-                                                            width: needsIndent ? (isMobile ? 'calc(100% + 0.5vh)' : 'calc(100% + 1.0vh)') : (isMobile ? 'calc(100% + 3.5vh)' : 'calc(100% + 4.8vh)'),
+                                                            bottom: 0,
+                                                            left: needsIndent ? '0' : (isMobile ? '-3vh' : '-4.5vh'),
+                                                            width: needsIndent ? '100%' : (isMobile ? 'calc(100% + 3vh)' : 'calc(100% + 4.5vh)'),
                                                             height: '1.5px',
                                                             background: borderColor,
                                                             zIndex: 999,
@@ -4873,8 +4879,8 @@ export function WeatherForecast({
                                                           className="absolute pointer-events-none"
                                                           style={{
                                                             bottom: '0',
-                                                            left: isMobile ? '-3.5vh' : '-4.8vh',
-                                                            width: isMobile ? 'calc(3vh + 1.5px)' : 'calc(3.8vh + 1.5px)',
+                                                            left: isMobile ? '-3vh' : '-4.5vh',
+                                                            width: isMobile ? '3vh' : '4.5vh',
                                                             height: '1.5px',
                                                             background: borderColor,
                                                             zIndex: 999,
@@ -4885,10 +4891,10 @@ export function WeatherForecast({
                                                       <div
                                                         className="absolute pointer-events-none"
                                                         style={{
-                                                          top: isFirstRow ? '0.125vh' : '0',
-                                                          left: needsIndent ? (isMobile ? '-0.5vh' : '-1.0vh') : (isMobile ? '-3.5vh' : '-4.8vh'),
+                                                          top: 0,
+                                                          bottom: 0,
+                                                          left: needsIndent ? '0' : (isMobile ? '-3vh' : '-4.5vh'),
                                                           width: '1.5px',
-                                                          height: isFirstRow || isLastRow ? '1.0vh' : '1.25vh',
                                                           background: borderColor,
                                                           zIndex: 999,
                                                         }}
@@ -4897,9 +4903,9 @@ export function WeatherForecast({
                                                       <div
                                                         className="absolute right-0 pointer-events-none"
                                                         style={{
-                                                          top: isFirstRow ? '0.125vh' : '0',
+                                                          top: 0,
+                                                          bottom: 0,
                                                           width: '1.5px',
-                                                          height: isFirstRow || isLastRow ? '1.0vh' : '1.25vh',
                                                           background: borderColor,
                                                           zIndex: 999,
                                                         }}
@@ -5048,9 +5054,9 @@ export function WeatherForecast({
                                                 userSelect: 'none',
                                                 WebkitUserSelect: 'none',
                                                 WebkitTouchCallout: 'none',
-                                                height: 'auto',
+                                                height: isMobile ? 'auto' : `calc(${spanInfo ? spanInfo.slotsNeeded : 1} * (70vh / 56) - 0.2vh)`,
                                                 minHeight: '0',
-                                                marginBottom: isMobile ? '0.4vh' : '2.5vh',
+                                                marginBottom: '0',
                                                 alignSelf: 'flex-start',
                                                 pointerEvents: 'auto',
                                                 opacity: isDraggedItem ? 0 : 1,
