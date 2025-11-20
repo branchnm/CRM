@@ -84,17 +84,17 @@ export function Settings({ equipment, onUpdateEquipment }: SettingsProps) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       <Card className="bg-white/80 backdrop-blur">
-        <CardHeader>
-          <div className="flex items-center justify-between">
+        <CardHeader className="pb-3">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
-              <CardTitle>Equipment & Maintenance</CardTitle>
-              <CardDescription>Track equipment and schedule maintenance</CardDescription>
+              <CardTitle className="text-lg md:text-xl">Equipment & Maintenance</CardTitle>
+              <CardDescription className="text-sm">Track equipment and schedule maintenance</CardDescription>
             </div>
             <Dialog open={isAddingEquipment} onOpenChange={setIsAddingEquipment}>
               <DialogTrigger asChild>
-                <Button className="bg-blue-600 hover:bg-blue-700" onClick={resetForm}>
+                <Button className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto text-sm" size="default" onClick={resetForm}>
                   <Plus className="h-4 w-4 mr-2" />
                   Add Equipment
                 </Button>
@@ -172,15 +172,15 @@ export function Settings({ equipment, onUpdateEquipment }: SettingsProps) {
       </Card>
 
       {/* Equipment List */}
-      <div className="space-y-3">
+      <div className="space-y-2 md:space-y-3">
         {equipment.map(item => {
           const daysUntil = getDaysUntilMaintenance(item.nextMaintenance);
           const needsMaintenance = daysUntil <= 7 || item.hoursUsed >= item.alertThreshold;
 
           return (
             <Card key={item.id} className={`bg-white/80 backdrop-blur ${needsMaintenance ? 'border-orange-300' : ''}`}>
-              <CardContent className="pt-6">
-                <div className="flex items-start justify-between gap-4">
+              <CardContent className="pt-4 pb-4 px-3 md:px-6 md:pt-6">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
                       <Wrench className="h-5 w-5 text-gray-600" />

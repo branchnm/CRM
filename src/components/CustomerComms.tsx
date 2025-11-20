@@ -142,9 +142,9 @@ export function CustomerComms({ customers, messageTemplates, onUpdateTemplates }
     <div className="space-y-6">
       {/* Send Message Card */}
       <Card className="bg-white/80 backdrop-blur">
-        <CardHeader>
-          <CardTitle>Send Message</CardTitle>
-          <CardDescription>Send a quick message to a customer</CardDescription>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg md:text-xl">Send Message</CardTitle>
+          <CardDescription className="text-sm">Send messages to customers</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
@@ -215,15 +215,15 @@ export function CustomerComms({ customers, messageTemplates, onUpdateTemplates }
 
       {/* Message Templates */}
       <Card className="bg-white/80 backdrop-blur">
-        <CardHeader>
-          <div className="flex items-center justify-between">
+        <CardHeader className="pb-3">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
-              <CardTitle>Message Templates</CardTitle>
-              <CardDescription>Manage automated and manual message templates</CardDescription>
+              <CardTitle className="text-lg md:text-xl">Message Templates</CardTitle>
+              <CardDescription className="text-sm">Manage automated and manual message templates</CardDescription>
             </div>
             <Dialog open={isEditingTemplate && !editingTemplate} onOpenChange={setIsEditingTemplate}>
               <DialogTrigger asChild>
-                <Button className="bg-blue-600 hover:bg-blue-700" onClick={resetTemplateForm}>
+                <Button className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto text-sm" size="default" onClick={resetTemplateForm}>
                   <Plus className="h-4 w-4 mr-2" />
                   New Template
                 </Button>
@@ -293,21 +293,21 @@ export function CustomerComms({ customers, messageTemplates, onUpdateTemplates }
             </Dialog>
           </div>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
+        <CardContent className="p-3 md:p-6">
+          <div className="space-y-2 md:space-y-3">
             {messageTemplates.map(template => (
               <Card key={template.id} className="bg-gray-50">
-                <CardContent className="pt-4">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <h4 className="text-blue-800">{template.name}</h4>
-                        <Badge variant={template.active ? 'default' : 'secondary'} className={template.active ? 'bg-blue-600' : ''}>
+                <CardContent className="pt-3 pb-3 px-3 md:px-6 md:pt-4">
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-1.5 md:gap-2 mb-1.5 md:mb-2">
+                        <h4 className="text-blue-800 text-sm md:text-base font-semibold">{template.name}</h4>
+                        <Badge variant={template.active ? 'default' : 'secondary'} className={`text-xs ${template.active ? 'bg-blue-600' : ''}`}>
                           {template.active ? 'Active' : 'Inactive'}
                         </Badge>
-                        <Badge variant="outline">{getTriggerLabel(template.trigger)}</Badge>
+                        <Badge variant="outline" className="text-xs">{getTriggerLabel(template.trigger)}</Badge>
                       </div>
-                      <p className="text-gray-600 text-sm">{template.message}</p>
+                      <p className="text-gray-600 text-xs md:text-sm line-clamp-2">{template.message}</p>
                     </div>
                     <div className="flex gap-2">
                       <Switch

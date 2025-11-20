@@ -481,7 +481,7 @@ function App() {
 
   return (
     <div 
-      className="min-h-screen bg-linear-to-br from-blue-50 via-white to-yellow-50 pb-20 md:pb-0"
+      className="min-h-screen bg-linear-to-br from-blue-50 via-white to-yellow-50 pb-16 md:pb-0"
       onTouchStart={handlePageTouchStart}
       onTouchMove={handlePageTouchMove}
       onTouchEnd={handlePageTouchEnd}
@@ -590,7 +590,7 @@ function App() {
         </div>
       )}
 
-      <div className="container mx-auto md:px-8" style={{ 
+      <div className="container mx-auto px-2 md:px-8" style={{ 
         paddingTop: activeTab === "schedule" ? '0' : 'max(5vh, 50px)', // No top padding on mobile schedule
         paddingLeft: activeTab === "schedule" ? '0' : '0.5rem',
         paddingRight: activeTab === "schedule" ? '0' : '0.5rem',
@@ -600,17 +600,17 @@ function App() {
         {activeTab === "schedule" && <div className="hidden md:block" style={{ height: '2rem' }}></div>}
         {/* Mobile Header - Logo style with Logout (only on settings tab) */}
         <div className="md:mb-6 md:hidden" style={{ 
-          marginBottom: activeTab === "schedule" ? 'clamp(0.25rem, 1vh, 0.5rem)' : '1rem',
-          marginTop: activeTab === "schedule" ? '0' : '0.5rem',
-          paddingTop: activeTab === "schedule" ? 'clamp(0.25rem, 0.5vh, 0.5rem)' : '0',
-          paddingLeft: activeTab === "schedule" ? 'clamp(0.5rem, 2vw, 1rem)' : '0.5rem',
-          paddingRight: activeTab === "schedule" ? 'clamp(0.5rem, 2vw, 1rem)' : '0.5rem'
+          marginBottom: activeTab === "schedule" ? 'clamp(0.25rem, 0.8vh, 0.4rem)' : '0.75rem',
+          marginTop: activeTab === "schedule" ? '0' : '0.25rem',
+          paddingTop: activeTab === "schedule" ? 'clamp(0.2rem, 0.4vh, 0.4rem)' : '0',
+          paddingLeft: activeTab === "schedule" ? 'clamp(0.4rem, 1.5vw, 0.75rem)' : '0.5rem',
+          paddingRight: activeTab === "schedule" ? 'clamp(0.4rem, 1.5vw, 0.75rem)' : '0.5rem'
         }}>
-          <div className="flex items-center justify-between" style={{ marginBottom: 'clamp(0.25rem, 0.5vh, 0.5rem)' }}>
+          <div className="flex items-center justify-between" style={{ marginBottom: 'clamp(0.2rem, 0.4vh, 0.4rem)' }}>
             <div className="flex-1"></div>
             <h1 className="font-black text-transparent bg-clip-text bg-linear-to-r from-blue-600 via-blue-700 to-blue-800 uppercase tracking-wider drop-shadow-sm" style={{ 
-              fontSize: 'clamp(1rem, 4vh, 2rem)',
-              lineHeight: '1.2'
+              fontSize: 'clamp(0.9rem, 3.5vh, 1.75rem)',
+              lineHeight: '1.1'
             }}>
               Job Flow
             </h1>
@@ -716,9 +716,9 @@ function App() {
         {/* Today Button - Shows above tabs when on schedule */}
         {activeTab === "schedule" && (
           <div className="flex justify-center items-center border-b border-gray-100 bg-blue-50" style={{ 
-            gap: 'max(0.5vw, 4px)', 
-            padding: 'max(0.5vh, 3px) max(1vw, 6px)',
-            minHeight: 'max(5vh, 35px)' // More aggressive scaling with minimum
+            gap: 'max(0.4vw, 3px)', 
+            padding: 'max(0.4vh, 2px) max(0.8vw, 5px)',
+            minHeight: 'max(4.5vh, 32px)'
           }}>
             {/* Location Button - Shows zipcode, opens location editor */}
             <Button
@@ -727,15 +727,15 @@ function App() {
               variant="outline"
               className="border-blue-600 text-blue-600 hover:bg-blue-100 shrink-0"
               style={{ 
-                fontSize: 'max(1.4vh, 10px)',
-                padding: 'max(0.5vh, 3px) max(2vw, 8px)',
-                maxHeight: 'max(4vh, 28px)',
+                fontSize: 'max(1.3vh, 9px)',
+                padding: 'max(0.4vh, 2px) max(1.5vw, 6px)',
+                maxHeight: 'max(3.5vh, 26px)',
                 height: 'auto'
               }}
               title="Click to change location"
             >
-              <MapPin style={{ width: 'max(1.8vh, 14px)', height: 'max(1.8vh, 14px)' }} className="shrink-0" />
-              <span style={{ marginLeft: 'max(0.8vw, 4px)' }}>{locationZipCode || 'Set Location'}</span>
+              <MapPin style={{ width: 'max(1.6vh, 12px)', height: 'max(1.6vh, 12px)' }} className="shrink-0" />
+              <span style={{ marginLeft: 'max(0.6vw, 3px)' }}>{locationZipCode || 'Set Location'}</span>
             </Button>
             
             <Button
@@ -746,8 +746,9 @@ function App() {
               variant="outline"
               className="border-blue-600 text-blue-600 hover:bg-blue-100 shrink-0"
               style={{ 
-                fontSize: 'max(1.4vh, 10px)',
-                padding: 'max(0.5vh, 3px) max(2vw, 8px)',
+                fontSize: 'max(1.3vh, 9px)',
+                padding: 'max(0.4vh, 2px) max(1.5vw, 6px)',
+                maxHeight: 'max(3.5vh, 26px)',
                 maxHeight: 'max(4vh, 28px)',
                 height: 'auto'
               }}

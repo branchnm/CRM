@@ -500,13 +500,13 @@ export function CustomerManagement({
       </Card>
 
       <Card className="bg-white/80 backdrop-blur">
-        <CardHeader>
-          <div className="flex items-center justify-between">
+        <CardHeader className="pb-3">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
             <div>
-              <CardTitle>Customers</CardTitle>
-              <CardDescription>{customers.length} total customers</CardDescription>
+              <CardTitle className="text-lg md:text-xl">Customers</CardTitle>
+              <CardDescription className="text-sm">{customers.length} total customer{customers.length !== 1 ? 's' : ''}</CardDescription>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
               <input
                 ref={fileInputRef}
                 type="file"
@@ -516,17 +516,17 @@ export function CustomerManagement({
               />
               <Button 
                 variant="outline"
-                size="lg" 
+                size="default" 
                 onClick={() => fileInputRef.current?.click()}
-                className="border-blue-600 text-blue-600 hover:bg-blue-50"
+                className="border-blue-600 text-blue-600 hover:bg-blue-50 w-full sm:w-auto text-sm"
               >
-                <Upload className="h-5 w-5 mr-2" />
+                <Upload className="h-4 w-4 mr-2" />
                 Import CSV
               </Button>
               <Dialog open={isAddingCustomer} onOpenChange={setIsAddingCustomer}>
                 <DialogTrigger asChild>
-                  <Button className="bg-blue-600 hover:bg-blue-700" size="lg" onClick={resetForm}>
-                    <Plus className="h-5 w-5 mr-2" />
+                  <Button className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto text-sm" size="default" onClick={resetForm}>
+                    <Plus className="h-4 w-4 mr-2" />
                     Add Customer
                   </Button>
                 </DialogTrigger>
