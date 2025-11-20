@@ -748,7 +748,6 @@ function App() {
               style={{ 
                 fontSize: 'max(1.3vh, 9px)',
                 padding: 'max(0.4vh, 2px) max(1.5vw, 6px)',
-                maxHeight: 'max(3.5vh, 26px)',
                 maxHeight: 'max(4vh, 28px)',
                 height: 'auto'
               }}
