@@ -6,7 +6,19 @@
 
 import type { Customer, Job, CustomerGroup } from '../App';
 
-const OFFLINE_MODE = import.meta.env.VITE_OFFLINE_MODE === 'true';
+// Check if offline mode is enabled via environment variable OR URL parameter
+const checkOfflineMode = (): boolean => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const urlDemo = urlParams.get('demo') === 'true';
+  const envOffline = import.meta.env.VITE_OFFLINE_MODE === 'true';
+  
+  // Check sessionStorage first (set when ?demo=true is used)
+  const sessionDemo = sessionStorage.getItem('demoMode') === 'true';
+  
+  return urlDemo || sessionDemo || envOffline;
+};
+
+const OFFLINE_MODE = checkOfflineMode();
 
 // Storage keys
 const CUSTOMERS_KEY = 'offline_customers';

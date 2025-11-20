@@ -25,8 +25,24 @@ import { getCurrentUser, onAuthStateChange, signOut } from "./services/auth";
 import type { User } from "@supabase/supabase-js";
 import { Button } from "./components/ui/button";
 
-// Check if demo mode is enabled via environment variable
-const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true';
+// Check if demo mode is enabled via environment variable OR URL parameter
+const checkDemoMode = (): boolean => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const urlDemo = urlParams.get('demo') === 'true';
+  const envDemo = import.meta.env.VITE_DEMO_MODE === 'true';
+  
+  // Store in sessionStorage so it persists during the session
+  if (urlDemo) {
+    sessionStorage.setItem('demoMode', 'true');
+    return true;
+  }
+  
+  // Check sessionStorage first, then fall back to env variable
+  const sessionDemo = sessionStorage.getItem('demoMode') === 'true';
+  return sessionDemo || envDemo;
+};
+
+const DEMO_MODE = checkDemoMode();
 
 export interface CustomerGroup {
   id: string;
@@ -491,9 +507,17 @@ function App() {
         <div className="w-full px-4 h-full flex items-center">
           <div className="flex items-center justify-center gap-4 xl:gap-6 w-full">
             {/* Logo - Left */}
-            <h1 className="text-lg xl:text-xl font-black text-transparent bg-clip-text bg-linear-to-r from-blue-600 via-blue-700 to-blue-800 uppercase tracking-wider whitespace-nowrap">
-              Job Flow
-            </h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-lg xl:text-xl font-black text-transparent bg-clip-text bg-linear-to-r from-blue-600 via-blue-700 to-blue-800 uppercase tracking-wider whitespace-nowrap">
+                Job Flow
+              </h1>
+              {/* Demo Mode Badge */}
+              {DEMO_MODE && (
+                <span className="text-xs font-semibold px-2 py-1 rounded bg-green-100 text-green-700 border border-green-300">
+                  DEMO
+                </span>
+              )}
+            </div>
             
             {/* Address - Left of tabs */}
             <button
@@ -614,7 +638,13 @@ function App() {
             }}>
               Job Flow
             </h1>
-            <div className="flex-1 flex justify-end">
+            <div className="flex-1 flex justify-end items-center gap-2">
+              {/* Demo Mode Badge */}
+              {DEMO_MODE && (
+                <span className="text-xs font-semibold px-2 py-1 rounded bg-green-100 text-green-700 border border-green-300">
+                  DEMO
+                </span>
+              )}
               {/* Show logout button in settings tab (hide in demo mode) */}
               {!DEMO_MODE && activeTab === "settings" && (
                 <Button 
