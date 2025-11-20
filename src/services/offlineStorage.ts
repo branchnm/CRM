@@ -95,95 +95,116 @@ function getDateString(daysOffset: number = 0): string {
 
 // Sample completed jobs for insights demo
 const SAMPLE_JOBS: Job[] = [
-  // Completed jobs from last week
+  // Recent completed jobs (last 3 cuts for each customer as shown in screenshot)
+  // John Smith - 3 recent cuts
   {
     id: 'job-1',
     customerId: '1',
-    date: getDateString(-7),
+    date: getDateString(-3),
     status: 'completed',
-    notes: 'Lawn mowed and edged',
+    notes: 'Weekly mowing service',
     totalTime: 45,
+    mowTime: 30,
+    trimTime: 10,
+    edgeTime: 5,
     order: 1,
   },
   {
     id: 'job-2',
-    customerId: '2',
-    date: getDateString(-7),
+    customerId: '1',
+    date: getDateString(-10),
     status: 'completed',
-    notes: 'Full service with trimming',
-    totalTime: 60,
-    order: 2,
+    notes: 'Regular maintenance',
+    totalTime: 45,
+    mowTime: 30,
+    trimTime: 10,
+    edgeTime: 5,
+    order: 1,
   },
   {
     id: 'job-3',
     customerId: '1',
-    date: getDateString(-14),
+    date: getDateString(-17),
     status: 'completed',
-    notes: 'Regular maintenance',
+    notes: 'Weekly lawn care',
     totalTime: 45,
+    mowTime: 30,
+    trimTime: 10,
+    edgeTime: 5,
     order: 1,
   },
+  // Jane Doe - 3 recent cuts
   {
     id: 'job-4',
     customerId: '2',
-    date: getDateString(-14),
+    date: getDateString(-3),
     status: 'completed',
-    notes: 'Lawn care service',
+    notes: 'Full service with trimming',
     totalTime: 60,
+    mowTime: 40,
+    trimTime: 15,
+    edgeTime: 5,
     order: 2,
   },
   {
     id: 'job-5',
-    customerId: '3',
-    date: getDateString(-14),
+    customerId: '2',
+    date: getDateString(-10),
     status: 'completed',
-    notes: 'Biweekly service',
-    totalTime: 50,
-    order: 3,
+    notes: 'Complete lawn care',
+    totalTime: 60,
+    mowTime: 40,
+    trimTime: 15,
+    edgeTime: 5,
+    order: 2,
   },
   {
     id: 'job-6',
-    customerId: '1',
-    date: getDateString(-21),
-    status: 'completed',
-    notes: 'Weekly maintenance',
-    totalTime: 45,
-    order: 1,
-  },
-  {
-    id: 'job-7',
     customerId: '2',
-    date: getDateString(-21),
-    status: 'completed',
-    notes: 'Full lawn service',
-    totalTime: 60,
-    order: 2,
-  },
-  {
-    id: 'job-8',
-    customerId: '1',
-    date: getDateString(-28),
-    status: 'completed',
-    notes: 'Regular cut',
-    totalTime: 45,
-    order: 1,
-  },
-  {
-    id: 'job-9',
-    customerId: '2',
-    date: getDateString(-28),
+    date: getDateString(-17),
     status: 'completed',
     notes: 'Weekly service',
     totalTime: 60,
+    mowTime: 40,
+    trimTime: 15,
+    edgeTime: 5,
     order: 2,
   },
+  // Bob Johnson - 3 recent cuts (biweekly)
   {
-    id: 'job-10',
+    id: 'job-7',
     customerId: '3',
-    date: getDateString(-28),
+    date: getDateString(-5),
     status: 'completed',
     notes: 'Biweekly maintenance',
     totalTime: 50,
+    mowTime: 35,
+    trimTime: 10,
+    edgeTime: 5,
+    order: 3,
+  },
+  {
+    id: 'job-8',
+    customerId: '3',
+    date: getDateString(-19),
+    status: 'completed',
+    notes: 'Biweekly service',
+    totalTime: 50,
+    mowTime: 35,
+    trimTime: 10,
+    edgeTime: 5,
+    order: 3,
+  },
+  {
+    id: 'job-9',
+    customerId: '3',
+    date: getDateString(-33),
+    status: 'completed',
+    notes: 'Biweekly lawn care',
+    totalTime: 50,
+    mowTime: 35,
+    trimTime: 10,
+    edgeTime: 5,
     order: 3,
   },
 ];
@@ -202,8 +223,16 @@ function initializeStorage() {
   if (!localStorage.getItem(CUSTOMERS_KEY)) {
     localStorage.setItem(CUSTOMERS_KEY, JSON.stringify(SAMPLE_CUSTOMERS));
   }
+  // Always refresh jobs in demo mode to ensure sample completed jobs are available
   if (!localStorage.getItem(JOBS_KEY)) {
     localStorage.setItem(JOBS_KEY, JSON.stringify(SAMPLE_JOBS));
+  } else {
+    // Merge existing jobs with sample jobs to preserve any user-created jobs
+    const existingJobs = JSON.parse(localStorage.getItem(JOBS_KEY) || '[]');
+    const sampleJobIds = new Set(SAMPLE_JOBS.map(j => j.id));
+    const userJobs = existingJobs.filter((j: Job) => !sampleJobIds.has(j.id));
+    const mergedJobs = [...SAMPLE_JOBS, ...userJobs];
+    localStorage.setItem(JOBS_KEY, JSON.stringify(mergedJobs));
   }
   if (!localStorage.getItem(GROUPS_KEY)) {
     localStorage.setItem(GROUPS_KEY, JSON.stringify(SAMPLE_GROUPS));
