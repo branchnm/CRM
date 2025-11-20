@@ -179,6 +179,185 @@
             background: #EFF6FF;
         }
         
+        /* Demo Animation Section */
+        .demo-section {
+            padding: 5rem 0;
+            background: linear-gradient(135deg, #F8FAFC, #F1F5F9);
+        }
+        .demo-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4rem;
+            margin-top: 3rem;
+        }
+        .demo-box {
+            background: white;
+            padding: 2.5rem;
+            border-radius: 1.5rem;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+        .demo-box h3 {
+            color: #1E40AF;
+            font-size: 1.75rem;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        
+        /* Weather Rescheduling Demo */
+        .weather-demo {
+            position: relative;
+        }
+        .weather-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .weather-day {
+            background: linear-gradient(135deg, #EFF6FF, #DBEAFE);
+            padding: 1rem;
+            border-radius: 0.75rem;
+            text-align: center;
+            position: relative;
+            min-height: 180px;
+        }
+        .weather-day.rainy {
+            background: linear-gradient(135deg, #F1F5F9, #E2E8F0);
+        }
+        .weather-day.sunny {
+            background: linear-gradient(135deg, #FEF3C7, #FDE68A);
+        }
+        .weather-day-header {
+            font-weight: 700;
+            color: #1E40AF;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+        .weather-icon {
+            font-size: 2.5rem;
+            margin: 0.5rem 0;
+        }
+        .weather-temp {
+            color: #64748B;
+            font-size: 0.85rem;
+            margin-bottom: 0.75rem;
+        }
+        .job-card-demo {
+            background: white;
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+            font-size: 0.75rem;
+            color: #1E40AF;
+            font-weight: 600;
+            margin-top: 0.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            cursor: move;
+            transition: all 0.3s;
+            position: relative;
+        }
+        .job-card-demo:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        }
+        .job-card-demo.moving {
+            animation: slideRight 2s ease-in-out infinite;
+            opacity: 0.7;
+        }
+        @keyframes slideRight {
+            0%, 100% { transform: translateX(0); }
+            50% { transform: translateX(15px); opacity: 0.5; }
+        }
+        .arrow-hint {
+            position: absolute;
+            right: -2rem;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 2rem;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+        }
+        
+        /* SMS Communication Demo */
+        .sms-demo {
+            position: relative;
+        }
+        .phone-mockup {
+            background: #1E293B;
+            border-radius: 2rem;
+            padding: 1rem;
+            max-width: 300px;
+            margin: 0 auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        .phone-screen {
+            background: white;
+            border-radius: 1.5rem;
+            padding: 1.5rem 1rem;
+            min-height: 400px;
+        }
+        .phone-header {
+            text-align: center;
+            color: #64748B;
+            font-size: 0.75rem;
+            margin-bottom: 1.5rem;
+            font-weight: 600;
+        }
+        .sms-message {
+            background: linear-gradient(135deg, #2563EB, #1D4ED8);
+            color: white;
+            padding: 0.75rem 1rem;
+            border-radius: 1rem 1rem 1rem 0.25rem;
+            margin-bottom: 1rem;
+            font-size: 0.85rem;
+            line-height: 1.5;
+            opacity: 0;
+            animation: fadeInMessage 0.5s ease-out forwards;
+            box-shadow: 0 2px 8px rgba(37, 99, 235, 0.2);
+        }
+        .sms-message:nth-child(2) { animation-delay: 0.5s; }
+        .sms-message:nth-child(3) { animation-delay: 1.5s; }
+        .sms-message:nth-child(4) { animation-delay: 3s; }
+        @keyframes fadeInMessage {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .sms-time {
+            font-size: 0.65rem;
+            opacity: 0.8;
+            margin-top: 0.25rem;
+        }
+        .typing-indicator {
+            display: flex;
+            gap: 0.25rem;
+            padding: 0.5rem 1rem;
+            background: #F1F5F9;
+            border-radius: 1rem;
+            width: fit-content;
+            margin: 1rem 0;
+        }
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            background: #94A3B8;
+            border-radius: 50%;
+            animation: typingBounce 1.4s infinite;
+        }
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes typingBounce {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-8px); }
+        }
+        
         /* Problem/Solution Section */
         .problem-solution {
             padding: 5rem 0;
@@ -484,6 +663,10 @@
                 gap: 0.5rem;
                 align-items: flex-end;
             }
+            .demo-container {
+                grid-template-columns: 1fr;
+                gap: 3rem;
+            }
         }
         @media (max-width: 640px) {
             .container {
@@ -558,6 +741,92 @@
                 <div class="cta-buttons">
                     <a href="#features" class="btn btn-primary">Explore Features</a>
                     <a href="#contact" class="btn btn-secondary">Get In Touch</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Interactive Demo Section -->
+    <section class="demo-section">
+        <div class="container">
+            <h2 class="section-title">See JobFlowCO In Action</h2>
+            <p class="section-subtitle">Watch how our smart features save you time and keep customers happy</p>
+            
+            <div class="demo-container">
+                <!-- Weather Rescheduling Demo -->
+                <div class="demo-box weather-demo">
+                    <h3>🌦️ Weather-Aware Rescheduling</h3>
+                    <p style="text-align: center; color: #64748B; margin-bottom: 1.5rem; font-size: 0.95rem;">
+                        Rain forecast? Simply drag jobs to a better day. Our AI optimizes the route automatically.
+                    </p>
+                    
+                    <div class="weather-grid">
+                        <div class="weather-day">
+                            <div class="weather-day-header">MON</div>
+                            <div class="weather-icon">☀️</div>
+                            <div class="weather-temp">75°F Clear</div>
+                            <div class="job-card-demo">Smith Lawn</div>
+                            <div class="job-card-demo">Oak Ave Property</div>
+                        </div>
+                        
+                        <div class="weather-day rainy">
+                            <div class="weather-day-header">TUE</div>
+                            <div class="weather-icon">🌧️</div>
+                            <div class="weather-temp">68°F Rain</div>
+                            <div class="job-card-demo moving">Johnson Yard
+                                <span class="arrow-hint">→</span>
+                            </div>
+                        </div>
+                        
+                        <div class="weather-day sunny">
+                            <div class="weather-day-header">WED</div>
+                            <div class="weather-icon">🌤️</div>
+                            <div class="weather-temp">72°F Partly Cloudy</div>
+                            <div class="job-card-demo">Pine Dr Lawn</div>
+                        </div>
+                    </div>
+                    
+                    <p style="text-align: center; color: #16A34A; font-weight: 600; font-size: 0.9rem;">
+                        ✓ Jobs automatically reorganized for optimal routing
+                    </p>
+                </div>
+                
+                <!-- SMS Communication Demo -->
+                <div class="demo-box sms-demo">
+                    <h3>📱 Automated Customer Updates</h3>
+                    <p style="text-align: center; color: #64748B; margin-bottom: 1.5rem; font-size: 0.95rem;">
+                        Keep customers informed with professional SMS updates. No more phone calls.
+                    </p>
+                    
+                    <div class="phone-mockup">
+                        <div class="phone-screen">
+                            <div class="phone-header">Messages from JobFlowCO</div>
+                            
+                            <div class="sms-message">
+                                Hi John! This is Nathan from JobFlowCO. We're scheduled to service your lawn tomorrow at 10 AM. See you then!
+                                <div class="sms-time">Yesterday 4:30 PM</div>
+                            </div>
+                            
+                            <div class="sms-message">
+                                Good morning! We're on our way to your property. Should arrive in about 15 minutes.
+                                <div class="sms-time">Today 9:45 AM</div>
+                            </div>
+                            
+                            <div class="sms-message">
+                                All done! Your lawn looks great. Invoice sent to john.smith@email.com. Thanks for choosing JobFlowCO!
+                                <div class="sms-time">Today 10:30 AM</div>
+                            </div>
+                            
+                            <div class="sms-message">
+                                Weather update: Rain forecast for Tuesday. We've rescheduled your service to Wednesday at 10 AM. Reply CONFIRM to approve.
+                                <div class="sms-time">Today 2:15 PM</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <p style="text-align: center; color: #16A34A; font-weight: 600; font-size: 0.9rem; margin-top: 1.5rem;">
+                        ✓ Professional communication without lifting a finger
+                    </p>
                 </div>
             </div>
         </div>
