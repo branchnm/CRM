@@ -4928,12 +4928,15 @@ export function WeatherForecast({
                                                     input.select();
                                                   }
                                                 }}
-                                                className={`absolute top-0 left-0 right-0 overflow-hidden ${!isCompleted ? 'cursor-move' : 'cursor-default'}`}
+                                                className={`absolute top-0 left-0 right-0 flex flex-wrap justify-center ${isMobile ? 'items-start' : 'items-center'} ${!isCompleted ? 'cursor-move' : 'cursor-default'}`}
                                                 style={{ 
-                                                  paddingLeft: '1.3vh',
-                                                  paddingRight: '0.3vh',
-                                                  paddingTop: '0.25vh',
-                                                  paddingBottom: '0.25vh',
+                                                  paddingLeft: isMobile ? '0.4vh' : '0.3vh',
+                                                  paddingRight: isMobile ? '0.4vh' : '0.3vh',
+                                                  paddingTop: isMobile ? '0.25vh' : '0.2vh',
+                                                  paddingBottom: isMobile ? '0.25vh' : '0.2vh',
+                                                  maxHeight: spanInfo ? `calc(${spanInfo.slotsNeeded} * (70vh / 56) - 0.2vh)` : 'auto',
+                                                  gap: isMobile ? '0.25vh' : '0.2vh',
+                                                  overflow: 'hidden',
                                                   // Only round right corners always, left corners only when NOT indented (full width)
                                                   borderRadius: spansMultipleSlots 
                                                     ? `${rowIndents[0] ? '0' : '3vh'} 3vh 3vh ${rowIndents[rowIndents.length - 1] ? '0' : '3vh'}`
@@ -4941,30 +4944,24 @@ export function WeatherForecast({
                                                   zIndex: 20
                                                 }}
                                               >
-                                                <div className="flex items-center justify-between gap-[0.14vh] w-full overflow-hidden">
-                                                  <div className="flex-1 min-w-0">
-                                                    <div className={`font-semibold truncate ${isMobile ? 'text-[1.27vh]' : 'text-[1.34vh]'} ${isCompleted ? 'text-gray-600' : 'text-gray-900'}`}>
-                                                      {customer?.name}
-                                                    </div>
-                                                  </div>
-                                                  {!isDraggedItem && !isAssigned && !isCutItem && (
+                                                <div className={`font-semibold whitespace-nowrap ${isMobile ? 'text-[1.4vh]' : 'text-[1.2vh]'} leading-tight ${isCompleted ? 'text-gray-500' : 'text-gray-800'}`}>
+                                                  {customer?.name}
+                                                </div>
+                                                {!isDraggedItem && !isAssigned && !isCutItem && (
+                                                  <>
                                                     <button
                                                       onClick={(e) => {
                                                         e.stopPropagation();
                                                         unassignJob(jobInSlot.id);
                                                       }}
                                                       className="shrink-0 text-red-500 hover:text-red-700 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                      style={{ fontSize: isMobile ? '1.46vh' : '1.34vh', pointerEvents: 'auto' }}
+                                                      style={{ fontSize: isMobile ? '1.6vh' : '1.4vh', pointerEvents: 'auto' }}
                                                       aria-label="Delete job"
                                                       onDragStart={(e) => e.preventDefault()}
                                                     >
                                                       ×
                                                     </button>
-                                                  )}
-                                                </div>
-                                                <div className={`truncate ${isMobile ? 'text-[1.14vh]' : 'text-[1.1vh]'} ${isCompleted ? 'text-gray-500' : 'text-gray-600'}`}>
-                                                  {!isDraggedItem && !isAssigned && !isCutItem && (
-                                                    <>
+                                                    <div className={`whitespace-nowrap font-medium ${isMobile ? 'text-[1.3vh]' : 'text-[1.1vh]'} leading-tight ${isCompleted ? 'text-gray-500' : 'text-blue-700'}`}>
                                                       {scheduledTime && <span className="font-medium">{scheduledTime} • </span>}
                                                       ${customer?.price} • 
                                                       <input
@@ -4988,6 +4985,15 @@ export function WeatherForecast({
                                                         onClick={(e) => e.stopPropagation()}
                                                         onFocus={(e) => e.currentTarget.select()}
                                                         onMouseDown={(e) => e.stopPropagation()}
+                                                        onTouchStart={(e) => {
+                                                          e.stopPropagation();
+                                                          e.preventDefault();
+                                                        }}
+                                                        onTouchEnd={(e) => {
+                                                          e.stopPropagation();
+                                                          e.preventDefault();
+                                                          e.currentTarget.focus();
+                                                        }}
                                                         onDragStart={(e) => e.preventDefault()}
                                                         className="w-10 bg-transparent border-b border-dashed border-gray-400 hover:border-blue-500 focus:outline-none focus:border-blue-600 text-center cursor-text"
                                                         min="15"
@@ -4995,15 +5001,15 @@ export function WeatherForecast({
                                                         step="15"
                                                         style={{ pointerEvents: 'auto' }}
                                                       /> min
-                                                    </>
-                                                  )}
-                                                  {(isDraggedItem || isAssigned || isCutItem) && (
-                                                    <>
-                                                      {scheduledTime && <span className="font-medium">{scheduledTime} • </span>}
-                                                      ${customer?.price} • {jobInSlot.totalTime || 60} min
-                                                    </>
-                                                  )}
-                                                </div>
+                                                    </div>
+                                                  </>
+                                                )}
+                                                {(isDraggedItem || isAssigned || isCutItem) && (
+                                                  <div className={`whitespace-nowrap font-medium ${isMobile ? 'text-[1.3vh]' : 'text-[1.1vh]'} leading-tight ${isCompleted ? 'text-gray-500' : 'text-blue-700'}`}>
+                                                    {scheduledTime && <span className="font-semibold">{scheduledTime} • </span>}
+                                                    ${customer?.price} • {jobInSlot.totalTime || 60} min
+                                                  </div>
+                                                )}
                                               </div>
                                             </div>
                                           ) : (
@@ -5033,8 +5039,8 @@ export function WeatherForecast({
                                               onTouchStart={isTouchDevice.current && !isCompleted ? (e) => handleJobTouchStart(e, jobInSlot.id) : undefined}
                                               onTouchMove={isTouchDevice.current && !isCompleted ? handleJobTouchMove : undefined}
                                               onTouchEnd={isTouchDevice.current && !isCompleted ? handleJobTouchEnd : undefined}
-                                              className={`rounded text-xs group overflow-hidden flex items-start select-none w-full ${
-                                                isMobile ? 'px-[0.5vh] py-[0.4vh]' : 'px-[0.3vh] py-[0.25vh]'
+                                              className={`rounded text-xs group flex items-start select-none w-full ${
+                                                isMobile ? 'px-[0.4vh] py-[0.25vh]' : 'px-[0.3vh] py-[0.2vh]'
                                               } ${
                                                 isCompleted
                                                   ? 'bg-gray-200/80 border border-gray-400 cursor-default'
@@ -5060,37 +5066,37 @@ export function WeatherForecast({
                                                 alignSelf: 'flex-start',
                                                 pointerEvents: 'auto',
                                                 opacity: isDraggedItem ? 0 : 1,
+                                                overflow: isMobile ? 'hidden' : 'visible',
                                                 ...(isAffectedByRain && !isCompleted && !isSelected && !isCutItem && !isDraggedItem && !isAssigned ? {
                                                   backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 6px, rgba(59, 130, 246, 0.08) 6px, rgba(59, 130, 246, 0.08) 12px)'
                                                 } : {})
                                               }}
                                             >
-                                              <div className="flex items-center justify-between gap-[0.14vh] w-full overflow-hidden" onDragStart={(e) => e.preventDefault()}>
-                                                <div className="flex-1 min-w-0" onDragStart={(e) => e.preventDefault()}>
-                                                  <div className={`font-semibold w-full ${
-                                                    isMobile ? 'text-[1.15vh] leading-tight' : 'text-[1.34vh] truncate'
-                                                  } ${isCompleted ? 'text-gray-600' : 'text-gray-900'}`}>
-                                                    {customer?.name}
-                                                    {isSelected && (
-                                                      <span className={`ml-[0.14vh] text-green-700 ${isMobile ? 'text-[1.09vh]' : 'text-[1.15vh]'}`}>✓ Selected</span>
-                                                    )}
-                                                    {isCutItem && isTouchDevice.current && !isSelected && (
-                                                      <span className={`ml-[0.14vh] text-yellow-700 ${isMobile ? 'text-[1.09vh]' : 'text-[1.15vh]'}`}>✂️ Cut</span>
-                                                    )}
-                                                    {isCompleted && (
-                                                      <span className={`ml-[0.14vh] text-gray-700 font-bold ${isMobile ? 'text-[1.09vh]' : 'text-[1.15vh]'}`}>✓</span>
-                                                    )}
-                                                  </div>
-                                                  {!isDraggedItem && isAssigned && (
-                                                    <div className={`text-gray-700 font-medium mt-[0.18vh] italic ${isMobile ? 'text-[1.09vh]' : 'text-[1.06vh]'}`}>
-                                                      Moving here...
-                                                    </div>
+                                              <div className={`flex flex-wrap justify-center w-full ${isMobile ? 'gap-[0.25vh] items-start' : 'gap-[0.2vh] items-center'}`} onDragStart={(e) => e.preventDefault()}>
+                                                <div className={`font-semibold whitespace-nowrap leading-tight ${
+                                                  isMobile ? 'text-[1.4vh]' : 'text-[1.2vh]'
+                                                } ${isCompleted ? 'text-gray-500' : 'text-gray-800'}`}>
+                                                  {customer?.name}
+                                                  {isSelected && (
+                                                    <span className={`ml-[0.25vh] text-green-600 font-semibold ${isMobile ? 'text-[1.2vh]' : 'text-[1.0vh]'}`}>✓ Selected</span>
                                                   )}
-                                                  {!isDraggedItem && !isAssigned && !isCutItem && (
-                                                    <div className={`${
-                                                      isMobile ? 'text-[1.05vh] leading-tight' : 'text-[1.1vh] truncate'
-                                                    } ${isCompleted ? 'text-gray-500' : 'text-gray-600'}`}>
-                                                      {scheduledTime && <span className="font-medium">{scheduledTime} • </span>}
+                                                  {isCutItem && isTouchDevice.current && !isSelected && (
+                                                    <span className={`ml-[0.25vh] text-yellow-600 font-semibold ${isMobile ? 'text-[1.2vh]' : 'text-[1.0vh]'}`}>✂️ Cut</span>
+                                                  )}
+                                                  {isCompleted && (
+                                                    <span className={`ml-[0.25vh] text-gray-600 font-bold ${isMobile ? 'text-[1.3vh]' : 'text-[1.1vh]'}`}>✓</span>
+                                                  )}
+                                                </div>
+                                                {!isDraggedItem && isAssigned && (
+                                                  <div className={`text-blue-600 font-semibold italic whitespace-nowrap leading-tight ${isMobile ? 'text-[1.3vh]' : 'text-[1.1vh]'}`}>
+                                                    Moving here...
+                                                  </div>
+                                                )}
+                                                {!isDraggedItem && !isAssigned && !isCutItem && (
+                                                  <div className={`whitespace-nowrap font-medium leading-tight ${
+                                                    isMobile ? 'text-[1.3vh]' : 'text-[1.1vh]'
+                                                  } ${isCompleted ? 'text-gray-500' : 'text-blue-700'}`}>
+                                                      {scheduledTime && <span className="font-semibold">{scheduledTime} • </span>}
                                                       ${customer?.price} • 
                                                       <input
                                                         id={`job-time-${jobInSlot.id}`}
@@ -5131,6 +5137,12 @@ export function WeatherForecast({
                                                           console.log('🖱️ INPUT MOUSEDOWN - stopping propagation');
                                                           e.stopPropagation();
                                                         }}
+                                                        onTouchStart={(e) => {
+                                                          e.stopPropagation();
+                                                        }}
+                                                        onTouchEnd={(e) => {
+                                                          e.stopPropagation();
+                                                        }}
                                                         onDragStart={(e) => e.preventDefault()}
                                                         draggable={false}
                                                         className="w-10 bg-transparent border-b border-dashed border-gray-400 hover:border-blue-500 focus:outline-none focus:border-blue-600 text-center cursor-text"
@@ -5140,27 +5152,22 @@ export function WeatherForecast({
                                                       /> min
                                                     </div>
                                                   )}
-                                                  {isCutItem && isTouchDevice.current && (
-                                                    <div className={`text-yellow-700 font-medium mt-[0.19vh] ${isMobile ? 'text-[1.14vh]' : 'text-[1.1vh]'}`}>
-                                                      Double-tap slot to paste or hold to cancel
-                                                    </div>
-                                                  )}
                                                 </div>
-                                                {isScheduled && !isDraggedItem && !isCompleted && (
+                                                {!isDraggedItem && !isAssigned && !isCutItem && (
                                                   <button
                                                     onClick={(e) => {
                                                       e.stopPropagation();
                                                       unassignJob(jobInSlot.id);
                                                     }}
-                                                    onMouseDown={(e) => e.stopPropagation()}
-                                                    className="opacity-0 group-hover:opacity-100 text-red-600 hover:text-red-800 transition-opacity shrink-0 w-[0.6vh] h-[0.6vh] flex items-center justify-center"
-                                                    title="Remove"
+                                                    className="shrink-0 text-red-500 hover:text-red-700 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    style={{ fontSize: isMobile ? '1.3vh' : '1.2vh', pointerEvents: 'auto' }}
+                                                    aria-label="Delete job"
+                                                    onDragStart={(e) => e.preventDefault()}
                                                   >
-                                                    ✕
+                                                    ×
                                                   </button>
                                                 )}
                                               </div>
-                                            </div>
                                           );
                                           
                                           
