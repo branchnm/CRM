@@ -1780,7 +1780,7 @@ export function DailySchedule({
                 key={job.id} 
                 className={`backdrop-blur cursor-move transition-all select-none ${
                   job.status === 'completed' 
-                    ? 'bg-blue-50 border border-blue-300' 
+                    ? 'bg-gray-50 border border-gray-300 opacity-60' 
                     : draggedOverIndex === index 
                       ? 'bg-blue-50 border-2 border-blue-400 border-dashed' 
                       : 'bg-white/80'
@@ -1796,26 +1796,72 @@ export function DailySchedule({
                   {/* Centered layout */}
                   <div className="flex flex-col items-center text-center gap-0.5 sm:gap-1">
                     <div className="w-full">
-                      <h3 className="text-blue-800 font-semibold text-[10px] sm:text-xs truncate">{customer.name}</h3>
-                      <div className="flex items-center justify-center text-gray-600 gap-0.5 sm:gap-1 text-[8px] sm:text-[9px] mt-0.5">
+                      <h3 className={`font-semibold text-[10px] sm:text-xs truncate ${
+                        job.status === 'completed' ? 'text-gray-500' : 'text-blue-800'
+                      }`}>{customer.name}</h3>
+                      <div className={`flex items-center justify-center gap-0.5 sm:gap-1 text-[8px] sm:text-[9px] mt-0.5 ${
+                        job.status === 'completed' ? 'text-gray-400' : 'text-gray-600'
+                      }`}>
                         <MapPin className="w-2 h-2 sm:w-3 sm:h-3 shrink-0 pointer-events-none" />
                         <span className="truncate">{customer.address}</span>
                       </div>
                       {job.scheduledTime && (
-                        <div className="flex items-center justify-center text-blue-600 font-medium gap-0.5 sm:gap-1 text-[8px] sm:text-[9px] mt-0.5">
+                        <div className={`flex items-center justify-center font-medium gap-0.5 sm:gap-1 text-[8px] sm:text-[9px] mt-0.5 ${
+                          job.status === 'completed' ? 'text-gray-400' : 'text-blue-600'
+                        }`}>
                           <Clock className="w-2 h-2 sm:w-3 sm:h-3 pointer-events-none shrink-0" />
                           <span className="truncate">Scheduled: {formatScheduledTime(job.scheduledTime)}</span>
                         </div>
                       )}
-                      <div className="flex items-center justify-center text-blue-600 gap-0.5 sm:gap-1 text-[8px] sm:text-[9px] mt-0.5">
-                        <Clock className="w-2 h-2 sm:w-3 sm:h-3 pointer-events-none shrink-0" />
-                        <span className="truncate">{driveTime}</span>
-                      </div>
-                      {estimatedTime && (
-                        <div className="flex items-center justify-center text-purple-600 font-medium gap-0.5 sm:gap-1 text-[8px] sm:text-[9px] mt-0.5">
-                          <Clock className="w-2 h-2 sm:w-3 sm:h-3 pointer-events-none shrink-0" />
-                          <span className="truncate">Est. {estimatedTime} min</span>
+                      {job.status === 'completed' ? (
+                        /* Show time breakdown for completed jobs */
+                        <div className="flex flex-col items-center gap-0.5 mt-0.5 text-[8px] sm:text-[9px]">
+                          {job.totalTime && (
+                            <div className="flex items-center justify-center text-gray-500 font-semibold gap-0.5">
+                              <CheckCircle className="w-2 h-2 sm:w-3 sm:h-3 shrink-0" />
+                              <span>Total: {job.totalTime} min</span>
+                            </div>
+                          )}
+                          {job.mowTime && (
+                            <div className="flex items-center justify-center text-gray-400 gap-0.5">
+                              <span>Mow: {job.mowTime} min</span>
+                            </div>
+                          )}
+                          {job.trimTime && (
+                            <div className="flex items-center justify-center text-gray-400 gap-0.5">
+                              <span>Trim: {job.trimTime} min</span>
+                            </div>
+                          )}
+                          {job.edgeTime && (
+                            <div className="flex items-center justify-center text-gray-400 gap-0.5">
+                              <span>Edge: {job.edgeTime} min</span>
+                            </div>
+                          )}
+                          {job.blowTime && (
+                            <div className="flex items-center justify-center text-gray-400 gap-0.5">
+                              <span>Blow: {job.blowTime} min</span>
+                            </div>
+                          )}
+                          {job.driveTime && (
+                            <div className="flex items-center justify-center text-gray-400 gap-0.5">
+                              <span>Drive: {job.driveTime} min</span>
+                            </div>
+                          )}
                         </div>
+                      ) : (
+                        /* Show drive time and estimate for non-completed jobs */
+                        <>
+                          <div className="flex items-center justify-center text-blue-600 gap-0.5 sm:gap-1 text-[8px] sm:text-[9px] mt-0.5">
+                            <Clock className="w-2 h-2 sm:w-3 sm:h-3 pointer-events-none shrink-0" />
+                            <span className="truncate">{driveTime}</span>
+                          </div>
+                          {estimatedTime && (
+                            <div className="flex items-center justify-center text-purple-600 font-medium gap-0.5 sm:gap-1 text-[8px] sm:text-[9px] mt-0.5">
+                              <Clock className="w-2 h-2 sm:w-3 sm:h-3 pointer-events-none shrink-0" />
+                              <span className="truncate">Est. {estimatedTime} min</span>
+                            </div>
+                          )}
+                        </>
                       )}
                     </div>
 
@@ -2012,10 +2058,10 @@ export function DailySchedule({
                               toast.error('Failed to revert job status');
                             }
                           }}
-                          className="flex-1 text-center text-blue-700 hover:bg-blue-50 rounded-lg p-1 transition-colors border border-blue-300 hover:border-blue-400"
+                          className="flex-1 text-center text-gray-600 hover:bg-gray-100 rounded-lg p-1 transition-colors border border-gray-300 hover:border-gray-400"
                           title="Click to undo completion"
                         >
-                          <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 mx-auto" />
+                          <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 mx-auto text-gray-500" />
                           <span className="text-[8px] sm:text-[9px]">{job.totalTime} min</span>
                         </button>
                       )}
