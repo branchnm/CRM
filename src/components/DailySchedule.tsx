@@ -1547,6 +1547,7 @@ export function DailySchedule({
 
       {/* Jobs Section - Only show when weather is loaded */}
       {!isWeatherLoading && (
+      <div
         onTouchStart={handleRouteTouchStart}
         onTouchMove={handleRouteTouchMove}
         onTouchEnd={handleRouteTouchEnd}
