@@ -68,6 +68,39 @@
         .header-contact a:hover {
             color: #1D4ED8;
         }
+        .header-nav {
+            display: flex;
+            gap: 1rem;
+        }
+        .nav-btn {
+            padding: 0.6rem 1.25rem;
+            border-radius: 0.5rem;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+            display: inline-block;
+            border: 2px solid transparent;
+        }
+        .nav-btn-demo {
+            background: linear-gradient(135deg, #10B981, #059669);
+            color: white;
+            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+        }
+        .nav-btn-demo:hover {
+            background: linear-gradient(135deg, #059669, #047857);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+        }
+        .nav-btn-login {
+            background: white;
+            color: #2563EB;
+            border: 2px solid #2563EB;
+        }
+        .nav-btn-login:hover {
+            background: #2563EB;
+            color: white;
+        }
         
         /* Hero Section */
         .hero {
@@ -663,6 +696,23 @@
                 gap: 0.5rem;
                 align-items: flex-end;
             }
+            .header-content {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .header-content > div:last-child {
+                flex-direction: column;
+                align-items: center;
+                gap: 1rem;
+            }
+            .header-nav {
+                flex-direction: column;
+                width: 100%;
+            }
+            .nav-btn {
+                text-align: center;
+                width: 100%;
+            }
             .demo-container {
                 grid-template-columns: 1fr;
                 gap: 3rem;
@@ -700,9 +750,15 @@
         <div class="container">
             <div class="header-content">
                 <div class="logo">JobFlow<span>CO</span></div>
-                <div class="header-contact">
-                    <a href="mailto:nathan@jobflowco.com">nathan@jobflowco.com</a>
-                    <a href="tel:+12053178212">(205) 317-8212</a>
+                <div style="display: flex; gap: 2rem; align-items: center;">
+                    <div class="header-nav">
+                        <a href="/app" class="nav-btn nav-btn-demo">Try Demo (No Login)</a>
+                        <a href="/app" class="nav-btn nav-btn-login">Login / Sign Up</a>
+                    </div>
+                    <div class="header-contact">
+                        <a href="mailto:nathan@jobflowco.com">nathan@jobflowco.com</a>
+                        <a href="tel:+12053178212">(205) 317-8212</a>
+                    </div>
                 </div>
             </div>
         </div>
@@ -739,9 +795,14 @@
                 </div>
 
                 <div class="cta-buttons">
-                    <a href="#features" class="btn btn-primary">Explore Features</a>
+                    <a href="/app" class="btn btn-primary">Try Free Demo</a>
                     <a href="#contact" class="btn btn-secondary">Get In Touch</a>
                 </div>
+                
+                <p style="text-align: center; margin-top: 1.5rem; color: #64748B; font-size: 0.95rem;">
+                    <strong>Demo Mode:</strong> No login required. All data stored locally on your device. 
+                    <a href="/app" style="color: #2563EB; text-decoration: underline; font-weight: 600;">Start exploring now →</a>
+                </p>
             </div>
         </div>
     </section>
@@ -1057,6 +1118,14 @@
                         <strong>Phone:</strong> <a href="tel:+12053178212" style="color: #93C5FD;">(205) 317-8212</a><br>
                         <strong>Email:</strong> <a href="mailto:nathan@jobflowco.com" style="color: #93C5FD;">nathan@jobflowco.com</a>
                     </p>
+                </div>
+                
+                <div class="footer-section">
+                    <h3>Get Started</h3>
+                    <a href="/app" style="background: linear-gradient(135deg, #10B981, #059669); color: white; padding: 0.75rem 1.5rem; border-radius: 0.5rem; font-weight: 700; margin-bottom: 1rem; text-align: center;">🎯 Try Free Demo</a>
+                    <p style="font-size: 0.85rem; margin-top: 0.5rem;">No login required • Works offline • Sample data included</p>
+                    <a href="/app" style="margin-top: 1rem;">Login to Your Account</a>
+                    <a href="/app">Create New Account</a>
                 </div>
                 
                 <div class="footer-section">
