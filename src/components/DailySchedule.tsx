@@ -70,6 +70,7 @@ export function DailySchedule({
   
   const [slideDirection, setSlideDirection] = useState<'left' | 'right' | null>(null);
   const prevDayRef = useRef(visibleForecastDay);
+  const [isWeatherLoading, setIsWeatherLoading] = useState(true); // Track weather loading state
   
   // Update prevDayRef on mount if visibleForecastDay has changed
   useEffect(() => {
@@ -1541,10 +1542,11 @@ export function DailySchedule({
         scrollToTodayRef={scrollToTodayRef}
         onVisibleDayChange={onVisibleForecastDayChange}
         visibleForecastDay={visibleForecastDay}
+        onWeatherLoadingChange={setIsWeatherLoading}
       />
 
-      {/* Jobs Section Header + Cards with Smooth Scrolling */}
-      <div
+      {/* Jobs Section - Only show when weather is loaded */}
+      {!isWeatherLoading && (
         onTouchStart={handleRouteTouchStart}
         onTouchMove={handleRouteTouchMove}
         onTouchEnd={handleRouteTouchEnd}
@@ -2186,6 +2188,8 @@ export function DailySchedule({
           </div>
         );
       })()}
+    </div>
+      )}
     </div>
   );
 }

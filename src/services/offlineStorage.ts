@@ -86,7 +86,137 @@ const SAMPLE_CUSTOMERS: Customer[] = [
   }
 ];
 
-const SAMPLE_JOBS: Job[] = [];
+// Helper to get date in YYYY-MM-DD format
+function getDateString(daysOffset: number = 0): string {
+  const date = new Date();
+  date.setDate(date.getDate() + daysOffset);
+  return date.toLocaleDateString('en-CA');
+}
+
+// Sample completed jobs for insights demo
+const SAMPLE_JOBS: Job[] = [
+  // Completed jobs from last week
+  {
+    id: 'job-1',
+    customerId: '1',
+    customerName: 'John Smith',
+    date: getDateString(-7),
+    status: 'completed',
+    notes: 'Lawn mowed and edged',
+    price: 45,
+    timeSlot: undefined,
+    order: 1,
+    completedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'job-2',
+    customerId: '2',
+    customerName: 'Jane Doe',
+    date: getDateString(-7),
+    status: 'completed',
+    notes: 'Full service with trimming',
+    price: 60,
+    timeSlot: undefined,
+    order: 2,
+    completedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'job-3',
+    customerId: '1',
+    customerName: 'John Smith',
+    date: getDateString(-14),
+    status: 'completed',
+    notes: 'Regular maintenance',
+    price: 45,
+    timeSlot: undefined,
+    order: 1,
+    completedAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'job-4',
+    customerId: '2',
+    customerName: 'Jane Doe',
+    date: getDateString(-14),
+    status: 'completed',
+    notes: 'Lawn care service',
+    price: 60,
+    timeSlot: undefined,
+    order: 2,
+    completedAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'job-5',
+    customerId: '3',
+    customerName: 'Bob Johnson',
+    date: getDateString(-14),
+    status: 'completed',
+    notes: 'Biweekly service',
+    price: 50,
+    timeSlot: undefined,
+    order: 3,
+    completedAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'job-6',
+    customerId: '1',
+    customerName: 'John Smith',
+    date: getDateString(-21),
+    status: 'completed',
+    notes: 'Weekly maintenance',
+    price: 45,
+    timeSlot: undefined,
+    order: 1,
+    completedAt: new Date(Date.now() - 21 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'job-7',
+    customerId: '2',
+    customerName: 'Jane Doe',
+    date: getDateString(-21),
+    status: 'completed',
+    notes: 'Full lawn service',
+    price: 60,
+    timeSlot: undefined,
+    order: 2,
+    completedAt: new Date(Date.now() - 21 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'job-8',
+    customerId: '1',
+    customerName: 'John Smith',
+    date: getDateString(-28),
+    status: 'completed',
+    notes: 'Regular cut',
+    price: 45,
+    timeSlot: undefined,
+    order: 1,
+    completedAt: new Date(Date.now() - 28 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'job-9',
+    customerId: '2',
+    customerName: 'Jane Doe',
+    date: getDateString(-28),
+    status: 'completed',
+    notes: 'Weekly service',
+    price: 60,
+    timeSlot: undefined,
+    order: 2,
+    completedAt: new Date(Date.now() - 28 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'job-10',
+    customerId: '3',
+    customerName: 'Bob Johnson',
+    date: getDateString(-28),
+    status: 'completed',
+    notes: 'Biweekly maintenance',
+    price: 50,
+    timeSlot: undefined,
+    order: 3,
+    completedAt: new Date(Date.now() - 28 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+];
 
 const SAMPLE_GROUPS: CustomerGroup[] = [];
 
