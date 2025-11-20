@@ -2103,10 +2103,9 @@ export function DailySchedule({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      </div>
 
       {/* Drag Preview - Shows the job being dragged */}
-      {draggedJobId && dragPosition && (() => {
+      {draggedJobId && dragPosition && (() =>  {
         const draggedJob = displayedJobs.find(j => j.id === draggedJobId);
         const customer = draggedJob ? getCustomer(draggedJob.customerId) : null;
         if (!draggedJob || !customer) return null;
@@ -2189,7 +2188,7 @@ export function DailySchedule({
           </div>
         );
       })()}
-    </div>
+      </div>
       )}
     </div>
   );
