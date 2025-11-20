@@ -187,6 +187,8 @@ export function DailySchedule({
     if (isLeftSwipe) {
       // Swipe left = go to next day
       console.log('📱 Route swipe LEFT: Going to next day', visibleForecastDay + 1);
+      setSlideDirection('left');
+      setTimeout(() => setSlideDirection(null), 300);
       if (onVisibleForecastDayChange) {
         onVisibleForecastDayChange(visibleForecastDay + 1);
         console.log('✅ Callback executed');
@@ -196,6 +198,8 @@ export function DailySchedule({
     } else if (isRightSwipe) {
       // Swipe right = go to previous day
       console.log('📱 Route swipe RIGHT: Going to previous day', visibleForecastDay - 1);
+      setSlideDirection('right');
+      setTimeout(() => setSlideDirection(null), 300);
       if (onVisibleForecastDayChange) {
         onVisibleForecastDayChange(visibleForecastDay - 1);
         console.log('✅ Callback executed');
@@ -223,6 +227,9 @@ export function DailySchedule({
       return; // Vertical scroll, ignore
     }
     
+    // Prevent default to avoid page scrolling
+    e.preventDefault();
+    
     const threshold = 50; // Minimum scroll to detect swipe direction
     const now = Date.now();
     
@@ -245,6 +252,10 @@ export function DailySchedule({
       // Gesture completed - check total accumulated scroll
       if (Math.abs(wheelScrollAccumulator.current) >= threshold && isWheelGestureActive.current) {
         console.log('🖱️ Route section wheel gesture complete:', wheelScrollAccumulator.current);
+        
+        // Trigger snap animation
+        setSlideDirection(wheelScrollAccumulator.current > 0 ? 'left' : 'right');
+        setTimeout(() => setSlideDirection(null), 300); // Clear after animation
         
         // Move exactly ONE day based on direction
         if (wheelScrollAccumulator.current > 0) {
