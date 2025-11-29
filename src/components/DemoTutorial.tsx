@@ -1,59 +1,65 @@
 import { useState, useEffect } from 'react';
 import { Button } from './ui/button';
 import { Card, CardContent } from './ui/card';
-import { X, ChevronRight, ChevronLeft, Check } from 'lucide-react';
+import { X, ChevronRight, ChevronLeft, Check, ArrowDown, ArrowUp, ArrowLeft, ArrowRight } from 'lucide-react';
 
 interface TutorialStep {
   id: string;
   title: string;
   description: string;
   target?: string; // CSS selector for highlighting
-  position?: 'top' | 'bottom' | 'left' | 'right' | 'center';
-  icon?: React.ReactNode;
+  position: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'top-center' | 'bottom-center';
+  arrow?: 'up' | 'down' | 'left' | 'right';
+  highlightArea?: string; // CSS selector to highlight with a glowing border
 }
 
 const tutorialSteps: TutorialStep[] = [
   {
     id: 'welcome',
     title: 'Welcome to JobFlowCO Demo! 🎉',
-    description: 'Take a quick tour to see how weather-aware scheduling can transform your lawn care business. We\'ve pre-loaded sample customers in Homewood, AL so you can explore all features right away.',
-    position: 'center',
+    description: 'This quick tour will show you the key features. The app is pre-loaded with sample customers in Homewood, AL.',
+    position: 'top-center',
   },
   {
     id: 'weather-gradient',
-    title: 'Weather Gradient Background 🌤️',
-    description: 'Each day shows a color-coded weather gradient. Blue = rain, yellow = sunny, gray = cloudy. Quickly spot good and bad weather days at a glance to plan your schedule efficiently.',
-    position: 'top',
+    title: 'Weather Gradient 🌤️',
+    description: 'See the color-coded weather cards above? Blue = rain, yellow = sunny, gray = cloudy. Quickly spot good weather days.',
+    position: 'bottom-center',
+    arrow: 'up',
   },
   {
     id: 'weather-suggestions',
-    title: 'Automated Weather Suggestions 🤖',
-    description: 'The app analyzes upcoming weather and automatically suggests moving jobs from rainy days to clear days. Accept suggestions with one click to optimize your schedule around the weather.',
-    position: 'top',
+    title: 'Smart Suggestions 🤖',
+    description: 'Look for the suggestion banner that appears when weather changes. It automatically suggests moving jobs from rainy to clear days!',
+    position: 'bottom-left',
+    arrow: 'up',
   },
   {
     id: 'drag-drop',
-    title: 'Drag & Drop Scheduling 🖱️',
-    description: 'Simply drag job cards between days to reschedule. Drop them into specific time slots for precise scheduling. Your changes save automatically.',
-    position: 'center',
+    title: 'Drag & Drop Jobs 🖱️',
+    description: 'Try it now! Drag any job card to a different day. Your changes save automatically. Works on mobile too!',
+    position: 'top-right',
+    arrow: 'down',
   },
   {
     id: 'route-optimization',
-    title: 'Route Optimization 🗺️',
-    description: 'Click "Optimize Route" to automatically arrange jobs in the most efficient order using real driving distances. Save time and fuel every day.',
-    position: 'top',
+    title: 'Route Optimizer 🗺️',
+    description: 'Click "Optimize Route" above to arrange jobs in the most efficient driving order. Real GPS data calculates the fastest sequence.',
+    position: 'bottom-right',
+    arrow: 'up',
   },
   {
     id: 'navigation',
     title: 'Quick Navigation 📱',
-    description: 'Use the bottom navigation bar to access: Daily Schedule, Insights Dashboard, Customer Management, Job Calendar, and Settings. Everything you need is just a tap away.',
-    position: 'bottom',
+    description: 'Use the bottom bar to explore: Insights Dashboard, Customers, Job Calendar, and Settings. Everything is just a tap away!',
+    position: 'top-center',
+    arrow: 'down',
   },
   {
     id: 'complete',
-    title: 'You\'re All Set! ✅',
-    description: 'Explore the demo freely. Try adding customers, scheduling jobs, or checking the insights dashboard. When you\'re ready to use JobFlowCO for your business, click Login to create your account.',
-    position: 'center',
+    title: 'Start Exploring! ✅',
+    description: 'You\'re all set! Try adding customers, rescheduling jobs, or viewing the insights dashboard. Ready to use it for real? Click the login button.',
+    position: 'top-center',
   },
 ];
 
@@ -77,7 +83,7 @@ export function DemoTutorial({ onComplete }: DemoTutorialProps) {
     // Show tutorial after a brief delay for page to load
     const timer = setTimeout(() => {
       setIsVisible(true);
-    }, 800);
+    }, 1200);
 
     return () => clearTimeout(timer);
   }, []);
@@ -113,43 +119,43 @@ export function DemoTutorial({ onComplete }: DemoTutorialProps) {
     return null;
   }
 
-  const isCenter = currentStepData.position === 'center';
-  const isBottom = currentStepData.position === 'bottom';
-  const isTop = currentStepData.position === 'top';
+  // Position classes based on step position
+  const positionClasses = {
+    'top-left': 'top-4 left-4',
+    'top-right': 'top-4 right-4',
+    'bottom-left': 'bottom-24 left-4 md:bottom-4',
+    'bottom-right': 'bottom-24 right-4 md:bottom-4',
+    'top-center': 'top-4 left-1/2 -translate-x-1/2',
+    'bottom-center': 'bottom-24 left-1/2 -translate-x-1/2 md:bottom-4',
+  };
+
+  const ArrowIcon = currentStepData.arrow === 'up' ? ArrowUp :
+                     currentStepData.arrow === 'down' ? ArrowDown :
+                     currentStepData.arrow === 'left' ? ArrowLeft :
+                     currentStepData.arrow === 'right' ? ArrowRight : null;
 
   return (
     <>
-      {/* Backdrop overlay */}
-      <div 
-        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9998] transition-opacity duration-300"
-        onClick={handleSkip}
-      />
+      {/* Semi-transparent overlay - much lighter, doesn't blur */}
+      <div className="fixed inset-0 bg-black/20 z-[9998] pointer-events-none transition-opacity duration-300" />
 
-      {/* Tutorial popup */}
+      {/* Tutorial popup - compact and positioned */}
       <div
-        className={`fixed z-[9999] transition-all duration-300 ${
-          isCenter
-            ? 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2'
-            : isBottom
-            ? 'bottom-24 left-1/2 -translate-x-1/2 w-[90%] max-w-md'
-            : isTop
-            ? 'top-24 left-1/2 -translate-x-1/2 w-[90%] max-w-md'
-            : 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2'
-        }`}
+        className={`fixed z-[9999] transition-all duration-300 ${positionClasses[currentStepData.position]} w-[90vw] max-w-sm`}
       >
-        <Card className="bg-white shadow-2xl border-2 border-blue-200 w-[90vw] max-w-lg">
-          <CardContent className="p-6">
+        <Card className="bg-white shadow-2xl border-2 border-blue-400 animate-in fade-in slide-in-from-top-4 duration-500">
+          <CardContent className="p-4">
             {/* Close button */}
             <button
               onClick={handleSkip}
-              className="absolute top-3 right-3 p-1 hover:bg-gray-100 rounded-full transition-colors"
+              className="absolute -top-2 -right-2 p-1.5 bg-white hover:bg-gray-100 rounded-full transition-colors shadow-lg border border-gray-200"
               aria-label="Close tutorial"
             >
-              <X className="w-5 h-5 text-gray-500" />
+              <X className="w-4 h-4 text-gray-600" />
             </button>
 
             {/* Progress indicator */}
-            <div className="flex gap-1 mb-4">
+            <div className="flex gap-1 mb-3">
               {tutorialSteps.map((_, index) => (
                 <div
                   key={index}
@@ -161,60 +167,65 @@ export function DemoTutorial({ onComplete }: DemoTutorialProps) {
             </div>
 
             {/* Content */}
-            <div className="mb-6">
-              <h2 className="text-2xl font-bold text-blue-900 mb-3">
+            <div className="mb-4">
+              <h3 className="text-lg font-bold text-blue-900 mb-2 flex items-center gap-2">
                 {currentStepData.title}
-              </h2>
-              <p className="text-gray-700 leading-relaxed">
+                {ArrowIcon && (
+                  <ArrowIcon className="w-5 h-5 text-blue-600 animate-bounce" />
+                )}
+              </h3>
+              <p className="text-sm text-gray-700 leading-relaxed">
                 {currentStepData.description}
               </p>
             </div>
 
             {/* Navigation buttons */}
-            <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center justify-between gap-2">
               <Button
-                variant="outline"
+                variant="ghost"
+                size="sm"
                 onClick={handlePrevious}
                 disabled={currentStep === 0}
-                className="flex items-center gap-2"
+                className="text-xs"
               >
-                <ChevronLeft className="w-4 h-4" />
+                <ChevronLeft className="w-3 h-3 mr-1" />
                 Back
               </Button>
 
               <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-500">
+                  {currentStep + 1}/{tutorialSteps.length}
+                </span>
                 {currentStep < tutorialSteps.length - 1 ? (
                   <>
                     <Button
                       variant="ghost"
+                      size="sm"
                       onClick={handleSkip}
-                      className="text-gray-600"
+                      className="text-xs text-gray-600"
                     >
-                      Skip Tour
+                      Skip
                     </Button>
                     <Button
                       onClick={handleNext}
-                      className="bg-blue-600 hover:bg-blue-700 flex items-center gap-2"
+                      size="sm"
+                      className="bg-blue-600 hover:bg-blue-700 text-xs"
                     >
                       Next
-                      <ChevronRight className="w-4 h-4" />
+                      <ChevronRight className="w-3 h-3 ml-1" />
                     </Button>
                   </>
                 ) : (
                   <Button
                     onClick={handleComplete}
-                    className="bg-green-600 hover:bg-green-700 flex items-center gap-2"
+                    size="sm"
+                    className="bg-green-600 hover:bg-green-700 text-xs"
                   >
-                    <Check className="w-4 h-4" />
-                    Start Exploring
+                    <Check className="w-3 h-3 mr-1" />
+                    Got it!
                   </Button>
                 )}
               </div>
-            </div>
-
-            {/* Step counter */}
-            <div className="text-center mt-4 text-sm text-gray-500">
-              Step {currentStep + 1} of {tutorialSteps.length}
             </div>
           </CardContent>
         </Card>
