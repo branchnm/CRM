@@ -127,10 +127,166 @@
             color: #667eea;
         }
 
-        /* Features Grid */
-        .features {
+        /* Features Section with Visual Demos */
+        .demo-features {
             padding: 80px 0;
             background: #f8fafc;
+        }
+        .demo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 2.5rem;
+        }
+        .demo-card {
+            background: white;
+            border-radius: 1rem;
+            padding: 0;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            overflow: hidden;
+            transition: all 0.3s;
+        }
+        .demo-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        .demo-card-header {
+            padding: 2rem;
+        }
+        .demo-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+        .demo-card h3 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 0.75rem;
+        }
+        .demo-card p {
+            color: #64748b;
+            line-height: 1.7;
+        }
+        .demo-visual {
+            padding: 1.5rem;
+            background: #f8fafc;
+        }
+
+        /* Weather gradient examples */
+        .weather-examples {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+        }
+        .weather-card {
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            min-height: 120px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        .weather-icon {
+            font-size: 2rem;
+            margin-bottom: 6px;
+        }
+        .weather-title {
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-bottom: 3px;
+        }
+        .weather-subtitle {
+            font-size: 0.65rem;
+            opacity: 0.8;
+        }
+        .weather-label {
+            font-size: 0.7rem;
+            color: #666;
+            margin-top: 8px;
+            text-align: center;
+        }
+
+        /* Suggestion banner demo */
+        .suggestion-demo {
+            background: white;
+            border: 2px solid #3b82f6;
+            border-radius: 12px;
+            padding: 15px;
+        }
+        .suggestion-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        .badge {
+            background: #3b82f6;
+            color: white;
+            padding: 3px 10px;
+            border-radius: 6px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+        .suggestion-buttons {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        .demo-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.75rem;
+            cursor: default;
+        }
+        .demo-btn-primary {
+            background: #3b82f6;
+            color: white;
+            flex: 1;
+        }
+        .demo-btn-secondary {
+            background: #f3f4f6;
+            color: #374151;
+        }
+
+        /* Route optimization demo */
+        .route-demo {
+            background: #f9fafb;
+            border-radius: 12px;
+            padding: 15px;
+        }
+        .route-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+        .route-item:last-child {
+            margin-bottom: 0;
+        }
+        .route-icon {
+            font-size: 1.25rem;
+        }
+        .route-text {
+            flex: 1;
+            font-size: 0.8rem;
+            color: #374151;
+        }
+        .route-text strong {
+            color: #111827;
+        }
+
+        /* Simple Features */
+        /* Simple Features */
+        .features {
+            padding: 80px 0;
+            background: white;
         }
         .section-header {
             text-align: center;
@@ -333,7 +489,7 @@
             <div class="header-content">
                 <div class="logo">JobFlowCO</div>
                 <nav class="header-nav">
-                    <a href="/demo-intro.html" class="nav-btn nav-btn-demo">Try Demo</a>
+                    <a href="/app?demo=true" class="nav-btn nav-btn-demo">Try Demo</a>
                     <a href="/app" class="nav-btn nav-btn-login">Login</a>
                 </nav>
             </div>
@@ -346,34 +502,131 @@
             <h1>Schedule Smarter,<br/>Work Better</h1>
             <p>Weather-aware scheduling for outdoor service professionals</p>
             <div class="cta-buttons">
-                <a href="/demo-intro.html" class="btn btn-primary">See How It Works</a>
+                <a href="/app?demo=true" class="btn btn-primary">Try Free Demo</a>
                 <a href="#contact" class="btn btn-secondary">Get Started</a>
             </div>
         </div>
     </section>
 
-    <!-- Key Features -->
+    <!-- Demo Features Section -->
+    <section class="demo-features">
+        <div class="container">
+            <div class="section-header">
+                <h2>See How It Works</h2>
+                <p>Powerful features that make outdoor service management effortless</p>
+            </div>
+            <div class="demo-grid">
+                <!-- Weather-Coded Days -->
+                <div class="demo-card">
+                    <div class="demo-card-header">
+                        <div class="demo-icon">🌤️</div>
+                        <h3>Weather-Coded Days</h3>
+                        <p>Each day is color-coded based on weather conditions. Instantly see which days are perfect for outdoor work!</p>
+                    </div>
+                    <div class="demo-visual">
+                        <div class="weather-examples">
+                            <div>
+                                <div class="weather-card" style="background: linear-gradient(to bottom, #FEF9C3, #FDE047, #FBBF24);">
+                                    <div class="weather-icon">☀️</div>
+                                    <div class="weather-title" style="color: #78350f;">Clear & Sunny</div>
+                                    <div class="weather-subtitle" style="color: #92400e;">All day sunshine</div>
+                                </div>
+                                <div class="weather-label">Yellow gradient</div>
+                            </div>
+                            <div>
+                                <div class="weather-card" style="background: linear-gradient(to bottom, #93C5FD, #E5E7EB, #FEF9C3);">
+                                    <div class="weather-icon">⛅</div>
+                                    <div class="weather-title" style="color: #374151;">Clearing Up</div>
+                                    <div class="weather-subtitle" style="color: #6b7280;">Rain → Sun</div>
+                                </div>
+                                <div class="weather-label">Blue to yellow</div>
+                            </div>
+                            <div>
+                                <div class="weather-card" style="background: linear-gradient(to bottom, #1E3A8A, #3B82F6, #60A5FA);">
+                                    <div class="weather-icon">🌧️</div>
+                                    <div class="weather-title" style="color: white;">Heavy Rain</div>
+                                    <div class="weather-subtitle" style="color: #DBEAFE;">Rainy all day</div>
+                                </div>
+                                <div class="weather-label">Dark blue gradient</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Smart Suggestions -->
+                <div class="demo-card">
+                    <div class="demo-card-header">
+                        <div class="demo-icon">🤖</div>
+                        <h3>Smart Suggestions</h3>
+                        <p>When rain is forecast, get automatic suggestions for which jobs to reschedule and when to move them.</p>
+                    </div>
+                    <div class="demo-visual">
+                        <div class="suggestion-demo">
+                            <div class="suggestion-header">
+                                <span class="badge">Rain</span>
+                                <span style="font-size: 0.75rem; color: #6b7280; font-weight: 600;">Saturday forecast</span>
+                            </div>
+                            <p style="font-size: 0.8rem; color: #374151;">
+                                💡 Rain expected 10am-2pm. Move 3 jobs to better days?
+                            </p>
+                            <div class="suggestion-buttons">
+                                <button class="demo-btn demo-btn-primary">Accept All</button>
+                                <button class="demo-btn demo-btn-secondary">Dismiss</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Route Optimization -->
+                <div class="demo-card">
+                    <div class="demo-card-header">
+                        <div class="demo-icon">🗺️</div>
+                        <h3>Auto Route Optimization</h3>
+                        <p>GPS-based routing automatically arranges jobs in the fastest driving order, saving time and fuel every day.</p>
+                    </div>
+                    <div class="demo-visual">
+                        <div class="route-demo">
+                            <div class="route-item">
+                                <div class="route-icon">❌</div>
+                                <div class="route-text">
+                                    <strong>Before:</strong> Drive 45 min between jobs
+                                </div>
+                            </div>
+                            <div class="route-item">
+                                <div class="route-icon">✅</div>
+                                <div class="route-text">
+                                    <strong>After:</strong> Drive 18 min - save 27 min!
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Simple Feature Highlights -->
     <section class="features">
         <div class="container">
             <div class="section-header">
                 <h2>Everything You Need in One Place</h2>
-                <p>Powerful tools designed for lawn care and outdoor service businesses</p>
+                <p>Built specifically for lawn care and outdoor service businesses</p>
             </div>
             <div class="features-grid">
-                <div class="feature-card">
-                    <div class="feature-icon">🌤️</div>
-                    <h3>Weather Integration</h3>
-                    <p>Automatic schedule adjustments based on 5-day forecasts. Never get caught in the rain again.</p>
-                </div>
                 <div class="feature-card">
                     <div class="feature-icon">📱</div>
                     <h3>Customer SMS Updates</h3>
                     <p>Automated text notifications keep clients informed about appointments and schedule changes.</p>
                 </div>
                 <div class="feature-card">
-                    <div class="feature-icon">🗺️</div>
-                    <h3>Route Optimization</h3>
-                    <p>GPS-based routing saves time and fuel by organizing jobs in the most efficient order.</p>
+                    <div class="feature-icon">📊</div>
+                    <h3>Business Insights</h3>
+                    <p>Track revenue, job completion rates, and business performance with real-time dashboards.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📅</div>
+                    <h3>Drag & Drop Scheduling</h3>
+                    <p>Easily reschedule jobs by dragging them to different days. Works perfectly on mobile devices.</p>
                 </div>
             </div>
         </div>
@@ -443,7 +696,7 @@
                 </div>
                 <div>
                     <h3>Product</h3>
-                    <a href="/demo-intro.html">Try Demo</a>
+                    <a href="/app?demo=true">Try Demo</a>
                     <a href="/app">Login</a>
                     <a href="#features">Features</a>
                 </div>
