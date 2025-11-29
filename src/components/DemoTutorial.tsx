@@ -149,7 +149,7 @@ export function DemoTutorial({ onComplete }: DemoTutorialProps) {
     if (currentStep !== 1) return null; // Only show on step 2 (weather-cards)
 
     return (
-      <div className="fixed top-40 left-1/2 -translate-x-1/2 z-[9997] w-[90vw] max-w-2xl">
+      <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[9997] w-[90vw] max-w-2xl">
         <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-2xl border-2 border-blue-300 p-4">
           <p className="text-xs text-center text-gray-600 mb-3 font-medium">
             Weather Gradient Examples
@@ -209,7 +209,7 @@ export function DemoTutorial({ onComplete }: DemoTutorialProps) {
     if (currentStep !== 2) return null;
 
     return (
-      <div className="fixed top-40 left-1/2 -translate-x-1/2 z-[9997] w-[90vw] max-w-md">
+      <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[9997] w-[90vw] max-w-md">
         <div className="bg-white border-2 border-blue-500 rounded-lg overflow-hidden shadow-2xl">
           <div className="px-3 py-2">
             <div className="flex items-start justify-between gap-2 mb-1.5">
@@ -247,7 +247,7 @@ export function DemoTutorial({ onComplete }: DemoTutorialProps) {
     if (currentStep !== 3) return null;
 
     return (
-      <div className="fixed top-40 left-1/2 -translate-x-1/2 z-[9997] w-[90vw] max-w-md">
+      <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[9997] w-[90vw] max-w-md">
         <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-2xl border-2 border-blue-300 p-4">
           <p className="text-xs text-center text-gray-600 mb-3 font-medium">
             Drag & Drop Example
@@ -276,7 +276,7 @@ export function DemoTutorial({ onComplete }: DemoTutorialProps) {
     if (currentStep !== 4) return null;
 
     return (
-      <div className="fixed top-40 left-1/2 -translate-x-1/2 z-[9997] w-[90vw] max-w-md">
+      <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[9997] w-[90vw] max-w-md">
         <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-2xl border-2 border-blue-300 p-4">
           <p className="text-xs text-center text-gray-600 mb-3 font-medium">
             Route Optimization
@@ -350,9 +350,9 @@ export function DemoTutorial({ onComplete }: DemoTutorialProps) {
       {renderDragDropExample()}
       {renderRouteExample()}
 
-      {/* Simple info card - always centered at top */}
-      <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[9999] w-[90vw] max-w-md">
-        <Card className="bg-white/95 backdrop-blur-sm shadow-xl border-2 border-blue-400 animate-in fade-in slide-in-from-top duration-500">
+      {/* Simple info card - positioned at bottom */}
+      <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-[9999] w-[90vw] max-w-md">
+        <Card className="bg-white/95 backdrop-blur-sm shadow-xl border-2 border-blue-400 animate-in fade-in slide-in-from-bottom duration-500">
           <CardContent className="p-4">
             {/* Close button */}
             <button
