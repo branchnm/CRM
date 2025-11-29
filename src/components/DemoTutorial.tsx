@@ -149,7 +149,7 @@ export function DemoTutorial({ onComplete }: DemoTutorialProps) {
     if (currentStep !== 1) return null; // Only show on step 2 (weather-cards)
 
     return (
-      <div className="fixed top-32 left-1/2 -translate-x-1/2 z-[9997] w-[90vw] max-w-2xl">
+      <div className="fixed top-40 left-1/2 -translate-x-1/2 z-[9997] w-[90vw] max-w-2xl">
         <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-2xl border-2 border-blue-300 p-4">
           <p className="text-xs text-center text-gray-600 mb-3 font-medium">
             Weather Gradient Examples
@@ -204,6 +204,107 @@ export function DemoTutorial({ onComplete }: DemoTutorialProps) {
     );
   };
 
+  // Render smart suggestions example
+  const renderSuggestionsExample = () => {
+    if (currentStep !== 2) return null;
+
+    return (
+      <div className="fixed top-40 left-1/2 -translate-x-1/2 z-[9997] w-[90vw] max-w-md">
+        <div className="bg-white border-2 border-blue-500 rounded-lg overflow-hidden shadow-2xl">
+          <div className="px-3 py-2">
+            <div className="flex items-start justify-between gap-2 mb-1.5">
+              <div className="flex items-center gap-1.5 flex-1">
+                <span className="text-xs bg-blue-500 text-white px-2 py-0.5 rounded font-medium">
+                  Rain
+                </span>
+                <span className="text-xs text-gray-600 font-medium">
+                  Saturday forecast
+                </span>
+              </div>
+            </div>
+            <p className="text-xs text-gray-700 mb-2">
+              💡 Rain expected 10am-2pm. Move 3 jobs to better days?
+            </p>
+            <div className="flex gap-2">
+              <button className="flex-1 px-3 py-1.5 bg-blue-600 text-white text-xs rounded-md font-medium">
+                Accept All
+              </button>
+              <button className="px-3 py-1.5 bg-gray-100 text-gray-700 text-xs rounded-md font-medium">
+                Dismiss
+              </button>
+            </div>
+          </div>
+        </div>
+        <p className="text-xs text-center text-gray-500 mt-2">
+          Click "Accept All" to automatically reschedule!
+        </p>
+      </div>
+    );
+  };
+
+  // Render drag and drop example
+  const renderDragDropExample = () => {
+    if (currentStep !== 3) return null;
+
+    return (
+      <div className="fixed top-40 left-1/2 -translate-x-1/2 z-[9997] w-[90vw] max-w-md">
+        <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-2xl border-2 border-blue-300 p-4">
+          <p className="text-xs text-center text-gray-600 mb-3 font-medium">
+            Drag & Drop Example
+          </p>
+          <div className="flex items-center gap-3 justify-center">
+            <div className="bg-white border-2 border-gray-200 rounded-lg p-2 shadow-sm">
+              <div className="text-xs font-semibold text-gray-900">John Smith</div>
+              <div className="text-[10px] text-gray-500">123 Main St</div>
+              <div className="text-[10px] text-blue-600 mt-1">8:00 AM</div>
+            </div>
+            <div className="text-2xl animate-pulse">👉</div>
+            <div className="bg-blue-50 border-2 border-dashed border-blue-400 rounded-lg p-2 h-16 w-24 flex items-center justify-center">
+              <div className="text-[10px] text-blue-600 font-medium text-center">Drop here<br/>for new date</div>
+            </div>
+          </div>
+          <p className="text-xs text-center text-gray-500 mt-3">
+            🖱️ Click and hold a job card, then drag to any day!
+          </p>
+        </div>
+      </div>
+    );
+  };
+
+  // Render route optimization example
+  const renderRouteExample = () => {
+    if (currentStep !== 4) return null;
+
+    return (
+      <div className="fixed top-40 left-1/2 -translate-x-1/2 z-[9997] w-[90vw] max-w-md">
+        <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-2xl border-2 border-blue-300 p-4">
+          <p className="text-xs text-center text-gray-600 mb-3 font-medium">
+            Route Optimization
+          </p>
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <div className="text-lg">❌</div>
+              <div className="flex-1 text-xs text-gray-600">
+                <span className="font-semibold">Before:</span> Drive 45 min between jobs
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="text-lg">✅</div>
+              <div className="flex-1 text-xs text-gray-600">
+                <span className="font-semibold">After:</span> Drive 18 min - save 27 min!
+              </div>
+            </div>
+          </div>
+          <div className="mt-3 pt-3 border-t border-gray-200">
+            <p className="text-xs text-center text-gray-500">
+              🗺️ Click "Optimize Route" to arrange jobs by shortest drive time
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const handleNext = () => {
     if (currentStep < tutorialSteps.length - 1) {
       setCurrentStep(currentStep + 1);
@@ -245,6 +346,9 @@ export function DemoTutorial({ onComplete }: DemoTutorialProps) {
 
       {/* Weather examples display */}
       {renderWeatherExamples()}
+      {renderSuggestionsExample()}
+      {renderDragDropExample()}
+      {renderRouteExample()}
 
       {/* Simple info card - always centered at top */}
       <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[9999] w-[90vw] max-w-md">
