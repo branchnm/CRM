@@ -45,6 +45,22 @@ import {
 } from '../services/weatherHistory';
 import { toast } from 'sonner';
 
+// Check if demo mode is enabled
+const checkDemoMode = (): boolean => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const urlDemo = urlParams.get('demo') === 'true';
+  const sessionDemo = sessionStorage.getItem('demoMode') === 'true';
+  const envDemo = import.meta.env.VITE_DEMO_MODE === 'true';
+  return urlDemo || sessionDemo || envDemo;
+};
+
+const DEMO_MODE = checkDemoMode();
+
+// Demo mode default location (Homewood, AL - matches sample customer addresses)
+const DEMO_LOCATION: Coordinates = { lat: 33.4665, lon: -86.8089 };
+const DEMO_LOCATION_NAME = 'Homewood, AL 35209';
+const DEMO_STARTING_ADDRESS = '123 Main St, Homewood, AL 35209';
+
 // Debounce helper function
 function useDebounce<T>(value: T, delay: number): T {
   const [debouncedValue, setDebouncedValue] = useState<T>(value);
@@ -121,16 +137,22 @@ export function WeatherForecast({
   }, [loading, weatherData, onWeatherLoadingChange]);
   const [error, setError] = useState<string | null>(null);
   const [location, setLocation] = useState<Coordinates | null>(() => {
+    if (DEMO_MODE) return DEMO_LOCATION;
     const saved = localStorage.getItem('weatherLocation');
     return saved ? JSON.parse(saved) : null;
   });
   const [locationName, setLocationName] = useState<string>(() => {
+    if (DEMO_MODE) return DEMO_LOCATION_NAME;
     return localStorage.getItem('weatherLocationName') || '';
   });
   const [addressInput, setAddressInput] = useState(() => {
+    if (DEMO_MODE) return DEMO_STARTING_ADDRESS;
     return localStorage.getItem('weatherLocationName') || localStorage.getItem('routeStartingAddress') || '';
   });
-  const [streetAddress, setStreetAddress] = useState(() => localStorage.getItem('routeStreetAddress') || '');
+  const [streetAddress, setStreetAddress] = useState(() => {
+    if (DEMO_MODE) return DEMO_STARTING_ADDRESS;
+    return localStorage.getItem('routeStreetAddress') || '';
+  });
   const [addressSaved, setAddressSaved] = useState(false);
   const [showAddressSuggestions, setShowAddressSuggestions] = useState(false);
   const [addressSuggestions, setAddressSuggestions] = useState<AddressSuggestion[]>([]);
@@ -1881,7 +1903,10 @@ export function WeatherForecast({
 
   // Load weather on mount if location is set (fallback)
   useEffect(() => {
-    if (location && jobs.length === 0) {
+    if (DEMO_MODE && location) {
+      // Auto-load weather for demo mode with preset location
+      loadWeather(location);
+    } else if (location && jobs.length === 0) {
       loadWeather(location);
     }
   }, []);
@@ -3233,6 +3258,13 @@ export function WeatherForecast({
       onLocationChange(locationName, zipCode);
     }
   }, [locationName, onLocationChange]);
+
+  // Notify parent of demo mode starting address on mount
+  useEffect(() => {
+    if (DEMO_MODE && onStartingAddressChange && streetAddress) {
+      onStartingAddressChange(streetAddress);
+    }
+  }, []); // Only run once on mount
 
   // Auto-optimize on initial load when location and jobs are ready
   useEffect(() => {
