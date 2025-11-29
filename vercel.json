@@ -5,6 +5,10 @@
       "dest": "/landing.html"
     },
     {
+      "src": "/demo-intro.html",
+      "dest": "/demo-intro.html"
+    },
+    {
       "src": "/privacy-policy.html",
       "dest": "/privacy-policy.html"
     },
