@@ -174,6 +174,301 @@
             background: #f8fafc;
         }
 
+        /* Animated App Demo */
+        .app-demo-container {
+            max-width: 900px;
+            margin: 3rem auto;
+        }
+        .app-demo-screen {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+            overflow: hidden;
+            border: 8px solid #1e293b;
+        }
+
+        /* Weather Forecast Bar */
+        .demo-forecast-bar {
+            display: flex;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 16px;
+            gap: 8px;
+            overflow-x: auto;
+        }
+        .forecast-day-mini {
+            flex: 1;
+            min-width: 80px;
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 12px 8px;
+            text-align: center;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .forecast-day-mini.active {
+            background: rgba(255,255,255,0.3);
+            transform: scale(1.05);
+        }
+        .day-name {
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-bottom: 4px;
+            opacity: 0.9;
+        }
+        .day-temp {
+            font-size: 1.25rem;
+            font-weight: 800;
+            margin-bottom: 4px;
+        }
+        .day-icon {
+            font-size: 1.5rem;
+        }
+
+        /* Day Card */
+        .demo-day-card {
+            background: linear-gradient(to bottom, 
+                rgb(30, 64, 175) 0%, 
+                rgb(37, 99, 235) 33%, 
+                rgb(59, 130, 246) 66%, 
+                rgb(96, 165, 250) 100%);
+            min-height: 500px;
+            position: relative;
+            padding: 24px;
+        }
+        .day-card-header {
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin-bottom: 20px;
+        }
+        .day-card-header h3 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin: 0 0 8px 0;
+        }
+        .weather-summary {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #64748b;
+            font-size: 0.95rem;
+        }
+        .rain-icon {
+            font-size: 1.25rem;
+        }
+
+        /* Jobs List */
+        .demo-jobs-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .demo-job {
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 16px;
+            border-left: 4px solid #3b82f6;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        .demo-job:hover {
+            transform: translateX(4px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .job-customer {
+            font-weight: 700;
+            color: #1e293b;
+            font-size: 1rem;
+            margin-bottom: 4px;
+        }
+        .job-address {
+            color: #64748b;
+            font-size: 0.875rem;
+            margin-bottom: 6px;
+        }
+        .job-time {
+            color: #3b82f6;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        /* Weather Alert Popup */
+        .weather-alert-popup {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 400px;
+            width: 90%;
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .weather-alert-popup.show {
+            transform: translate(-50%, -50%) scale(1);
+            opacity: 1;
+        }
+        .alert-popup-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 16px;
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #1e293b;
+        }
+        .alert-popup-icon {
+            font-size: 1.75rem;
+        }
+        .alert-popup-body {
+            color: #64748b;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+        .alert-popup-actions {
+            display: flex;
+            gap: 10px;
+        }
+        .popup-btn {
+            flex: 1;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .popup-btn-primary {
+            background: #3b82f6;
+            color: white;
+        }
+        .popup-btn-primary:hover {
+            background: #2563eb;
+        }
+        .popup-btn-secondary {
+            background: #f3f4f6;
+            color: #64748b;
+        }
+
+        /* SMS Notification Popup */
+        .sms-notification-popup {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 400px;
+            width: 90%;
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .sms-notification-popup.show {
+            transform: translate(-50%, -50%) scale(1);
+            opacity: 1;
+        }
+        .sms-popup-header {
+            font-weight: 700;
+            font-size: 1.1rem;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .sms-popup-message {
+            background: rgba(255,255,255,0.2);
+            backdrop-filter: blur(10px);
+            padding: 14px;
+            border-radius: 10px;
+            font-style: italic;
+            line-height: 1.5;
+            margin-bottom: 12px;
+        }
+        .sms-popup-status {
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* Demo Steps Indicator */
+        .demo-steps {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            padding: 24px;
+            background: #f8fafc;
+        }
+        .demo-step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            opacity: 0.4;
+            transition: all 0.3s;
+        }
+        .demo-step.active {
+            opacity: 1;
+        }
+        .step-number {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #e5e7eb;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: #64748b;
+            transition: all 0.3s;
+        }
+        .demo-step.active .step-number {
+            background: #3b82f6;
+            color: white;
+            transform: scale(1.1);
+        }
+        .step-label {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #64748b;
+        }
+        .demo-step.active .step-label {
+            color: #1e293b;
+        }
+
+        /* Animation keyframes */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
+        }
+
         /* Weather forecast cards - recreating actual app design */
         .weather-examples {
             display: grid;
@@ -677,175 +972,111 @@
     <section class="demo-features" id="demo-features">
         <div class="container">
             <div class="section-header">
-                <h2>Stop Wasting Time on Customer Updates & Weather Changes</h2>
-                <p>The two biggest headaches for outdoor service businesses—solved automatically</p>
+                <h2>See JobFlowCO in Action</h2>
+                <p>Watch how the app handles weather changes, scheduling, and customer notifications automatically</p>
             </div>
-            <div class="demo-grid">
-                <!-- 1. Weather-Coded Days -->
-                <div class="demo-card">
-                    <div class="demo-card-header">
-                        <div class="demo-icon">🌤️</div>
-                        <h3>See Weather at a Glance</h3>
-                        <p>Color-coded forecast shows you instantly which days are safe to work. No more checking weather apps or getting caught in the rain!</p>
-                    </div>
-                    <div class="demo-visual">
-                        <div class="weather-examples">
-                            <!-- Sunny Day -->
-                            <div>
-                                <div class="weather-card" style="background: linear-gradient(to bottom, rgb(254, 243, 199) 0%, rgb(254, 243, 199) 25%, rgb(254, 243, 199) 50%, rgb(254, 243, 199) 75%, rgb(254, 243, 199) 100%);">
-                                    <div class="weather-card-header">
-                                        <div class="weather-card-date">Saturday</div>
-                                        <div class="weather-card-temp">76°F</div>
-                                    </div>
-                                    <div class="weather-card-body">
-                                        <div class="weather-hour">
-                                            <span class="weather-hour-time">6 AM</span>
-                                            <span class="weather-hour-icon">☀️</span>
-                                            <span class="weather-hour-temp">68°</span>
-                                        </div>
-                                        <div class="weather-hour">
-                                            <span class="weather-hour-time">10 AM</span>
-                                            <span class="weather-hour-icon">☀️</span>
-                                            <span class="weather-hour-temp">74°</span>
-                                        </div>
-                                        <div class="weather-hour">
-                                            <span class="weather-hour-time">2 PM</span>
-                                            <span class="weather-hour-icon">☀️</span>
-                                            <span class="weather-hour-temp">76°</span>
-                                        </div>
-                                        <div class="weather-hour">
-                                            <span class="weather-hour-time">6 PM</span>
-                                            <span class="weather-hour-icon">☀️</span>
-                                            <span class="weather-hour-temp">72°</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="weather-label">Perfect Work Day</div>
-                            </div>
-                            
-                            <!-- Clearing Up Day -->
-                            <div>
-                                <div class="weather-card" style="background: linear-gradient(to bottom, rgb(96, 165, 250) 0%, rgb(96, 165, 250) 25%, rgb(209, 213, 219) 50%, rgb(254, 243, 199) 75%, rgb(254, 243, 199) 100%);">
-                                    <div class="weather-card-header">
-                                        <div class="weather-card-date">Sunday</div>
-                                        <div class="weather-card-temp">71°F</div>
-                                    </div>
-                                    <div class="weather-card-body">
-                                        <div class="weather-hour">
-                                            <span class="weather-hour-time">6 AM</span>
-                                            <span class="weather-hour-icon">🌧️</span>
-                                            <span class="weather-hour-temp">65°</span>
-                                        </div>
-                                        <div class="weather-hour">
-                                            <span class="weather-hour-time">10 AM</span>
-                                            <span class="weather-hour-icon">⛅</span>
-                                            <span class="weather-hour-temp">69°</span>
-                                        </div>
-                                        <div class="weather-hour">
-                                            <span class="weather-hour-time">2 PM</span>
-                                            <span class="weather-hour-icon">☀️</span>
-                                            <span class="weather-hour-temp">71°</span>
-                                        </div>
-                                        <div class="weather-hour">
-                                            <span class="weather-hour-time">6 PM</span>
-                                            <span class="weather-hour-icon">☀️</span>
-                                            <span class="weather-hour-temp">70°</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="weather-label">Afternoon Work Window</div>
-                            </div>
-                            
-                            <!-- Rainy Day -->
-                            <div>
-                                <div class="weather-card" style="background: linear-gradient(to bottom, rgb(30, 64, 175) 0%, rgb(30, 64, 175) 25%, rgb(37, 99, 235) 50%, rgb(37, 99, 235) 75%, rgb(96, 165, 250) 100%);">
-                                    <div class="weather-card-header">
-                                        <div class="weather-card-date">Monday</div>
-                                        <div class="weather-card-temp">64°F</div>
-                                    </div>
-                                    <div class="weather-card-body">
-                                        <div class="weather-hour">
-                                            <span class="weather-hour-time">6 AM</span>
-                                            <span class="weather-hour-icon">⛈️</span>
-                                            <span class="weather-hour-temp">62°</span>
-                                        </div>
-                                        <div class="weather-hour">
-                                            <span class="weather-hour-time">10 AM</span>
-                                            <span class="weather-hour-icon">🌧️</span>
-                                            <span class="weather-hour-temp">64°</span>
-                                        </div>
-                                        <div class="weather-hour">
-                                            <span class="weather-hour-time">2 PM</span>
-                                            <span class="weather-hour-icon">🌧️</span>
-                                            <span class="weather-hour-temp">65°</span>
-                                        </div>
-                                        <div class="weather-hour">
-                                            <span class="weather-hour-time">6 PM</span>
-                                            <span class="weather-hour-icon">🌧️</span>
-                                            <span class="weather-hour-temp">63°</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="weather-label">Reschedule Recommended</div>
-                            </div>
+            
+            <!-- Animated App Demo -->
+            <div class="app-demo-container">
+                <div class="app-demo-screen">
+                    <!-- Weather Forecast Bar -->
+                    <div class="demo-forecast-bar">
+                        <div class="forecast-day-mini" data-day="0">
+                            <div class="day-name">Today</div>
+                            <div class="day-temp">76°</div>
+                            <div class="day-icon">☀️</div>
+                        </div>
+                        <div class="forecast-day-mini" data-day="1">
+                            <div class="day-name">Sat</div>
+                            <div class="day-temp">74°</div>
+                            <div class="day-icon">⛅</div>
+                        </div>
+                        <div class="forecast-day-mini active" data-day="2">
+                            <div class="day-name">Sun</div>
+                            <div class="day-temp">68°</div>
+                            <div class="day-icon">🌧️</div>
+                        </div>
+                        <div class="forecast-day-mini" data-day="3">
+                            <div class="day-name">Mon</div>
+                            <div class="day-temp">71°</div>
+                            <div class="day-icon">⛅</div>
+                        </div>
+                        <div class="forecast-day-mini" data-day="4">
+                            <div class="day-name">Tue</div>
+                            <div class="day-temp">75°</div>
+                            <div class="day-icon">☀️</div>
                         </div>
                     </div>
-                </div>
 
-                <!-- 2. GPS-Based Arrival Updates -->
-                <div class="demo-card">
-                    <div class="demo-card-header">
-                        <div class="demo-icon">📍</div>
-                        <h3>Auto "On My Way" Texts</h3>
-                        <p>GPS automatically texts customers when you're 10 minutes away. No more "when will you be here?" calls interrupting your work!</p>
-                    </div>
-                    <div class="demo-visual">
-                        <div class="phone-mockup">
-                            <div class="phone-screen">
-                                <div class="sms-bubble sms-sent">
-                                    <div class="sms-time">10:23 AM</div>
-                                    <div class="sms-text">Hi Sarah! This is Mike from Green Lawn Co. I'm about 10 minutes away from your property at 123 Oak Street. See you soon!</div>
-                                    <div class="sms-status">✓ Sent automatically via GPS</div>
-                                </div>
-                                <div class="sms-bubble sms-received">
-                                    <div class="sms-time">10:24 AM</div>
-                                    <div class="sms-text">Perfect timing, thanks for letting me know!</div>
-                                </div>
+                    <!-- Day Card with Weather Gradient -->
+                    <div class="demo-day-card">
+                        <div class="day-card-header">
+                            <h3>Sunday, Nov 17</h3>
+                            <div class="weather-summary">
+                                <span class="rain-icon">🌧️</span>
+                                <span>Heavy rain expected</span>
                             </div>
-                            <div class="demo-label">Sent when you're 10 min away</div>
+                        </div>
+
+                        <!-- Jobs List -->
+                        <div class="demo-jobs-list">
+                            <div class="demo-job" data-job="1">
+                                <div class="job-customer">Johnson Residence</div>
+                                <div class="job-address">123 Oak Street</div>
+                                <div class="job-time">9:00 AM • 45 min</div>
+                            </div>
+                            <div class="demo-job" data-job="2">
+                                <div class="job-customer">Smith Property</div>
+                                <div class="job-address">456 Maple Ave</div>
+                                <div class="job-time">10:30 AM • 40 min</div>
+                            </div>
+                            <div class="demo-job" data-job="3">
+                                <div class="job-customer">Brown Lawn Care</div>
+                                <div class="job-address">789 Pine Road</div>
+                                <div class="job-time">12:00 PM • 50 min</div>
+                            </div>
+                        </div>
+
+                        <!-- Weather Alert Popup (will animate in) -->
+                        <div class="weather-alert-popup">
+                            <div class="alert-popup-header">
+                                <span class="alert-popup-icon">⚠️</span>
+                                <span>Weather Alert</span>
+                            </div>
+                            <div class="alert-popup-body">
+                                Heavy rain forecast for Sunday. Reschedule 3 jobs?
+                            </div>
+                            <div class="alert-popup-actions">
+                                <button class="popup-btn popup-btn-primary">Reschedule & Notify</button>
+                                <button class="popup-btn popup-btn-secondary">Dismiss</button>
+                            </div>
+                        </div>
+
+                        <!-- SMS Notification Preview (will animate in) -->
+                        <div class="sms-notification-popup">
+                            <div class="sms-popup-header">
+                                <span>📱 Sending to 3 customers...</span>
+                            </div>
+                            <div class="sms-popup-message">
+                                "Hi! Due to heavy rain Sunday, we'll reschedule your service. We'll reach out with a new date soon!"
+                            </div>
+                            <div class="sms-popup-status">✓ Sent successfully</div>
                         </div>
                     </div>
-                </div>
 
-                <!-- 3. Mass Weather Alerts -->
-                <div class="demo-card">
-                    <div class="demo-card-header">
-                        <div class="demo-icon">📱</div>
-                        <h3>One-Tap Weather Alerts</h3>
-                        <p>Rain forecast? Send professional delay notifications to ALL affected customers with one click. Save hours of calling and texting!</p>
-                    </div>
-                    <div class="demo-visual">
-                        <div class="mass-sms-demo">
-                            <div class="alert-banner">
-                                <div class="alert-header">
-                                    <span class="alert-icon">⚠️</span>
-                                    <span class="alert-title">Rain Alert - Monday, Nov 18</span>
-                                </div>
-                                <div class="alert-body">
-                                    <p><strong>8 customers</strong> scheduled for Monday</p>
-                                    <p style="color: #64748b; font-size: 0.85rem; margin-top: 4px;">Heavy rain expected all day</p>
-                                </div>
-                            </div>
-                            <div class="message-preview">
-                                <div class="preview-label">Message Preview:</div>
-                                <div class="preview-text">
-                                    "Hi! Due to heavy rain in the forecast Monday, we'll need to reschedule your lawn service. We'll reach out with a new date soon. Thanks for understanding!"
-                                </div>
-                            </div>
-                            <button class="mass-send-btn">
-                                Send to 8 Customers
-                            </button>
-                            <div class="savings-note">💡 Saves ~20 minutes of manual messaging</div>
+                    <!-- Animation Steps Indicator -->
+                    <div class="demo-steps">
+                        <div class="demo-step active" data-step="1">
+                            <div class="step-number">1</div>
+                            <div class="step-label">See weather</div>
+                        </div>
+                        <div class="demo-step" data-step="2">
+                            <div class="step-number">2</div>
+                            <div class="step-label">Get alert</div>
+                        </div>
+                        <div class="demo-step" data-step="3">
+                            <div class="step-number">3</div>
+                            <div class="step-label">Notify customers</div>
                         </div>
                     </div>
                 </div>
@@ -973,5 +1204,90 @@
             </div>
         </div>
     </footer>
+
+    <script>
+        // Animated Demo Script
+        (function() {
+            let currentStep = 0;
+            const totalSteps = 3;
+            const stepDuration = 3500; // 3.5 seconds per step
+
+            function runDemoAnimation() {
+                const steps = document.querySelectorAll('.demo-step');
+                const weatherAlert = document.querySelector('.weather-alert-popup');
+                const smsNotification = document.querySelector('.sms-notification-popup');
+                const jobs = document.querySelectorAll('.demo-job');
+
+                // Reset all
+                steps.forEach(s => s.classList.remove('active'));
+                weatherAlert.classList.remove('show');
+                smsNotification.classList.remove('show');
+                jobs.forEach(j => {
+                    j.style.opacity = '1';
+                    j.style.transform = 'translateX(0)';
+                });
+
+                // Step 1: Show weather and highlight jobs (0-3.5s)
+                setTimeout(() => {
+                    steps[0].classList.add('active');
+                    jobs.forEach((job, i) => {
+                        setTimeout(() => {
+                            job.style.animation = 'pulse 0.5s ease-in-out';
+                        }, i * 200);
+                    });
+                }, 100);
+
+                // Step 2: Show weather alert (3.5-7s)
+                setTimeout(() => {
+                    steps[0].classList.remove('active');
+                    steps[1].classList.add('active');
+                    weatherAlert.classList.add('show');
+                }, stepDuration);
+
+                // Step 3: Show SMS notification (7-10.5s)
+                setTimeout(() => {
+                    steps[1].classList.remove('active');
+                    steps[2].classList.add('active');
+                    weatherAlert.classList.remove('show');
+                    
+                    // Fade out jobs one by one
+                    jobs.forEach((job, i) => {
+                        setTimeout(() => {
+                            job.style.opacity = '0.3';
+                            job.style.transform = 'translateX(-10px)';
+                        }, i * 150);
+                    });
+
+                    setTimeout(() => {
+                        smsNotification.classList.add('show');
+                    }, 500);
+                }, stepDuration * 2);
+
+                // Step 4: Reset and loop (10.5s)
+                setTimeout(() => {
+                    steps[2].classList.remove('active');
+                    smsNotification.classList.remove('show');
+                    
+                    // Restart animation
+                    setTimeout(runDemoAnimation, 1000);
+                }, stepDuration * 3);
+            }
+
+            // Start animation when in viewport
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting && currentStep === 0) {
+                        runDemoAnimation();
+                        currentStep = 1; // Prevent multiple starts
+                    }
+                });
+            }, { threshold: 0.3 });
+
+            const demoContainer = document.querySelector('.app-demo-container');
+            if (demoContainer) {
+                observer.observe(demoContainer);
+            }
+        })();
+    </script>
 </body>
 </html>
