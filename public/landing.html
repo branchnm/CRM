@@ -250,7 +250,134 @@
             text-align: center;
         }
 
-        /* Suggestion banner demo */
+        /* GPS Phone Mockup */
+        .phone-mockup {
+            max-width: 350px;
+            margin: 0 auto;
+        }
+        .phone-screen {
+            background: #f9fafb;
+            border-radius: 12px;
+            padding: 20px;
+            border: 2px solid #e5e7eb;
+        }
+        .sms-bubble {
+            margin-bottom: 16px;
+            padding: 12px 16px;
+            border-radius: 18px;
+            max-width: 85%;
+        }
+        .sms-sent {
+            background: #3b82f6;
+            color: white;
+            margin-left: auto;
+            border-bottom-right-radius: 4px;
+        }
+        .sms-received {
+            background: #e5e7eb;
+            color: #1e293b;
+            margin-right: auto;
+            border-bottom-left-radius: 4px;
+        }
+        .sms-time {
+            font-size: 0.65rem;
+            opacity: 0.7;
+            margin-bottom: 4px;
+        }
+        .sms-text {
+            font-size: 0.875rem;
+            line-height: 1.4;
+        }
+        .sms-status {
+            font-size: 0.7rem;
+            margin-top: 6px;
+            opacity: 0.8;
+            font-style: italic;
+        }
+        .demo-label {
+            text-align: center;
+            font-size: 0.75rem;
+            color: #64748b;
+            margin-top: 12px;
+            font-weight: 600;
+        }
+
+        /* Mass SMS Demo */
+        .mass-sms-demo {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+        }
+        .alert-banner {
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            border-left: 4px solid #f59e0b;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+        .alert-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        .alert-icon {
+            font-size: 1.25rem;
+        }
+        .alert-title {
+            font-weight: 700;
+            color: #92400e;
+            font-size: 0.95rem;
+        }
+        .alert-body {
+            margin-left: 32px;
+        }
+        .alert-body p {
+            margin: 0;
+            color: #78350f;
+            font-size: 0.875rem;
+        }
+        .message-preview {
+            background: #f9fafb;
+            border-radius: 8px;
+            padding: 14px;
+            margin-bottom: 16px;
+        }
+        .preview-label {
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+        .preview-text {
+            font-size: 0.875rem;
+            color: #1e293b;
+            line-height: 1.5;
+            font-style: italic;
+        }
+        .mass-send-btn {
+            width: 100%;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            cursor: default;
+            box-shadow: 0 4px 6px rgba(59, 130, 246, 0.3);
+        }
+        .savings-note {
+            text-align: center;
+            font-size: 0.8rem;
+            color: #16a34a;
+            margin-top: 12px;
+            font-weight: 600;
+        }
+
+        /* Old demos - keeping for backward compatibility */
         .suggestion-demo {
             background: white;
             border: 2px solid #3b82f6;
@@ -550,16 +677,16 @@
     <section class="demo-features" id="demo-features">
         <div class="container">
             <div class="section-header">
-                <h2>Weather-Smart Scheduling That Saves You Time & Money</h2>
-                <p>Never get caught in the rain again. See exactly how JobFlowCO helps you plan around weather delays.</p>
+                <h2>Stop Wasting Time on Customer Updates & Weather Changes</h2>
+                <p>The two biggest headaches for outdoor service businesses—solved automatically</p>
             </div>
             <div class="demo-grid">
-                <!-- Weather-Coded Days -->
+                <!-- 1. Weather-Coded Days -->
                 <div class="demo-card">
                     <div class="demo-card-header">
                         <div class="demo-icon">🌤️</div>
-                        <h3>Weather-Coded Days</h3>
-                        <p>Each day is color-coded based on weather conditions. Instantly see which days are perfect for outdoor work!</p>
+                        <h3>See Weather at a Glance</h3>
+                        <p>Color-coded forecast shows you instantly which days are safe to work. No more checking weather apps or getting caught in the rain!</p>
                     </div>
                     <div class="demo-visual">
                         <div class="weather-examples">
@@ -665,51 +792,60 @@
                     </div>
                 </div>
 
-                <!-- Smart Suggestions -->
+                <!-- 2. GPS-Based Arrival Updates -->
                 <div class="demo-card">
                     <div class="demo-card-header">
-                        <div class="demo-icon">🤖</div>
-                        <h3>Smart Suggestions</h3>
-                        <p>When rain is forecast, get automatic suggestions for which jobs to reschedule and when to move them.</p>
+                        <div class="demo-icon">📍</div>
+                        <h3>Auto "On My Way" Texts</h3>
+                        <p>GPS automatically texts customers when you're 10 minutes away. No more "when will you be here?" calls interrupting your work!</p>
                     </div>
                     <div class="demo-visual">
-                        <div class="suggestion-demo">
-                            <div class="suggestion-header">
-                                <span class="badge">Rain</span>
-                                <span style="font-size: 0.75rem; color: #6b7280; font-weight: 600;">Saturday forecast</span>
+                        <div class="phone-mockup">
+                            <div class="phone-screen">
+                                <div class="sms-bubble sms-sent">
+                                    <div class="sms-time">10:23 AM</div>
+                                    <div class="sms-text">Hi Sarah! This is Mike from Green Lawn Co. I'm about 10 minutes away from your property at 123 Oak Street. See you soon!</div>
+                                    <div class="sms-status">✓ Sent automatically via GPS</div>
+                                </div>
+                                <div class="sms-bubble sms-received">
+                                    <div class="sms-time">10:24 AM</div>
+                                    <div class="sms-text">Perfect timing, thanks for letting me know!</div>
+                                </div>
                             </div>
-                            <p style="font-size: 0.8rem; color: #374151;">
-                                💡 Rain expected 10am-2pm. Move 3 jobs to better days?
-                            </p>
-                            <div class="suggestion-buttons">
-                                <button class="demo-btn demo-btn-primary">Accept All</button>
-                                <button class="demo-btn demo-btn-secondary">Dismiss</button>
-                            </div>
+                            <div class="demo-label">Sent when you're 10 min away</div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Route Optimization -->
+                <!-- 3. Mass Weather Alerts -->
                 <div class="demo-card">
                     <div class="demo-card-header">
-                        <div class="demo-icon">🗺️</div>
-                        <h3>Auto Route Optimization</h3>
-                        <p>GPS-based routing automatically arranges jobs in the fastest driving order, saving time and fuel every day.</p>
+                        <div class="demo-icon">📱</div>
+                        <h3>One-Tap Weather Alerts</h3>
+                        <p>Rain forecast? Send professional delay notifications to ALL affected customers with one click. Save hours of calling and texting!</p>
                     </div>
                     <div class="demo-visual">
-                        <div class="route-demo">
-                            <div class="route-item">
-                                <div class="route-icon">❌</div>
-                                <div class="route-text">
-                                    <strong>Before:</strong> Drive 45 min between jobs
+                        <div class="mass-sms-demo">
+                            <div class="alert-banner">
+                                <div class="alert-header">
+                                    <span class="alert-icon">⚠️</span>
+                                    <span class="alert-title">Rain Alert - Monday, Nov 18</span>
+                                </div>
+                                <div class="alert-body">
+                                    <p><strong>8 customers</strong> scheduled for Monday</p>
+                                    <p style="color: #64748b; font-size: 0.85rem; margin-top: 4px;">Heavy rain expected all day</p>
                                 </div>
                             </div>
-                            <div class="route-item">
-                                <div class="route-icon">✅</div>
-                                <div class="route-text">
-                                    <strong>After:</strong> Drive 18 min - save 27 min!
+                            <div class="message-preview">
+                                <div class="preview-label">Message Preview:</div>
+                                <div class="preview-text">
+                                    "Hi! Due to heavy rain in the forecast Monday, we'll need to reschedule your lawn service. We'll reach out with a new date soon. Thanks for understanding!"
                                 </div>
                             </div>
+                            <button class="mass-send-btn">
+                                Send to 8 Customers
+                            </button>
+                            <div class="savings-note">💡 Saves ~20 minutes of manual messaging</div>
                         </div>
                     </div>
                 </div>
