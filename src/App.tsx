@@ -4,6 +4,7 @@ import { InsightsDashboard } from "./components/InsightsDashboard";
 import { CustomerView } from "./components/CustomerView";
 import { Settings } from "./components/Settings";
 import { CalendarView } from "./components/CalendarView";
+import { DemoTutorial } from "./components/DemoTutorial";
 import AuthPage from "./components/AuthPage";
 import {
   Calendar,
@@ -502,6 +503,9 @@ function App() {
       onTouchMove={handlePageTouchMove}
       onTouchEnd={handlePageTouchEnd}
     >
+      {/* Demo Tutorial - only shown in demo mode */}
+      {DEMO_MODE && <DemoTutorial />}
+      
       {/* Desktop Top Navigation Bar - Fixed and full width with vh-based height */}
       <div className="hidden md:block fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 shadow-sm" style={{ height: '5vh', minHeight: '50px' }}>
         <div className="w-full px-4 h-full flex items-center">
