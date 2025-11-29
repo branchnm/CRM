@@ -18,16 +18,14 @@ const tutorialSteps: TutorialStep[] = [
   {
     id: 'welcome',
     title: 'Welcome to JobFlowCO! 🎉',
-    description: 'Let\'s explore the key features. Watch as each feature lights up!',
+    description: 'Let\'s explore the key features with sample data!',
     position: 'top',
     offsetY: 20,
   },
   {
     id: 'weather-cards',
     title: 'Weather-Coded Days',
-    description: 'Blue = rainy, Yellow = sunny. The gradient shows weather changing throughout the day!',
-    targetSelector: '[data-date]', // Targets weather forecast cards
-    animationType: 'glow',
+    description: 'Each day shows weather through color gradients - see the examples below!',
     position: 'top',
     offsetY: 20,
   },
@@ -55,8 +53,8 @@ const tutorialSteps: TutorialStep[] = [
   {
     id: 'bottom-nav',
     title: 'Quick Access Menu',
-    description: 'Jump to Insights, Customers, Calendar, and Settings from here!',
-    targetSelector: 'nav', // Targets bottom navigation
+    description: 'Jump to Insights, Customers, Calendar, and Settings from the bottom bar!',
+    targetSelector: 'nav',
     animationType: 'bounce',
     position: 'top',
     offsetY: 20,
@@ -146,6 +144,66 @@ export function DemoTutorial({ onComplete }: DemoTutorialProps) {
 
   const currentStepData = tutorialSteps[currentStep];
 
+  // Render static weather card examples for the weather-cards step
+  const renderWeatherExamples = () => {
+    if (currentStep !== 1) return null; // Only show on step 2 (weather-cards)
+
+    return (
+      <div className="fixed top-32 left-1/2 -translate-x-1/2 z-[9997] w-[90vw] max-w-2xl">
+        <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-2xl border-2 border-blue-300 p-4">
+          <p className="text-xs text-center text-gray-600 mb-3 font-medium">
+            Weather Gradient Examples
+          </p>
+          <div className="grid grid-cols-3 gap-3">
+            {/* Sunny Day */}
+            <div className="text-center">
+              <div 
+                className="rounded-lg h-32 mb-2 shadow-md flex flex-col items-center justify-center p-2"
+                style={{ background: 'linear-gradient(to bottom, #FEF9C3, #FDE047, #FBBF24)' }}
+              >
+                <div className="text-3xl mb-1">☀️</div>
+                <div className="text-xs font-semibold text-gray-800">Clear & Sunny</div>
+                <div className="text-[10px] text-gray-600 mt-1">All day sunshine</div>
+              </div>
+              <p className="text-xs text-gray-600">Yellow gradient</p>
+            </div>
+
+            {/* Mixed Weather */}
+            <div className="text-center">
+              <div 
+                className="rounded-lg h-32 mb-2 shadow-md flex flex-col items-center justify-center p-2"
+                style={{ background: 'linear-gradient(to bottom, #93C5FD, #E5E7EB, #FEF9C3)' }}
+              >
+                <div className="text-3xl mb-1">⛅</div>
+                <div className="text-xs font-semibold text-gray-800">Clearing Up</div>
+                <div className="text-[10px] text-gray-600 mt-1">Rain → Clouds → Sun</div>
+              </div>
+              <p className="text-xs text-gray-600">Blue to yellow</p>
+            </div>
+
+            {/* Rainy Day */}
+            <div className="text-center">
+              <div 
+                className="rounded-lg h-32 mb-2 shadow-md flex flex-col items-center justify-center p-2"
+                style={{ background: 'linear-gradient(to bottom, #1E3A8A, #3B82F6, #60A5FA)' }}
+              >
+                <div className="text-3xl mb-1">🌧️</div>
+                <div className="text-xs font-semibold text-white">Heavy Rain</div>
+                <div className="text-[10px] text-blue-100 mt-1">Rainy all day</div>
+              </div>
+              <p className="text-xs text-gray-600">Dark blue gradient</p>
+            </div>
+          </div>
+          <div className="mt-3 pt-3 border-t border-gray-200">
+            <p className="text-xs text-center text-gray-500">
+              💡 Darker blue = heavier rain. Light blue = drizzle. Yellow = sunny!
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const handleNext = () => {
     if (currentStep < tutorialSteps.length - 1) {
       setCurrentStep(currentStep + 1);
@@ -184,6 +242,9 @@ export function DemoTutorial({ onComplete }: DemoTutorialProps) {
     <>
       {/* Subtle overlay */}
       <div className="fixed inset-0 bg-black/5 z-[9998] pointer-events-none transition-opacity duration-300" />
+
+      {/* Weather examples display */}
+      {renderWeatherExamples()}
 
       {/* Simple info card - always centered at top */}
       <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[9999] w-[90vw] max-w-md">
@@ -266,17 +327,6 @@ export function DemoTutorial({ onComplete }: DemoTutorialProps) {
 
       {/* CSS animations injected into page */}
       <style>{`
-        @keyframes tutorial-pulse {
-          0%, 100% {
-            transform: scale(1);
-            box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
-          }
-          50% {
-            transform: scale(1.02);
-            box-shadow: 0 0 20px 10px rgba(59, 130, 246, 0.4);
-          }
-        }
-
         @keyframes tutorial-bounce {
           0%, 100% {
             transform: translateY(0);
@@ -288,44 +338,8 @@ export function DemoTutorial({ onComplete }: DemoTutorialProps) {
           }
         }
 
-        @keyframes tutorial-glow {
-          0%, 100% {
-            box-shadow: 0 0 15px 5px rgba(59, 130, 246, 0.6);
-            filter: brightness(1);
-          }
-          50% {
-            box-shadow: 0 0 30px 15px rgba(59, 130, 246, 0.9);
-            filter: brightness(1.1);
-          }
-        }
-
-        @keyframes tutorial-shake {
-          0%, 100% { transform: translateX(0); }
-          25% { transform: translateX(-5px); }
-          75% { transform: translateX(5px); }
-        }
-
-        .tutorial-pulse {
-          animation: tutorial-pulse 2s ease-in-out infinite !important;
-          position: relative !important;
-          z-index: 9997 !important;
-        }
-
         .tutorial-bounce {
           animation: tutorial-bounce 1.5s ease-in-out infinite !important;
-          position: relative !important;
-          z-index: 9997 !important;
-        }
-
-        .tutorial-glow {
-          animation: tutorial-glow 2s ease-in-out infinite !important;
-          position: relative !important;
-          z-index: 9997 !important;
-          border-radius: 12px !important;
-        }
-
-        .tutorial-shake {
-          animation: tutorial-shake 0.5s ease-in-out infinite !important;
           position: relative !important;
           z-index: 9997 !important;
         }
