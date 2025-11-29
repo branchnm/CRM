@@ -1,0 +1,36 @@
+{
+  "routes": [
+    {
+      "src": "/landing.html",
+      "dest": "/landing.html"
+    },
+    {
+      "src": "/privacy-policy.html",
+      "dest": "/privacy-policy.html"
+    },
+    {
+      "src": "/terms-of-service.html",
+      "dest": "/terms-of-service.html"
+    },
+    {
+      "src": "/sms-consent.html",
+      "dest": "/sms-consent.html"
+    },
+    {
+      "src": "/app(.*)",
+      "dest": "/index.html"
+    },
+    {
+      "src": "/(.*\\.(js|css|svg|png|jpg|jpeg|gif|ico|json|woff|woff2))",
+      "dest": "/$1"
+    },
+    {
+      "src": "/",
+      "dest": "/landing.html"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
+  ]
+}

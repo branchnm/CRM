@@ -9,15 +9,6 @@
     <link rel="manifest" href="/manifest.json" />
     <link rel="apple-touch-icon" href="/icon-192.svg" />
     <title>Job Flow</title>
-    <script>
-      // Redirect to landing page unless accessing /app specifically
-      const path = window.location.pathname;
-      const isAppRoute = path.includes('/app') || window.location.search.includes('demo=true');
-      
-      if (!isAppRoute && (path === '/' || path === '/index.html')) {
-        window.location.replace('/landing.html');
-      }
-    </script>
   </head>
   <body>
     <div id="root"></div>
