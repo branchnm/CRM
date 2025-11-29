@@ -12,6 +12,9 @@
             padding: 0;
             box-sizing: border-box;
         }
+        html {
+            scroll-behavior: smooth;
+        }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
             line-height: 1.6;
@@ -171,40 +174,79 @@
             background: #f8fafc;
         }
 
-        /* Weather gradient examples */
+        /* Weather forecast cards - recreating actual app design */
         .weather-examples {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 15px;
+            gap: 20px;
+            max-width: 900px;
+            margin: 0 auto;
         }
         .weather-card {
             border-radius: 12px;
-            padding: 15px;
-            text-align: center;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            min-height: 120px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+            min-height: 400px;
             display: flex;
             flex-direction: column;
-            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+        .weather-card-header {
+            padding: 16px;
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+        .weather-card-date {
+            font-size: 0.875rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 4px;
+        }
+        .weather-card-temp {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: #2563EB;
+        }
+        .weather-card-body {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+            padding: 12px;
+        }
+        .weather-hour {
+            display: flex;
             align-items: center;
-        }
-        .weather-icon {
-            font-size: 2rem;
+            justify-content: space-between;
+            padding: 8px 12px;
+            background: rgba(255,255,255,0.9);
+            border-radius: 8px;
             margin-bottom: 6px;
+            backdrop-filter: blur(5px);
         }
-        .weather-title {
+        .weather-hour-time {
             font-size: 0.75rem;
             font-weight: 600;
-            margin-bottom: 3px;
+            color: #64748b;
         }
-        .weather-subtitle {
-            font-size: 0.65rem;
-            opacity: 0.8;
+        .weather-hour-icon {
+            font-size: 1.25rem;
+        }
+        .weather-hour-temp {
+            font-size: 0.875rem;
+            font-weight: 700;
+            color: #1e293b;
         }
         .weather-label {
-            font-size: 0.7rem;
-            color: #666;
-            margin-top: 8px;
+            text-align: center;
+            font-size: 0.75rem;
+            color: #64748b;
+            margin-top: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
             text-align: center;
         }
 
@@ -488,9 +530,6 @@
         <div class="container">
             <div class="header-content">
                 <div class="logo">JobFlowCO</div>
-                <nav class="header-nav">
-                    <a href="/app" class="nav-btn nav-btn-login">Sign Up / Login</a>
-                </nav>
             </div>
         </div>
     </header>
@@ -524,29 +563,103 @@
                     </div>
                     <div class="demo-visual">
                         <div class="weather-examples">
+                            <!-- Sunny Day -->
                             <div>
-                                <div class="weather-card" style="background: linear-gradient(to bottom, #FEF9C3, #FDE047, #FBBF24);">
-                                    <div class="weather-icon">☀️</div>
-                                    <div class="weather-title" style="color: #78350f;">Clear & Sunny</div>
-                                    <div class="weather-subtitle" style="color: #92400e;">All day sunshine</div>
+                                <div class="weather-card" style="background: linear-gradient(to bottom, rgb(254, 243, 199) 0%, rgb(254, 243, 199) 25%, rgb(254, 243, 199) 50%, rgb(254, 243, 199) 75%, rgb(254, 243, 199) 100%);">
+                                    <div class="weather-card-header">
+                                        <div class="weather-card-date">Saturday</div>
+                                        <div class="weather-card-temp">76°F</div>
+                                    </div>
+                                    <div class="weather-card-body">
+                                        <div class="weather-hour">
+                                            <span class="weather-hour-time">6 AM</span>
+                                            <span class="weather-hour-icon">☀️</span>
+                                            <span class="weather-hour-temp">68°</span>
+                                        </div>
+                                        <div class="weather-hour">
+                                            <span class="weather-hour-time">10 AM</span>
+                                            <span class="weather-hour-icon">☀️</span>
+                                            <span class="weather-hour-temp">74°</span>
+                                        </div>
+                                        <div class="weather-hour">
+                                            <span class="weather-hour-time">2 PM</span>
+                                            <span class="weather-hour-icon">☀️</span>
+                                            <span class="weather-hour-temp">76°</span>
+                                        </div>
+                                        <div class="weather-hour">
+                                            <span class="weather-hour-time">6 PM</span>
+                                            <span class="weather-hour-icon">☀️</span>
+                                            <span class="weather-hour-temp">72°</span>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="weather-label">Yellow gradient</div>
+                                <div class="weather-label">Perfect Work Day</div>
                             </div>
+                            
+                            <!-- Clearing Up Day -->
                             <div>
-                                <div class="weather-card" style="background: linear-gradient(to bottom, #93C5FD, #E5E7EB, #FEF9C3);">
-                                    <div class="weather-icon">⛅</div>
-                                    <div class="weather-title" style="color: #374151;">Clearing Up</div>
-                                    <div class="weather-subtitle" style="color: #6b7280;">Rain → Sun</div>
+                                <div class="weather-card" style="background: linear-gradient(to bottom, rgb(96, 165, 250) 0%, rgb(96, 165, 250) 25%, rgb(209, 213, 219) 50%, rgb(254, 243, 199) 75%, rgb(254, 243, 199) 100%);">
+                                    <div class="weather-card-header">
+                                        <div class="weather-card-date">Sunday</div>
+                                        <div class="weather-card-temp">71°F</div>
+                                    </div>
+                                    <div class="weather-card-body">
+                                        <div class="weather-hour">
+                                            <span class="weather-hour-time">6 AM</span>
+                                            <span class="weather-hour-icon">🌧️</span>
+                                            <span class="weather-hour-temp">65°</span>
+                                        </div>
+                                        <div class="weather-hour">
+                                            <span class="weather-hour-time">10 AM</span>
+                                            <span class="weather-hour-icon">⛅</span>
+                                            <span class="weather-hour-temp">69°</span>
+                                        </div>
+                                        <div class="weather-hour">
+                                            <span class="weather-hour-time">2 PM</span>
+                                            <span class="weather-hour-icon">☀️</span>
+                                            <span class="weather-hour-temp">71°</span>
+                                        </div>
+                                        <div class="weather-hour">
+                                            <span class="weather-hour-time">6 PM</span>
+                                            <span class="weather-hour-icon">☀️</span>
+                                            <span class="weather-hour-temp">70°</span>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="weather-label">Blue to yellow</div>
+                                <div class="weather-label">Afternoon Work Window</div>
                             </div>
+                            
+                            <!-- Rainy Day -->
                             <div>
-                                <div class="weather-card" style="background: linear-gradient(to bottom, #1E3A8A, #3B82F6, #60A5FA);">
-                                    <div class="weather-icon">🌧️</div>
-                                    <div class="weather-title" style="color: white;">Heavy Rain</div>
-                                    <div class="weather-subtitle" style="color: #DBEAFE;">Rainy all day</div>
+                                <div class="weather-card" style="background: linear-gradient(to bottom, rgb(30, 64, 175) 0%, rgb(30, 64, 175) 25%, rgb(37, 99, 235) 50%, rgb(37, 99, 235) 75%, rgb(96, 165, 250) 100%);">
+                                    <div class="weather-card-header">
+                                        <div class="weather-card-date">Monday</div>
+                                        <div class="weather-card-temp">64°F</div>
+                                    </div>
+                                    <div class="weather-card-body">
+                                        <div class="weather-hour">
+                                            <span class="weather-hour-time">6 AM</span>
+                                            <span class="weather-hour-icon">⛈️</span>
+                                            <span class="weather-hour-temp">62°</span>
+                                        </div>
+                                        <div class="weather-hour">
+                                            <span class="weather-hour-time">10 AM</span>
+                                            <span class="weather-hour-icon">🌧️</span>
+                                            <span class="weather-hour-temp">64°</span>
+                                        </div>
+                                        <div class="weather-hour">
+                                            <span class="weather-hour-time">2 PM</span>
+                                            <span class="weather-hour-icon">🌧️</span>
+                                            <span class="weather-hour-temp">65°</span>
+                                        </div>
+                                        <div class="weather-hour">
+                                            <span class="weather-hour-time">6 PM</span>
+                                            <span class="weather-hour-icon">🌧️</span>
+                                            <span class="weather-hour-temp">63°</span>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="weather-label">Dark blue gradient</div>
+                                <div class="weather-label">Reschedule Recommended</div>
                             </div>
                         </div>
                     </div>
