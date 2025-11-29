@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="JobFlowCO - Weather-aware scheduling and business management software for lawn care and outdoor service professionals. Never let weather delays disrupt your business again.">
-    <meta name="keywords" content="lawn care software, landscaping CRM, weather scheduling, outdoor service management, route optimization">
+    <meta name="description" content="JobFlowCO - Weather-aware scheduling and business management software for lawn care and outdoor service professionals.">
+    <meta name="keywords" content="lawn care software, landscaping CRM, weather scheduling, outdoor service management">
     <title>JobFlowCO - Smart Scheduling for Outdoor Service Professionals</title>
     <style>
         * {
@@ -17,19 +17,16 @@
             line-height: 1.6;
             color: #1e293b;
             background: #ffffff;
-            overflow-x: hidden;
         }
         
         /* Header */
         .header {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            box-shadow: 0 2px 20px rgba(0,0,0,0.08);
-            padding: 1.25rem 0;
+            background: white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            padding: 1rem 0;
             position: sticky;
             top: 0;
             z-index: 1000;
-            border-bottom: 1px solid rgba(37, 99, 235, 0.1);
         }
         .container {
             max-width: 1200px;
@@ -44,63 +41,28 @@
         .logo {
             font-size: 1.75rem;
             font-weight: 900;
-            background: linear-gradient(135deg, #2563EB, #1D4ED8, #1E40AF);
+            background: linear-gradient(135deg, #2563EB, #1D4ED8);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            background-clip: text;
-            letter-spacing: -0.02em;
-        }
-        .logo span {
-            font-weight: 300;
-        }
-        .header-contact {
-            display: flex;
-            gap: 2rem;
-            align-items: center;
-        }
-        .header-contact a {
-            color: #2563EB;
-            text-decoration: none;
-            font-weight: 600;
-            font-size: 0.95rem;
-            transition: color 0.2s;
-        }
-        .header-contact a:hover {
-            color: #1D4ED8;
         }
         .header-nav {
             display: flex;
             gap: 1rem;
         }
         .nav-btn {
-            padding: 0.6rem 1.25rem;
+            padding: 0.6rem 1.5rem;
             border-radius: 0.5rem;
             text-decoration: none;
             font-weight: 600;
-            font-size: 0.9rem;
             transition: all 0.2s;
-            display: inline-block;
-            border: 2px solid transparent;
         }
         .nav-btn-demo {
             background: linear-gradient(135deg, #10B981, #059669);
             color: white;
-            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
         }
         .nav-btn-demo:hover {
-            background: linear-gradient(135deg, #059669, #047857);
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
-        }
-        .nav-btn-home {
-            background: linear-gradient(135deg, #6366f1, #4f46e5);
-            color: white;
-            box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
-        }
-        .nav-btn-home:hover {
-            background: linear-gradient(135deg, #4f46e5, #4338ca);
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
         }
         .nav-btn-login {
             background: white;
@@ -111,88 +73,30 @@
             background: #2563EB;
             color: white;
         }
-        
+
         /* Hero Section */
         .hero {
-            background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 50%, #BFDBFE 100%);
-            padding: 5rem 0 6rem;
-            position: relative;
-            overflow: hidden;
-        }
-        .hero::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            right: -10%;
-            width: 600px;
-            height: 600px;
-            background: radial-gradient(circle, rgba(37, 99, 235, 0.1) 0%, transparent 70%);
-            border-radius: 50%;
-        }
-        .hero-content {
-            position: relative;
-            z-index: 1;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 100px 0;
             text-align: center;
-            max-width: 900px;
-            margin: 0 auto;
         }
         .hero h1 {
             font-size: 3.5rem;
             font-weight: 900;
-            color: #1E40AF;
             margin-bottom: 1.5rem;
             line-height: 1.1;
         }
-        .hero-subtitle {
+        .hero p {
             font-size: 1.5rem;
-            color: #475569;
-            margin-bottom: 1rem;
-            font-weight: 500;
-        }
-        .hero-description {
-            font-size: 1.15rem;
-            color: #64748B;
-            margin-bottom: 3rem;
-            line-height: 1.8;
-        }
-        .hero-graphic {
-            margin: 3rem 0;
-            display: flex;
-            justify-content: center;
-            gap: 3rem;
-            flex-wrap: wrap;
-        }
-        .graphic-card {
-            background: white;
-            padding: 2rem;
-            border-radius: 1rem;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            max-width: 280px;
-            text-align: center;
-            transition: transform 0.3s, box-shadow 0.3s;
-        }
-        .graphic-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 40px rgba(0,0,0,0.15);
-        }
-        .graphic-icon {
-            font-size: 4rem;
-            margin-bottom: 1rem;
-        }
-        .graphic-card h3 {
-            color: #1E40AF;
-            font-size: 1.25rem;
-            margin-bottom: 0.75rem;
-        }
-        .graphic-card p {
-            color: #64748B;
-            font-size: 0.95rem;
+            margin-bottom: 2.5rem;
+            opacity: 0.95;
         }
         .cta-buttons {
             display: flex;
             gap: 1.5rem;
             justify-content: center;
-            flex-wrap: wrap;
+            align-items: center;
         }
         .btn {
             padding: 1rem 2.5rem;
@@ -204,552 +108,220 @@
             display: inline-block;
         }
         .btn-primary {
-            background: #2563EB;
-            color: white;
-            box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
+            background: white;
+            color: #667eea;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
         }
         .btn-primary:hover {
-            background: #1D4ED8;
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4);
+            transform: translateY(-3px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.3);
         }
         .btn-secondary {
-            background: white;
-            color: #2563EB;
-            border: 2px solid #2563EB;
+            background: rgba(255,255,255,0.1);
+            color: white;
+            border: 2px solid white;
+            backdrop-filter: blur(10px);
         }
         .btn-secondary:hover {
-            background: #EFF6FF;
-        }
-        
-        /* Demo Animation Section */
-        .demo-section {
-            padding: 5rem 0;
-            background: linear-gradient(135deg, #F8FAFC, #F1F5F9);
-        }
-        .demo-container {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 4rem;
-            margin-top: 3rem;
-        }
-        .demo-box {
             background: white;
-            padding: 2.5rem;
-            border-radius: 1.5rem;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            color: #667eea;
         }
-        .demo-box h3 {
-            color: #1E40AF;
-            font-size: 1.75rem;
-            margin-bottom: 2rem;
+
+        /* Features Grid */
+        .features {
+            padding: 80px 0;
+            background: #f8fafc;
+        }
+        .section-header {
             text-align: center;
+            margin-bottom: 60px;
         }
-        
-        /* Weather Rescheduling Demo */
-        .weather-demo {
-            position: relative;
-        }
-        .weather-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 1rem;
-            margin-bottom: 1.5rem;
-        }
-        .weather-day {
-            background: linear-gradient(135deg, #EFF6FF, #DBEAFE);
-            padding: 1rem;
-            border-radius: 0.75rem;
-            text-align: center;
-            position: relative;
-            min-height: 180px;
-        }
-        .weather-day.rainy {
-            background: linear-gradient(135deg, #F1F5F9, #E2E8F0);
-        }
-        .weather-day.sunny {
-            background: linear-gradient(135deg, #FEF3C7, #FDE68A);
-        }
-        .weather-day-header {
-            font-weight: 700;
-            color: #1E40AF;
-            margin-bottom: 0.5rem;
-            font-size: 0.9rem;
-        }
-        .weather-icon {
+        .section-header h2 {
             font-size: 2.5rem;
-            margin: 0.5rem 0;
+            font-weight: 800;
+            color: #1e293b;
+            margin-bottom: 1rem;
         }
-        .weather-temp {
-            color: #64748B;
-            font-size: 0.85rem;
+        .section-header p {
+            font-size: 1.25rem;
+            color: #64748b;
+        }
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+        .feature-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            transition: all 0.3s;
+        }
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        .feature-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+        .feature-card h3 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1e293b;
             margin-bottom: 0.75rem;
         }
-        .job-card-demo {
-            background: white;
-            padding: 0.5rem;
-            border-radius: 0.5rem;
-            font-size: 0.75rem;
-            color: #1E40AF;
-            font-weight: 600;
-            margin-top: 0.5rem;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            cursor: move;
-            transition: all 0.3s;
-            position: relative;
+        .feature-card p {
+            color: #64748b;
+            line-height: 1.7;
         }
-        .job-card-demo:hover {
-            transform: scale(1.05);
-            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
-        }
-        .job-card-demo.moving {
-            animation: slideRight 2s ease-in-out infinite;
-            opacity: 0.7;
-        }
-        @keyframes slideRight {
-            0%, 100% { transform: translateX(0); }
-            50% { transform: translateX(15px); opacity: 0.5; }
-        }
-        .arrow-hint {
-            position: absolute;
-            right: -2rem;
-            top: 50%;
-            transform: translateY(-50%);
-            font-size: 2rem;
-            animation: pulse 1.5s ease-in-out infinite;
-        }
-        @keyframes pulse {
-            0%, 100% { opacity: 0.3; }
-            50% { opacity: 1; }
-        }
-        
-        /* SMS Communication Demo */
-        .sms-demo {
-            position: relative;
-        }
-        .phone-mockup {
-            background: #1E293B;
-            border-radius: 2rem;
-            padding: 1rem;
-            max-width: 300px;
-            margin: 0 auto;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-        }
-        .phone-screen {
-            background: white;
-            border-radius: 1.5rem;
-            padding: 1.5rem 1rem;
-            min-height: 400px;
-        }
-        .phone-header {
-            text-align: center;
-            color: #64748B;
-            font-size: 0.75rem;
-            margin-bottom: 1.5rem;
-            font-weight: 600;
-        }
-        .sms-message {
-            background: linear-gradient(135deg, #2563EB, #1D4ED8);
-            color: white;
-            padding: 0.75rem 1rem;
-            border-radius: 1rem 1rem 1rem 0.25rem;
-            margin-bottom: 1rem;
-            font-size: 0.85rem;
-            line-height: 1.5;
-            opacity: 0;
-            animation: fadeInMessage 0.5s ease-out forwards;
-            box-shadow: 0 2px 8px rgba(37, 99, 235, 0.2);
-        }
-        .sms-message:nth-child(2) { animation-delay: 0.5s; }
-        .sms-message:nth-child(3) { animation-delay: 1.5s; }
-        .sms-message:nth-child(4) { animation-delay: 3s; }
-        @keyframes fadeInMessage {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        .sms-time {
-            font-size: 0.65rem;
-            opacity: 0.8;
-            margin-top: 0.25rem;
-        }
-        .typing-indicator {
-            display: flex;
-            gap: 0.25rem;
-            padding: 0.5rem 1rem;
-            background: #F1F5F9;
-            border-radius: 1rem;
-            width: fit-content;
-            margin: 1rem 0;
-        }
-        .typing-dot {
-            width: 8px;
-            height: 8px;
-            background: #94A3B8;
-            border-radius: 50%;
-            animation: typingBounce 1.4s infinite;
-        }
-        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
-        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
-        @keyframes typingBounce {
-            0%, 60%, 100% { transform: translateY(0); }
-            30% { transform: translateY(-8px); }
-        }
-        
-        /* Problem/Solution Section */
-        .problem-solution {
-            padding: 5rem 0;
+
+        /* SMS Compliance Section */
+        .compliance {
+            padding: 80px 0;
             background: white;
         }
-        .section-title {
-            text-align: center;
-            font-size: 2.75rem;
-            color: #1E40AF;
-            margin-bottom: 1rem;
-            font-weight: 800;
-        }
-        .section-subtitle {
-            text-align: center;
-            font-size: 1.25rem;
-            color: #64748B;
-            margin-bottom: 4rem;
-            max-width: 700px;
-            margin-left: auto;
-            margin-right: auto;
-        }
-        .two-column {
+        .compliance-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 4rem;
+            gap: 3rem;
             align-items: center;
+            margin-top: 2rem;
         }
-        .problem-box {
-            background: linear-gradient(135deg, #FEF2F2, #FEE2E2);
-            padding: 3rem;
-            border-radius: 1.5rem;
-            border-left: 5px solid #EF4444;
-        }
-        .solution-box {
-            background: linear-gradient(135deg, #F0FDF4, #DCFCE7);
-            padding: 3rem;
-            border-radius: 1.5rem;
-            border-left: 5px solid #22C55E;
-        }
-        .problem-box h3, .solution-box h3 {
+        .compliance-content h3 {
             font-size: 1.75rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 1rem;
+        }
+        .compliance-content p {
+            color: #64748b;
             margin-bottom: 1.5rem;
+            font-size: 1.1rem;
         }
-        .problem-box h3 {
-            color: #DC2626;
-        }
-        .solution-box h3 {
-            color: #16A34A;
-        }
-        .problem-box ul, .solution-box ul {
+        .compliance-list {
             list-style: none;
-            margin-left: 0;
+            margin-top: 1.5rem;
         }
-        .problem-box li, .solution-box li {
+        .compliance-list li {
             padding: 0.75rem 0;
             padding-left: 2rem;
             position: relative;
             color: #475569;
         }
-        .problem-box li::before {
-            content: '✗';
+        .compliance-list li:before {
+            content: "✓";
             position: absolute;
             left: 0;
-            color: #DC2626;
+            color: #10B981;
             font-weight: bold;
             font-size: 1.25rem;
         }
-        .solution-box li::before {
-            content: '✓';
-            position: absolute;
-            left: 0;
-            color: #16A34A;
-            font-weight: bold;
-            font-size: 1.25rem;
+        .compliance-graphic {
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+            border-radius: 1rem;
+            padding: 3rem;
+            text-align: center;
         }
-        
-        /* Features Section */
-        .features {
-            padding: 5rem 0;
-            background: linear-gradient(135deg, #F8FAFC, #F1F5F9);
-        }
-        .feature-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-            gap: 2rem;
-        }
-        .feature-card {
+        .phone-mockup {
             background: white;
-            padding: 2.5rem;
-            border-radius: 1.25rem;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-            transition: transform 0.3s, box-shadow 0.3s;
-        }
-        .feature-card:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 12px 35px rgba(0,0,0,0.15);
-        }
-        .feature-icon {
-            font-size: 3.5rem;
-            margin-bottom: 1.5rem;
-            display: block;
-        }
-        .feature-card h3 {
-            color: #1E40AF;
-            font-size: 1.5rem;
-            margin-bottom: 1rem;
-            font-weight: 700;
-        }
-        .feature-card p {
-            color: #64748B;
-            line-height: 1.7;
-        }
-        
-        /* About Section */
-        .about {
-            padding: 5rem 0;
-            background: white;
-        }
-        .about-content {
-            max-width: 900px;
+            border-radius: 2rem;
+            padding: 2rem;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            max-width: 300px;
             margin: 0 auto;
-            font-size: 1.15rem;
-            color: #475569;
-            line-height: 1.9;
         }
-        .about-content p {
-            margin-bottom: 1.5rem;
-        }
-        .stats {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 3rem;
-            margin: 4rem 0;
-            text-align: center;
-        }
-        .stat-card {
-            padding: 2rem;
-            background: linear-gradient(135deg, #EFF6FF, #DBEAFE);
-            border-radius: 1rem;
-        }
-        .stat-number {
-            font-size: 3rem;
-            font-weight: 900;
-            color: #2563EB;
-            display: block;
-        }
-        .stat-label {
-            color: #475569;
-            font-weight: 600;
-            margin-top: 0.5rem;
-        }
-        
-        /* Services Section */
-        .services {
-            padding: 5rem 0;
-            background: linear-gradient(135deg, #1E40AF, #1E3A8A);
+        .message-bubble {
+            background: #3b82f6;
             color: white;
-        }
-        .services .section-title {
-            color: white;
-        }
-        .services .section-subtitle {
-            color: #BFDBFE;
-        }
-        .service-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 2rem;
-        }
-        .service-card {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            padding: 2rem;
+            padding: 1rem;
             border-radius: 1rem;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            transition: transform 0.3s, background 0.3s;
-        }
-        .service-card:hover {
-            background: rgba(255, 255, 255, 0.15);
-            transform: translateY(-5px);
-        }
-        .service-card h4 {
-            color: #93C5FD;
-            font-size: 1.35rem;
             margin-bottom: 1rem;
-            font-weight: 700;
+            text-align: left;
+            font-size: 0.9rem;
         }
-        .service-card p {
-            color: #E0E7FF;
-            line-height: 1.6;
+        .consent-text {
+            font-size: 0.75rem;
+            color: #64748b;
+            margin-top: 1rem;
+            padding: 0.75rem;
+            background: #f1f5f9;
+            border-radius: 0.5rem;
         }
-        
-        /* Contact Section */
-        .contact {
-            padding: 5rem 0;
-            background: white;
-        }
-        .contact-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 4rem;
-            align-items: start;
-        }
-        .contact-info {
-            background: linear-gradient(135deg, #EFF6FF, #DBEAFE);
-            padding: 3rem;
-            border-radius: 1.5rem;
-        }
-        .contact-item {
-            margin-bottom: 2rem;
-            padding: 1.5rem;
-            background: white;
-            border-radius: 1rem;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-        }
-        .contact-item strong {
-            color: #1E40AF;
-            display: block;
-            font-size: 1.1rem;
-            margin-bottom: 0.75rem;
-        }
-        .contact-item a {
-            color: #2563EB;
-            text-decoration: none;
-        }
-        .contact-item a:hover {
-            text-decoration: underline;
-        }
-        .map-placeholder {
-            background: linear-gradient(135deg, #F1F5F9, #E2E8F0);
-            border-radius: 1.5rem;
-            padding: 3rem;
+
+        /* CTA Section */
+        .cta-section {
+            padding: 80px 0;
+            background: linear-gradient(135deg, #1e40af 0%, #7c3aed 100%);
+            color: white;
             text-align: center;
-            color: #64748B;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
         }
-        .map-placeholder svg {
-            width: 120px;
-            height: 120px;
-            margin-bottom: 1.5rem;
-            opacity: 0.5;
+        .cta-section h2 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
         }
-        
+        .cta-section p {
+            font-size: 1.25rem;
+            margin-bottom: 2rem;
+            opacity: 0.95;
+        }
+
         /* Footer */
         .footer {
-            background: #0F172A;
+            background: #0f172a;
             color: white;
-            padding: 4rem 0 2rem;
+            padding: 60px 0 30px;
         }
         .footer-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            grid-template-columns: 2fr 1fr 1fr 1fr;
             gap: 3rem;
             margin-bottom: 3rem;
         }
-        .footer-section h3 {
-            color: #93C5FD;
+        .footer h3 {
             font-size: 1.25rem;
-            margin-bottom: 1.5rem;
-        }
-        .footer-section p {
-            color: #CBD5E1;
-            line-height: 1.8;
             margin-bottom: 1rem;
+            font-weight: 700;
         }
-        .footer-section a {
-            color: #CBD5E1;
-            text-decoration: none;
+        .footer p {
+            color: #94a3b8;
+            margin-bottom: 1rem;
+            line-height: 1.7;
+        }
+        .footer a {
             display: block;
+            color: #cbd5e1;
+            text-decoration: none;
             margin-bottom: 0.75rem;
             transition: color 0.2s;
         }
-        .footer-section a:hover {
-            color: #93C5FD;
+        .footer a:hover {
+            color: white;
         }
         .footer-bottom {
-            text-align: center;
+            border-top: 1px solid #1e293b;
             padding-top: 2rem;
-            border-top: 1px solid #334155;
-            color: #94A3B8;
+            text-align: center;
+            color: #64748b;
         }
-        
-        /* Responsive */
-        @media (max-width: 968px) {
+
+        @media (max-width: 768px) {
             .hero h1 {
                 font-size: 2.5rem;
             }
-            .two-column,
-            .contact-grid {
-                grid-template-columns: 1fr;
-                gap: 2rem;
-            }
-            .stats {
-                grid-template-columns: 1fr;
-                gap: 2rem;
-            }
-            .header-contact {
-                flex-direction: column;
-                gap: 0.5rem;
-                align-items: flex-end;
-            }
-            .header-content {
-                flex-direction: column;
-                align-items: stretch;
-            }
-            .header-content > div:last-child {
-                flex-direction: column;
-                align-items: center;
-                gap: 1rem;
-            }
-            .header-nav {
-                flex-direction: column;
-                width: 100%;
-            }
-            .nav-btn {
-                text-align: center;
-                width: 100%;
-            }
-            .demo-container {
-                grid-template-columns: 1fr;
-                gap: 3rem;
-            }
-        }
-        @media (max-width: 640px) {
-            .container {
-                padding: 0 1rem;
-            }
-            .hero {
-                padding: 3rem 0 4rem;
-            }
-            .hero h1 {
-                font-size: 2rem;
-            }
-            .hero-subtitle {
-                font-size: 1.25rem;
-            }
-            .section-title {
-                font-size: 2rem;
+            .hero p {
+                font-size: 1.2rem;
             }
             .cta-buttons {
                 flex-direction: column;
             }
-            .btn {
-                width: 100%;
-                text-align: center;
+            .compliance-grid {
+                grid-template-columns: 1fr;
+            }
+            .footer-grid {
+                grid-template-columns: 1fr;
             }
         }
     </style>
@@ -759,18 +331,11 @@
     <header class="header">
         <div class="container">
             <div class="header-content">
-                <div class="logo">JobFlow<span>CO</span></div>
-                <div style="display: flex; gap: 2rem; align-items: center;">
-                    <div class="header-nav">
-                        <a href="/landing.html" class="nav-btn nav-btn-home">Home</a>
-                        <a href="/demo-intro.html" class="nav-btn nav-btn-demo">Try Demo</a>
-                        <a href="/app" class="nav-btn nav-btn-login">Login</a>
-                    </div>
-                    <div class="header-contact">
-                        <a href="mailto:nathan@jobflowco.com">nathan@jobflowco.com</a>
-                        <a href="tel:+12053178212">(205) 317-8212</a>
-                    </div>
-                </div>
+                <div class="logo">JobFlowCO</div>
+                <nav class="header-nav">
+                    <a href="/demo-intro.html" class="nav-btn nav-btn-demo">Try Demo</a>
+                    <a href="/app" class="nav-btn nav-btn-login">Login</a>
+                </nav>
             </div>
         </div>
     </header>
@@ -778,343 +343,90 @@
     <!-- Hero Section -->
     <section class="hero">
         <div class="container">
-            <div class="hero-content">
-                <h1>Weather Delays? Not Anymore.</h1>
-                <p class="hero-subtitle">Smart Business Management for Outdoor Service Professionals</p>
-                <p class="hero-description">
-                    The outdoor service industry thrives on quality service and reliable communication. 
-                    But weather delays disrupt schedules, frustrate customers, and cost you money. 
-                    JobFlowCO changes that with intelligent, weather-aware scheduling that keeps your business running smoothly.
-                </p>
-                
-                <div class="hero-graphic">
-                    <div class="graphic-card">
-                        <div class="graphic-icon">☁️</div>
-                        <h3>Weather Aware</h3>
-                        <p>Automatically adjust schedules based on real-time weather forecasts</p>
-                    </div>
-                    <div class="graphic-card">
-                        <div class="graphic-icon">📱</div>
-                        <h3>Auto Communication</h3>
-                        <p>Keep customers informed with automated SMS updates</p>
-                    </div>
-                    <div class="graphic-card">
-                        <div class="graphic-icon">🗺️</div>
-                        <h3>Route Optimization</h3>
-                        <p>Minimize drive time and maximize jobs per day</p>
-                    </div>
-                </div>
-
-                <div class="cta-buttons">
-                    <a href="/demo-intro.html" class="btn btn-primary">Try Free Demo</a>
-                    <a href="#contact" class="btn btn-secondary">Get In Touch</a>
-                </div>
-                
-                <p style="text-align: center; margin-top: 1.5rem; color: #64748B; font-size: 0.95rem;">
-                    <strong>Demo Mode:</strong> No login required. All data stored locally on your device. 
-                    <a href="/demo-intro.html" style="color: #2563EB; text-decoration: underline; font-weight: 600;">Start exploring now →</a>
-                </p>
+            <h1>Schedule Smarter,<br/>Work Better</h1>
+            <p>Weather-aware scheduling for outdoor service professionals</p>
+            <div class="cta-buttons">
+                <a href="/demo-intro.html" class="btn btn-primary">See How It Works</a>
+                <a href="#contact" class="btn btn-secondary">Get Started</a>
             </div>
         </div>
     </section>
 
-    <!-- Interactive Demo Section -->
-    <section class="demo-section">
+    <!-- Key Features -->
+    <section class="features">
         <div class="container">
-            <h2 class="section-title">See JobFlowCO In Action</h2>
-            <p class="section-subtitle">Watch how our smart features save you time and keep customers happy</p>
-            
-            <div class="demo-container">
-                <!-- Weather Rescheduling Demo -->
-                <div class="demo-box weather-demo">
-                    <h3>🌦️ Weather-Aware Rescheduling</h3>
-                    <p style="text-align: center; color: #64748B; margin-bottom: 1.5rem; font-size: 0.95rem;">
-                        Rain forecast? Simply drag jobs to a better day. Our AI optimizes the route automatically.
-                    </p>
-                    
-                    <div class="weather-grid">
-                        <div class="weather-day">
-                            <div class="weather-day-header">MON</div>
-                            <div class="weather-icon">☀️</div>
-                            <div class="weather-temp">75°F Clear</div>
-                            <div class="job-card-demo">Smith Lawn</div>
-                            <div class="job-card-demo">Oak Ave Property</div>
-                        </div>
-                        
-                        <div class="weather-day rainy">
-                            <div class="weather-day-header">TUE</div>
-                            <div class="weather-icon">🌧️</div>
-                            <div class="weather-temp">68°F Rain</div>
-                            <div class="job-card-demo moving">Johnson Yard
-                                <span class="arrow-hint">→</span>
-                            </div>
-                        </div>
-                        
-                        <div class="weather-day sunny">
-                            <div class="weather-day-header">WED</div>
-                            <div class="weather-icon">🌤️</div>
-                            <div class="weather-temp">72°F Partly Cloudy</div>
-                            <div class="job-card-demo">Pine Dr Lawn</div>
-                        </div>
-                    </div>
-                    
-                    <p style="text-align: center; color: #16A34A; font-weight: 600; font-size: 0.9rem;">
-                        ✓ Jobs automatically reorganized for optimal routing
+            <div class="section-header">
+                <h2>Everything You Need in One Place</h2>
+                <p>Powerful tools designed for lawn care and outdoor service businesses</p>
+            </div>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">🌤️</div>
+                    <h3>Weather Integration</h3>
+                    <p>Automatic schedule adjustments based on 5-day forecasts. Never get caught in the rain again.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📱</div>
+                    <h3>Customer SMS Updates</h3>
+                    <p>Automated text notifications keep clients informed about appointments and schedule changes.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🗺️</div>
+                    <h3>Route Optimization</h3>
+                    <p>GPS-based routing saves time and fuel by organizing jobs in the most efficient order.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SMS Compliance Section -->
+    <section class="compliance">
+        <div class="container">
+            <div class="section-header">
+                <h2>Compliant & Transparent Messaging</h2>
+                <p>We follow all industry regulations for customer communications</p>
+            </div>
+            <div class="compliance-grid">
+                <div class="compliance-content">
+                    <h3>Your Customers Are In Control</h3>
+                    <p>JobFlowCO uses Twilio's secure messaging platform to send appointment updates and weather alerts to your customers.</p>
+                    <ul class="compliance-list">
+                        <li>Customers opt-in before receiving any messages</li>
+                        <li>Clear opt-out instructions in every text</li>
+                        <li>Data privacy and security guaranteed</li>
+                        <li>TCPA and CTIA compliant messaging</li>
+                        <li>No spam - only relevant job updates</li>
+                    </ul>
+                    <p style="margin-top: 1.5rem;">
+                        <a href="/sms-consent.html" style="color: #2563EB; font-weight: 600;">Learn more about our SMS policies →</a>
                     </p>
                 </div>
-                
-                <!-- SMS Communication Demo -->
-                <div class="demo-box sms-demo">
-                    <h3>📱 Automated Customer Updates</h3>
-                    <p style="text-align: center; color: #64748B; margin-bottom: 1.5rem; font-size: 0.95rem;">
-                        Keep customers informed with professional SMS updates. No more phone calls.
-                    </p>
-                    
+                <div class="compliance-graphic">
                     <div class="phone-mockup">
-                        <div class="phone-screen">
-                            <div class="phone-header">Messages from JobFlowCO</div>
-                            
-                            <div class="sms-message">
-                                Hi John! This is Nathan from JobFlowCO. We're scheduled to service your lawn tomorrow at 10 AM. See you then!
-                                <div class="sms-time">Yesterday 4:30 PM</div>
-                            </div>
-                            
-                            <div class="sms-message">
-                                Good morning! We're on our way to your property. Should arrive in about 15 minutes.
-                                <div class="sms-time">Today 9:45 AM</div>
-                            </div>
-                            
-                            <div class="sms-message">
-                                All done! Your lawn looks great. Invoice sent to john.smith@email.com. Thanks for choosing JobFlowCO!
-                                <div class="sms-time">Today 10:30 AM</div>
-                            </div>
-                            
-                            <div class="sms-message">
-                                Weather update: Rain forecast for Tuesday. We've rescheduled your service to Wednesday at 10 AM. Reply CONFIRM to approve.
-                                <div class="sms-time">Today 2:15 PM</div>
-                            </div>
+                        <div style="font-weight: 700; margin-bottom: 1.5rem; color: #1e293b;">Sample Messages</div>
+                        <div class="message-bubble">
+                            📅 Your lawn service is scheduled for tomorrow at 10 AM. Reply STOP to opt out.
+                        </div>
+                        <div class="message-bubble">
+                            ⚠️ Weather alert: Rain forecast for your scheduled date. We'll reschedule and notify you.
+                        </div>
+                        <div class="consent-text">
+                            ✓ Customers consent to receive messages<br/>
+                            ✓ Easy opt-out anytime (text STOP)<br/>
+                            ✓ Secure & private communication
                         </div>
                     </div>
-                    
-                    <p style="text-align: center; color: #16A34A; font-weight: 600; font-size: 0.9rem; margin-top: 1.5rem;">
-                        ✓ Professional communication without lifting a finger
-                    </p>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- Problem/Solution Section -->
-    <section class="problem-solution">
+    <!-- CTA Section -->
+    <section class="cta-section">
         <div class="container">
-            <h2 class="section-title">The Challenge Outdoor Services Face</h2>
-            <p class="section-subtitle">
-                Quality service and communication are the foundation of success in the outdoor industry. 
-                Weather delays shouldn't break that foundation.
-            </p>
-            
-            <div class="two-column">
-                <div class="problem-box">
-                    <h3>❌ Traditional Problems</h3>
-                    <ul>
-                        <li>Weather delays disrupt entire schedules</li>
-                        <li>Manual rescheduling wastes hours</li>
-                        <li>Customers left wondering when you'll arrive</li>
-                        <li>Inefficient routes increase fuel costs</li>
-                        <li>Missed communications damage reputation</li>
-                        <li>No visibility into business performance</li>
-                    </ul>
-                </div>
-                
-                <div class="solution-box">
-                    <h3>✓ JobFlowCO Solutions</h3>
-                    <ul>
-                        <li>Weather-aware scheduling adapts automatically</li>
-                        <li>One-click rescheduling saves time</li>
-                        <li>Automated SMS keeps customers updated</li>
-                        <li>AI-powered route optimization</li>
-                        <li>Professional communication templates</li>
-                        <li>Real-time business analytics dashboard</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Features Section -->
-    <section class="features" id="features">
-        <div class="container">
-            <h2 class="section-title">Powerful Features Built for Your Business</h2>
-            <p class="section-subtitle">Everything you need to run a professional outdoor service company</p>
-            
-            <div class="feature-grid">
-                <div class="feature-card">
-                    <span class="feature-icon">🌤️</span>
-                    <h3>Weather-Aware Scheduling</h3>
-                    <p>5-day weather forecast integration automatically adjusts your schedule. Drag and drop jobs to better weather days with a single click.</p>
-                </div>
-                
-                <div class="feature-card">
-                    <span class="feature-icon">🗺️</span>
-                    <h3>Smart Route Optimization</h3>
-                    <p>AI-powered routing minimizes drive time and fuel costs. Automatically organize jobs by location for maximum efficiency.</p>
-                </div>
-                
-                <div class="feature-card">
-                    <span class="feature-icon">👥</span>
-                    <h3>Complete Customer Management</h3>
-                    <p>Store all customer details, property information, service history, and preferences in one organized system.</p>
-                </div>
-                
-                <div class="feature-card">
-                    <span class="feature-icon">💬</span>
-                    <h3>Automated SMS Messaging</h3>
-                    <p>Send professional updates when you're on the way, when jobs are complete, or when weather changes plans. Keep customers informed automatically.</p>
-                </div>
-                
-                <div class="feature-card">
-                    <span class="feature-icon">📊</span>
-                    <h3>Business Intelligence</h3>
-                    <p>Real-time analytics show revenue trends, job completion rates, and growth opportunities. Make data-driven decisions.</p>
-                </div>
-                
-                <div class="feature-card">
-                    <span class="feature-icon">📱</span>
-                    <h3>Mobile-First Design</h3>
-                    <p>Access your entire business from your phone. Update jobs, communicate with customers, and manage schedules on the go.</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- About Section -->
-    <section class="about">
-        <div class="container">
-            <h2 class="section-title">About JobFlowCO</h2>
-            
-            <div class="about-content">
-                <p>
-                    <strong>JobFlowCO was born from real frustration.</strong> As outdoor service professionals ourselves, 
-                    we experienced firsthand the chaos of weather delays, the time wasted on manual rescheduling, 
-                    and the frustration of disappointed customers who didn't know when we'd arrive.
-                </p>
-                <p>
-                    The outdoor service industry is built on <strong>quality service and reliable communication</strong>. 
-                    Your reputation depends on showing up when you say you will and keeping customers informed. 
-                    But Mother Nature doesn't check your schedule, and traditional tools weren't designed for businesses 
-                    that live and die by the weather forecast.
-                </p>
-                <p>
-                    We created JobFlowCO to solve this. It's a comprehensive business management platform specifically 
-                    designed for lawn care, landscaping, and outdoor service professionals who need to stay ahead of 
-                    weather changes while maintaining professional communication with their customers.
-                </p>
-            </div>
-
-            <div class="stats">
-                <div class="stat-card">
-                    <span class="stat-number">40%</span>
-                    <span class="stat-label">Time Saved on Scheduling</span>
-                </div>
-                <div class="stat-card">
-                    <span class="stat-number">95%</span>
-                    <span class="stat-label">Customer Satisfaction</span>
-                </div>
-                <div class="stat-card">
-                    <span class="stat-number">25%</span>
-                    <span class="stat-label">More Jobs Per Day</span>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Services Section -->
-    <section class="services">
-        <div class="container">
-            <h2 class="section-title">Industries We Serve</h2>
-            <p class="section-subtitle">Tailored solutions for every outdoor service professional</p>
-            
-            <div class="service-grid">
-                <div class="service-card">
-                    <h4>🌱 Lawn Care & Mowing</h4>
-                    <p>Complete scheduling, routing, and customer management for residential and commercial lawn maintenance services.</p>
-                </div>
-                
-                <div class="service-card">
-                    <h4>🏡 Landscaping & Design</h4>
-                    <p>Project management tools for installations, hardscaping, garden design, and ongoing maintenance programs.</p>
-                </div>
-                
-                <div class="service-card">
-                    <h4>❄️ Snow Removal & Ice Management</h4>
-                    <p>Seasonal scheduling with weather alerts, route optimization for plowing, and emergency response coordination.</p>
-                </div>
-                
-                <div class="service-card">
-                    <h4>🏢 Property Maintenance</h4>
-                    <p>Multi-service coordination for comprehensive property care including landscaping, cleaning, and repairs.</p>
-                </div>
-                
-                <div class="service-card">
-                    <h4>🌳 Tree Care & Arborist Services</h4>
-                    <p>Specialized job tracking for tree trimming, removal, stump grinding, and plant health care programs.</p>
-                </div>
-                
-                <div class="service-card">
-                    <h4>💧 Irrigation & Sprinkler Services</h4>
-                    <p>Service scheduling for installation, repair, winterization, and spring startup of irrigation systems.</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Contact Section -->
-    <section class="contact" id="contact">
-        <div class="container">
-            <h2 class="section-title">Get In Touch</h2>
-            <p class="section-subtitle">Ready to streamline your outdoor service business? We're here to help.</p>
-            
-            <div class="contact-grid">
-                <div class="contact-info">
-                    <div class="contact-item">
-                        <strong>Company Name</strong>
-                        JobFlowCO
-                    </div>
-                    
-                    <div class="contact-item">
-                        <strong>Email</strong>
-                        <a href="mailto:nathan@jobflowco.com">nathan@jobflowco.com</a>
-                    </div>
-                    
-                    <div class="contact-item">
-                        <strong>Phone</strong>
-                        <a href="tel:+12053178212">(205) 317-8212</a>
-                    </div>
-                    
-                    <div class="contact-item">
-                        <strong>Business Address</strong>
-                        339 Cherry Street<br>
-                        Birmingham, AL 35213<br>
-                        United States
-                    </div>
-                    
-                    <div class="contact-item">
-                        <strong>Business Hours</strong>
-                        Monday - Friday: 8:00 AM - 6:00 PM CST<br>
-                        Saturday: 9:00 AM - 3:00 PM CST<br>
-                        Sunday: Closed
-                    </div>
-                </div>
-                
-                <div class="map-placeholder">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                    <h3 style="color: #475569; margin-bottom: 1rem;">Serving Birmingham & Surrounding Areas</h3>
-                    <p>339 Cherry Street, Birmingham, AL 35213</p>
-                </div>
-            </div>
+            <h2>Ready to Transform Your Business?</h2>
+            <p>Try JobFlowCO free with sample data - no credit card required</p>
+            <a href="/demo-intro.html" class="btn btn-primary">Explore the Demo</a>
         </div>
     </section>
 
@@ -1122,48 +434,33 @@
     <footer class="footer">
         <div class="container">
             <div class="footer-grid">
-                <div class="footer-section">
+                <div>
                     <h3>JobFlowCO</h3>
-                    <p>Smart business management software for lawn care and outdoor service professionals. Stop letting weather delays disrupt your business.</p>
-                    <p style="margin-top: 1.5rem;">
-                        <strong>Phone:</strong> <a href="tel:+12053178212" style="color: #93C5FD;">(205) 317-8212</a><br>
-                        <strong>Email:</strong> <a href="mailto:nathan@jobflowco.com" style="color: #93C5FD;">nathan@jobflowco.com</a>
+                    <p>Smart scheduling software for outdoor service professionals. Built by lawn care operators, for lawn care operators.</p>
+                    <p style="color: #64748b; font-size: 0.9rem; margin-top: 1.5rem;">
+                        © 2024 JobFlowCO. All rights reserved.
                     </p>
                 </div>
-                
-                <div class="footer-section">
-                    <h3>Get Started</h3>
-                    <a href="/demo-intro.html" style="background: linear-gradient(135deg, #10B981, #059669); color: white; padding: 0.75rem 1.5rem; border-radius: 0.5rem; font-weight: 700; margin-bottom: 1rem; text-align: center;">🎯 Try Free Demo</a>
-                    <p style="font-size: 0.85rem; margin-top: 0.5rem;">No login required • Works offline • Sample data included</p>
-                    <a href="/app" style="margin-top: 1rem;">Login to Your Account</a>
-                    <a href="/app">Create New Account</a>
-                </div>
-                
-                <div class="footer-section">
-                    <h3>Quick Links</h3>
+                <div>
+                    <h3>Product</h3>
+                    <a href="/demo-intro.html">Try Demo</a>
+                    <a href="/app">Login</a>
                     <a href="#features">Features</a>
-                    <a href="#about">About Us</a>
-                    <a href="#services">Services</a>
-                    <a href="#contact">Contact</a>
                 </div>
-                
-                <div class="footer-section">
+                <div>
                     <h3>Legal</h3>
                     <a href="/privacy-policy.html">Privacy Policy</a>
                     <a href="/terms-of-service.html">Terms of Service</a>
-                    <a href="/sms-consent.html">SMS Consent Policy</a>
+                    <a href="/sms-consent.html">SMS Policies</a>
                 </div>
-                
-                <div class="footer-section">
-                    <h3>Support</h3>
-                    <a href="mailto:nathan@jobflowco.com">Email Support</a>
-                    <a href="tel:+12053178212">Phone Support</a>
-                    <p style="margin-top: 1rem;">Business Hours:<br>Mon-Fri: 8am-6pm CST<br>Sat: 9am-3pm CST</p>
+                <div id="contact">
+                    <h3>Contact</h3>
+                    <p><strong>Email:</strong><br/><a href="mailto:nathan@jobflowco.com">nathan@jobflowco.com</a></p>
+                    <p><strong>Phone:</strong><br/><a href="tel:+12055586051">(205) 558-6051</a></p>
                 </div>
             </div>
-            
             <div class="footer-bottom">
-                <p>&copy; 2025 JobFlowCO. All rights reserved. | 339 Cherry Street, Birmingham, AL 35213</p>
+                <p>JobFlowCO uses Twilio for secure, compliant customer messaging.</p>
             </div>
         </div>
     </footer>
