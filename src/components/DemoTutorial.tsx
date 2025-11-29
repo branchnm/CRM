@@ -108,65 +108,75 @@ export function DemoTutorial({ onComplete }: DemoTutorialProps) {
       const step = tutorialSteps[currentStep];
       
       if (step.targetSelector) {
-        // Find the target element
+        // Find the target element with retry logic
         const target = document.querySelector(step.targetSelector);
         if (target) {
           const rect = target.getBoundingClientRect();
-          setTargetPosition({
-            top: rect.top,
-            left: rect.left,
-            width: rect.width,
-            height: rect.height,
-          });
+          
+          // Only update if element is visible (has dimensions)
+          if (rect.width > 0 && rect.height > 0) {
+            setTargetPosition({
+              top: rect.top,
+              left: rect.left,
+              width: rect.width,
+              height: rect.height,
+            });
 
-          // Position popup relative to target
-          let top = 0;
-          let left = 0;
+            // Position popup relative to target
+            let top = 0;
+            let left = 0;
+            const popupWidth = 384; // max-w-sm is roughly 384px
 
-          switch (step.position) {
-            case 'top':
-              top = rect.top - 180; // Above target
-              left = rect.left + rect.width / 2 - 192; // Center (assuming 384px popup width)
-              break;
-            case 'bottom':
-              top = rect.bottom + 20; // Below target
-              left = rect.left + rect.width / 2 - 192;
-              break;
-            case 'left':
-              top = rect.top + rect.height / 2 - 75;
-              left = rect.left - 404; // Left of target (384px + 20px gap)
-              break;
-            case 'right':
-              top = rect.top + rect.height / 2 - 75;
-              left = rect.right + 20;
-              break;
-            case 'top-left':
-              top = rect.top - 180;
-              left = rect.left;
-              break;
-            case 'top-right':
-              top = rect.top - 180;
-              left = rect.right - 384;
-              break;
-            case 'bottom-left':
-              top = rect.bottom + 20;
-              left = rect.left;
-              break;
-            case 'bottom-right':
-              top = rect.bottom + 20;
-              left = rect.right - 384;
-              break;
+            switch (step.position) {
+              case 'top':
+                top = rect.top - 180; // Above target
+                left = rect.left + rect.width / 2 - popupWidth / 2;
+                break;
+              case 'bottom':
+                top = rect.bottom + 20; // Below target
+                left = rect.left + rect.width / 2 - popupWidth / 2;
+                break;
+              case 'left':
+                top = rect.top + rect.height / 2 - 75;
+                left = rect.left - popupWidth - 20;
+                break;
+              case 'right':
+                top = rect.top + rect.height / 2 - 75;
+                left = rect.right + 20;
+                break;
+              case 'top-left':
+                top = rect.top - 180;
+                left = rect.left;
+                break;
+              case 'top-right':
+                top = rect.top - 180;
+                left = rect.right - popupWidth;
+                break;
+              case 'bottom-left':
+                top = rect.bottom + 20;
+                left = rect.left;
+                break;
+              case 'bottom-right':
+                top = rect.bottom + 20;
+                left = rect.right - popupWidth;
+                break;
+            }
+
+            // Ensure popup stays within viewport
+            top = Math.max(20, Math.min(top, window.innerHeight - 250));
+            left = Math.max(20, Math.min(left, window.innerWidth - popupWidth - 20));
+
+            setPopupPosition({
+              top: top + (step.offsetY || 0),
+              left: left + (step.offsetX || 0),
+            });
+            return;
           }
-
-          setPopupPosition({
-            top: top + (step.offsetY || 0),
-            left: left + (step.offsetX || 0),
-          });
-        } else {
-          setTargetPosition(null);
-          // Fallback to static position if target not found
-          setStaticPosition(step);
         }
+        
+        // If target not found or not visible, use static position
+        setTargetPosition(null);
+        setStaticPosition(step);
       } else {
         setTargetPosition(null);
         setStaticPosition(step);
@@ -180,12 +190,40 @@ export function DemoTutorial({ onComplete }: DemoTutorialProps) {
         'top-right': { top: step.offsetY || 80, left: window.innerWidth - (step.offsetX || 20) - 384 },
         'bottom-left': { top: window.innerHeight - (step.offsetY || 200), left: step.offsetX || 20 },
         'bottom-right': { top: window.innerHeight - (step.offsetY || 200), left: window.innerWidth - (step.offsetX || 20) - 384 },
+        'top': { top: step.offsetY || 80, left: Math.max(20, (window.innerWidth - 384) / 2) },
+        'bottom': { top: window.innerHeight - (step.offsetY || 200), left: Math.max(20, (window.innerWidth - 384) / 2) },
+        'left': { top: Math.max(20, (window.innerHeight - 200) / 2), left: step.offsetX || 20 },
+        'right': { top: Math.max(20, (window.innerHeight - 200) / 2), left: window.innerWidth - (step.offsetX || 20) - 384 },
       };
 
       setPopupPosition(positions[step.position] || { top: 80, left: 20 });
     };
 
     updatePosition();
+    
+    // If target selector exists but element not found, retry a few times
+    const step = tutorialSteps[currentStep];
+    if (step.targetSelector) {
+      const retryInterval = setInterval(() => {
+        const target = document.querySelector(step.targetSelector!);
+        if (target) {
+          updatePosition();
+          clearInterval(retryInterval);
+        }
+      }, 200); // Check every 200ms
+
+      // Stop retrying after 2 seconds
+      const timeout = setTimeout(() => {
+        clearInterval(retryInterval);
+      }, 2000);
+
+      return () => {
+        clearInterval(retryInterval);
+        clearTimeout(timeout);
+        window.removeEventListener('scroll', updatePosition);
+        window.removeEventListener('resize', updatePosition);
+      };
+    }
     
     // Recalculate on scroll and resize
     window.addEventListener('scroll', updatePosition);
