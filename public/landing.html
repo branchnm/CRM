@@ -391,6 +391,30 @@
             font-size: 1rem;
             opacity: 0.9;
         }
+        .sms-customer-list {
+            margin-top: 16px;
+            text-align: left;
+        }
+        .sms-customer {
+            background: rgba(255,255,255,0.2);
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin-bottom: 6px;
+            opacity: 0;
+            transform: translateX(-20px);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .sms-customer.sent {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        .sms-customer .checkmark {
+            color: #10b981;
+            font-weight: bold;
+        }
             left: 50%;
             transform: translate(-50%, -50%) scale(0);
             background: white;
@@ -1091,7 +1115,7 @@
                 <div class="app-demo-screen">
                     <!-- Simple Weather Forecast -->
                     <div class="demo-forecast-bar">
-                        <div class="forecast-day-card">
+                        <div class="forecast-day-card active">
                             <div class="day-name">Today</div>
                             <div class="day-icon">☀️</div>
                             <div class="day-temp">76°</div>
@@ -1103,7 +1127,7 @@
                             <div class="day-temp">74°</div>
                             <div class="forecast-gradient cloudy"></div>
                         </div>
-                        <div class="forecast-day-card active">
+                        <div class="forecast-day-card" data-rainy="true">
                             <div class="day-name">Sunday</div>
                             <div class="day-icon">🌧️</div>
                             <div class="day-temp">68°</div>
@@ -1125,28 +1149,28 @@
 
                     <!-- Jobs List -->
                     <div class="day-cards-container">
-                        <h3 class="jobs-header">Sunday's Schedule</h3>
+                        <h3 class="jobs-header">Today's Schedule</h3>
                         <div class="jobs-list">
                             <div class="demo-job" data-job="1">
                                 <div class="job-info">
                                     <div class="job-customer">Johnson Residence</div>
-                                    <div class="job-time">⏰ 9:00 AM - Sunday</div>
+                                    <div class="job-time">⏰ 9:00 AM - <span class="job-day">Today</span></div>
                                 </div>
-                                <div class="job-weather-indicator bad">🌧️</div>
+                                <div class="job-weather-indicator good">☀️</div>
                             </div>
                             <div class="demo-job" data-job="2">
                                 <div class="job-info">
                                     <div class="job-customer">Smith Property</div>
-                                    <div class="job-time">⏰ 11:00 AM - Sunday</div>
+                                    <div class="job-time">⏰ 11:00 AM - <span class="job-day">Today</span></div>
                                 </div>
-                                <div class="job-weather-indicator bad">🌧️</div>
+                                <div class="job-weather-indicator good">☀️</div>
                             </div>
                             <div class="demo-job" data-job="3">
                                 <div class="job-info">
                                     <div class="job-customer">Brown Lawn Care</div>
-                                    <div class="job-time">⏰ 2:00 PM - Sunday</div>
+                                    <div class="job-time">⏰ 2:00 PM - <span class="job-day">Today</span></div>
                                 </div>
-                                <div class="job-weather-indicator bad">🌧️</div>
+                                <div class="job-weather-indicator good">☀️</div>
                             </div>
                         </div>
 
@@ -1166,9 +1190,22 @@
 
                         <!-- SMS Notification Popup -->
                         <div class="sms-notification-popup">
-                            <div class="sms-icon">✓</div>
-                            <div class="sms-title">Customers Notified</div>
-                            <div class="sms-message">3 automated messages sent about schedule changes</div>
+                            <div class="sms-icon">📱</div>
+                            <div class="sms-title">Sending Messages...</div>
+                            <div class="sms-customer-list">
+                                <div class="sms-customer" data-customer="1">
+                                    <span>✓</span>
+                                    <span>Johnson Residence</span>
+                                </div>
+                                <div class="sms-customer" data-customer="2">
+                                    <span>✓</span>
+                                    <span>Smith Property</span>
+                                </div>
+                                <div class="sms-customer" data-customer="3">
+                                    <span>✓</span>
+                                    <span>Brown Lawn Care</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -1326,28 +1363,43 @@
                 const jobs = document.querySelectorAll('.demo-job');
                 const gradients = document.querySelectorAll('.forecast-gradient');
                 const forecastCards = document.querySelectorAll('.forecast-day-card');
+                const jobsHeader = document.querySelector('.jobs-header');
+                const smsCustomers = document.querySelectorAll('.sms-customer');
+                const smsTitle = smsNotification.querySelector('.sms-title');
 
                 // Reset all
                 steps.forEach(s => s.classList.remove('active'));
                 weatherAlert.classList.remove('show');
                 smsNotification.classList.remove('show');
-                jobs.forEach(job => {
+                smsCustomers.forEach(c => c.classList.remove('sent'));
+                jobsHeader.textContent = "Today's Schedule";
+                
+                jobs.forEach((job, i) => {
                     job.style.opacity = '1';
                     job.style.transform = 'translateX(0)';
                     job.classList.remove('moving');
+                    const indicator = job.querySelector('.job-weather-indicator');
+                    const daySpan = job.querySelector('.job-day');
+                    if (indicator) {
+                        indicator.className = 'job-weather-indicator good';
+                        indicator.textContent = '☀️';
+                    }
+                    if (daySpan) daySpan.textContent = 'Today';
                 });
+                
                 gradients.forEach(g => {
                     g.style.transform = 'scaleX(1)';
                     g.style.height = '8px';
                 });
-                forecastCards.forEach(card => {
-                    if (!card.classList.contains('active')) {
-                        card.style.transform = 'scale(1)';
-                        card.style.boxShadow = '';
-                    }
+                
+                forecastCards.forEach((card, i) => {
+                    card.classList.remove('active');
+                    card.style.transform = 'scale(1)';
+                    card.style.boxShadow = '';
                 });
+                forecastCards[0].classList.add('active');
 
-                // Step 1: Animate weather gradients (0-4s)
+                // Step 1: Show sunny forecast and gradients (0-4s)
                 setTimeout(() => {
                     steps[0].classList.add('active');
                     
@@ -1361,30 +1413,50 @@
                                 gradient.style.transform = 'scaleX(1)';
                                 gradient.style.height = '8px';
                             }, 600);
-                        }, i * 300);
+                        }, i * 250);
                     });
 
-                    // Highlight Sunday (rainy day)
+                    // Highlight Today (sunny)
                     setTimeout(() => {
-                        forecastCards[2].style.transition = 'all 0.5s ease';
-                        forecastCards[2].style.transform = 'scale(1.1)';
-                        forecastCards[2].style.boxShadow = '0 8px 20px rgba(59, 130, 246, 0.4)';
-                    }, 2000);
+                        forecastCards[0].style.transition = 'all 0.5s ease';
+                        forecastCards[0].style.transform = 'scale(1.08)';
+                        forecastCards[0].style.boxShadow = '0 8px 20px rgba(251, 191, 36, 0.4)';
+                    }, 1800);
                 }, 100);
 
-                // Step 2: Show weather alert and highlight jobs (4-8s)
+                // Step 2: Switch to Sunday rainy day and show alert (4-8s)
                 setTimeout(() => {
                     steps[0].classList.remove('active');
                     steps[1].classList.add('active');
                     
-                    // Reset forecast card to active state
-                    forecastCards[2].style.transform = 'scale(1.05)';
-                    forecastCards[2].style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.2)';
+                    // Switch active day from Today to Sunday
+                    forecastCards[0].classList.remove('active');
+                    forecastCards[0].style.transform = 'scale(1)';
+                    forecastCards[0].style.boxShadow = '';
+                    
+                    setTimeout(() => {
+                        forecastCards[2].classList.add('active');
+                        forecastCards[2].style.transition = 'all 0.5s ease';
+                        forecastCards[2].style.transform = 'scale(1.08)';
+                        forecastCards[2].style.boxShadow = '0 8px 20px rgba(59, 130, 246, 0.4)';
+                        
+                        // Update header and jobs to Sunday
+                        jobsHeader.textContent = "Sunday's Schedule";
+                        jobs.forEach(job => {
+                            const indicator = job.querySelector('.job-weather-indicator');
+                            const daySpan = job.querySelector('.job-day');
+                            if (indicator) {
+                                indicator.className = 'job-weather-indicator bad';
+                                indicator.textContent = '🌧️';
+                            }
+                            if (daySpan) daySpan.textContent = 'Sunday';
+                        });
+                    }, 300);
                     
                     // Show weather alert
                     setTimeout(() => {
                         weatherAlert.classList.add('show');
-                    }, 300);
+                    }, 800);
 
                     // Pulse weather indicators on jobs
                     setTimeout(() => {
@@ -1400,10 +1472,10 @@
                                 }
                             }, i * 200);
                         });
-                    }, 800);
+                    }, 1400);
                 }, stepDuration);
 
-                // Step 3: Reschedule jobs and show SMS notification (8-12s)
+                // Step 3: Reschedule jobs and animate SMS sending (8-12s)
                 setTimeout(() => {
                     steps[1].classList.remove('active');
                     steps[2].classList.add('active');
@@ -1415,13 +1487,26 @@
                             job.classList.add('moving');
                             job.style.transform = 'translateX(-100px)';
                             job.style.opacity = '0';
-                        }, i * 300);
+                        }, i * 250);
                     });
 
-                    // Show SMS notification after jobs move
+                    // Show SMS notification popup
                     setTimeout(() => {
                         smsNotification.classList.add('show');
-                    }, 1200);
+                        smsTitle.textContent = 'Sending Messages...';
+                        
+                        // Animate each customer message being sent
+                        smsCustomers.forEach((customer, i) => {
+                            setTimeout(() => {
+                                customer.classList.add('sent');
+                            }, i * 400);
+                        });
+                        
+                        // Update title when all sent
+                        setTimeout(() => {
+                            smsTitle.textContent = 'All Customers Notified ✓';
+                        }, smsCustomers.length * 400 + 200);
+                    }, 1000);
                 }, stepDuration * 2);
 
                 // Step 4: Reset and loop (12-14s)
