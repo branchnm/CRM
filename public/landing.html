@@ -139,10 +139,39 @@
             color: white;
             border: 2px solid white;
             backdrop-filter: blur(10px);
+            animation: bounce 2s ease-in-out 3.5s 3;
         }
         .btn-secondary:hover {
             background: white;
-            color: #667eea;
+            color: #3b82f6;
+            animation: none;
+        }
+        
+        /* Scroll Indicator */
+        .scroll-indicator {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+            opacity: 0;
+            animation: fadeInUp 0.6s ease-out 4.5s forwards;
+        }
+        .scroll-text {
+            color: white;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+            letter-spacing: 0.5px;
+        }
+        .scroll-arrow {
+            font-size: 2rem;
+            color: white;
+            animation: float 2s ease-in-out infinite;
+            display: block;
+        }
+        .hero {
+            position: relative;
         }
 
         /* Features Section with Visual Demos */
@@ -666,6 +695,27 @@
             to {
                 opacity: 1;
                 transform: scale(1);
+            }
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% {
+                transform: translateY(0);
+            }
+            40% {
+                transform: translateY(-15px);
+            }
+            60% {
+                transform: translateY(-8px);
+            }
+        }
+
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0px);
+            }
+            50% {
+                transform: translateY(-10px);
             }
         }
 
@@ -1428,7 +1478,7 @@
 </head>
 <body>
     <!-- Header -->
-    <header class="header">
+    <header class="header" style="display: none;">
         <div class="container">
             <div class="header-content">
                 <div class="logo">JobFlowCO</div>
@@ -1449,6 +1499,10 @@
                 <a href="#demo-features" class="btn btn-secondary">See How It Works</a>
                 <a href="/app" class="btn btn-primary">Sign Up / Login</a>
             </div>
+            <div class="scroll-indicator">
+                <div class="scroll-text">Watch the Demo Below</div>
+                <span class="scroll-arrow">↓</span>
+            </div>
         </div>
     </section>
 
@@ -1457,7 +1511,6 @@
         <div class="container">
             <div class="section-header">
                 <h2>See JobFlowCO in Action</h2>
-                <p>Automatic weather-aware scheduling and customer notifications</p>
             </div>
             
             <!-- Animated App Demo -->
