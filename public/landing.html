@@ -178,13 +178,16 @@
         .app-demo-container {
             max-width: 1100px;
             margin: 3rem auto;
+            width: 90%;
         }
         .app-demo-screen {
             background: #f8fafc;
             border-radius: 20px;
             box-shadow: 0 20px 60px rgba(0,0,0,0.15);
-            overflow: hidden;
+            overflow: visible;
             border: 8px solid #1e293b;
+            position: relative;
+            min-height: 500px;
         }
 
         /* Simple Weather Forecast Bar */
@@ -247,6 +250,7 @@
             background: #f9fafb;
             padding: 32px 24px;
             min-height: 400px;
+            position: relative;
         }
         .jobs-header {
             font-size: 1.25rem;
@@ -309,6 +313,23 @@
             background: linear-gradient(135deg, #1e40af, #60a5fa);
         }
 
+        /* Popup Backdrop */
+        .popup-backdrop {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.4);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: 90;
+            pointer-events: none;
+        }
+        .popup-backdrop.show {
+            opacity: 1;
+        }
+
         /* Simple Alert & SMS Popups */
         .weather-alert-popup {
             position: absolute;
@@ -365,12 +386,12 @@
             background: linear-gradient(135deg, #10b981, #059669);
             border-radius: 16px;
             padding: 32px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            max-width: 400px;
-            width: 90%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            max-width: 420px;
+            width: 85%;
             opacity: 0;
-            transition: all 0.4s ease;
-            z-index: 100;
+            transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+            z-index: 150;
             text-align: center;
             color: white;
         }
@@ -379,41 +400,58 @@
             opacity: 1;
         }
         .sms-icon {
-            font-size: 3rem;
-            margin-bottom: 16px;
+            font-size: 3.5rem;
+            margin-bottom: 12px;
+            animation: phoneRing 0.5s ease-in-out;
+        }
+        @keyframes phoneRing {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(-15deg); }
+            75% { transform: rotate(15deg); }
         }
         .sms-title {
-            font-size: 1.5rem;
+            font-size: 1.6rem;
             font-weight: 700;
             margin-bottom: 8px;
+            transition: all 0.3s ease;
         }
         .sms-message {
             font-size: 1rem;
             opacity: 0.9;
         }
         .sms-customer-list {
-            margin-top: 16px;
+            margin-top: 20px;
             text-align: left;
         }
         .sms-customer {
-            background: rgba(255,255,255,0.2);
-            padding: 8px 12px;
-            border-radius: 6px;
-            margin-bottom: 6px;
+            background: rgba(255,255,255,0.25);
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 10px;
             opacity: 0;
-            transform: translateX(-20px);
-            transition: all 0.3s ease;
+            transform: translateX(-30px);
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 12px;
+            font-size: 1.05rem;
+            font-weight: 600;
+            backdrop-filter: blur(10px);
         }
         .sms-customer.sent {
             opacity: 1;
             transform: translateX(0);
         }
-        .sms-customer .checkmark {
-            color: #10b981;
-            font-weight: bold;
+        .sms-customer span:first-child {
+            font-size: 1.25rem;
+            color: #fff;
+            background: rgba(255,255,255,0.3);
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
             left: 50%;
             transform: translate(-50%, -50%) scale(0);
@@ -1077,6 +1115,20 @@
             .footer-grid {
                 grid-template-columns: 1fr;
             }
+            .app-demo-screen {
+                min-height: 400px;
+            }
+            .day-cards-container {
+                min-height: 350px;
+                padding: 24px 16px;
+            }
+            .sms-notification-popup {
+                width: 90%;
+                padding: 24px;
+            }
+            .forecast-day-card {
+                min-width: 100px;
+            }
         }
     </style>
 </head>
@@ -1487,10 +1539,10 @@
                             job.classList.add('moving');
                             job.style.transform = 'translateX(-100px)';
                             job.style.opacity = '0';
-                        }, i * 250);
+                        }, i * 200);
                     });
 
-                    // Show SMS notification popup
+                    // Show SMS notification popup with more visible animation
                     setTimeout(() => {
                         smsNotification.classList.add('show');
                         smsTitle.textContent = 'Sending Messages...';
@@ -1499,14 +1551,15 @@
                         smsCustomers.forEach((customer, i) => {
                             setTimeout(() => {
                                 customer.classList.add('sent');
-                            }, i * 400);
+                            }, i * 500);
                         });
                         
                         // Update title when all sent
                         setTimeout(() => {
                             smsTitle.textContent = 'All Customers Notified ✓';
-                        }, smsCustomers.length * 400 + 200);
-                    }, 1000);
+                            smsNotification.querySelector('.sms-icon').textContent = '✓';
+                        }, smsCustomers.length * 500 + 300);
+                    }, 800);
                 }, stepDuration * 2);
 
                 // Step 4: Reset and loop (12-14s)
