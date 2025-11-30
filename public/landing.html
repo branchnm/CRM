@@ -1925,184 +1925,136 @@
         </div>
     </section>
 
-    <!-- Additional Features Demos Section -->
-    <section class="more-features-demos" style="padding: 80px 0; background: #f8fafc;">
+    <!-- Feature Cards Section -->
+    <section class="features" style="background: #f8fafc;">
         <div class="container">
             <div class="section-header">
-                <h2>More Powerful Features</h2>
+                <h2>🚀 Experience JobFlowCO</h2>
+                <p>Discover how smart scheduling and weather-aware features make outdoor service management effortless</p>
             </div>
-
-            <!-- Feature 4: GPS Tracking -->
-            <div class="app-demo-container" style="margin-bottom: 4rem;">
-                <h3 style="text-align: center; font-size: 1.4rem; font-weight: 700; color: #1e293b; margin-bottom: 1.5rem;">Automated GPS Notifications</h3>
-                <div class="app-demo-screen" style="height: 70vh; max-height: 600px;">
-                    <div class="gps-map-container">
-                        <div class="map-view">
-                            <div class="map-marker crew-marker">
-                                <div class="marker-icon">🚚</div>
-                                <div class="marker-label">Crew Location</div>
-                            </div>
-                            <div class="map-marker destination-marker">
-                                <div class="marker-icon">📍</div>
-                                <div class="marker-label">Johnson Residence</div>
-                            </div>
-                            <div class="route-line"></div>
-                            <div class="distance-badge">0.3 miles away</div>
+            <div class="features-grid" style="max-width: 1200px; margin: 0 auto;">
+                <!-- Weather-Coded Days Card -->
+                <div class="feature-card" style="background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border: 2px solid #3b82f6;">
+                    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem;">
+                        <div class="feature-icon" style="margin: 0;">⛅</div>
+                        <h3 style="margin: 0; color: #1e40af;">Weather-Coded Days</h3>
+                    </div>
+                    <p style="margin-bottom: 1.5rem;">Each day is color-coded based on weather conditions. Instantly see which days are perfect for outdoor work!</p>
+                    <div style="display: flex; gap: 0.75rem; margin-bottom: 1rem;">
+                        <div style="flex: 1; background: linear-gradient(135deg, #fef3c7, #fbbf24); padding: 1rem; border-radius: 12px; text-align: center;">
+                            <div style="font-size: 2rem; margin-bottom: 0.5rem;">☀️</div>
+                            <div style="font-weight: 700; color: #78350f; font-size: 0.9rem;">Clear & Sunny</div>
+                            <div style="font-size: 0.75rem; color: #92400e;">All day sunshine</div>
                         </div>
-                        <div class="gps-notification">
-                            <div class="notification-icon">📱</div>
-                            <div class="notification-content">
-                                <div class="notification-title">Auto-Message Sent</div>
-                                <div class="notification-message">"Your crew is arriving at Johnson Residence in 5 minutes"</div>
-                            </div>
+                        <div style="flex: 1; background: linear-gradient(135deg, #dbeafe, #93c5fd); padding: 1rem; border-radius: 12px; text-align: center;">
+                            <div style="font-size: 2rem; margin-bottom: 0.5rem;">⛅</div>
+                            <div style="font-weight: 700; color: #1e40af; font-size: 0.9rem;">Clearing Up</div>
+                            <div style="font-size: 0.75rem; color: #1e40af;">Rain → Sun</div>
+                        </div>
+                        <div style="flex: 1; background: linear-gradient(135deg, #1e40af, #3b82f6); padding: 1rem; border-radius: 12px; text-align: center;">
+                            <div style="font-size: 2rem; margin-bottom: 0.5rem;">🌧️</div>
+                            <div style="font-weight: 700; color: white; font-size: 0.9rem;">Heavy Rain</div>
+                            <div style="font-size: 0.75rem; color: #dbeafe;">Rainy all day</div>
                         </div>
                     </div>
-                    <div class="demo-steps">
-                        <div class="demo-step active">
-                            <div class="step-number">1</div>
-                            <div class="step-label">Track crew location</div>
+                    <p style="font-size: 0.85rem; color: #64748b; margin: 0;">💡 Darker blue = heavier rain. Light blue = drizzle. Yellow = sunny!</p>
+                </div>
+
+                <!-- Smart Suggestions Card -->
+                <div class="feature-card" style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border: 2px solid #0ea5e9;">
+                    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem;">
+                        <div class="feature-icon" style="margin: 0;">🤖</div>
+                        <h3 style="margin: 0; color: #0c4a6e;">Smart Suggestions</h3>
+                    </div>
+                    <p style="margin-bottom: 1.5rem;">When rain is forecast, JobFlowCO automatically suggests which jobs to reschedule and finds better weather days for you.</p>
+                    <div style="background: white; border: 2px solid #3b82f6; border-radius: 12px; padding: 1.25rem;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+                            <div style="background: #3b82f6; color: white; padding: 0.25rem 0.75rem; border-radius: 6px; font-weight: 700; font-size: 0.85rem;">Rain</div>
+                            <div style="color: #64748b; font-size: 0.9rem;">Saturday forecast</div>
                         </div>
-                        <div class="demo-step">
-                            <div class="step-number">2</div>
-                            <div class="step-label">Auto-send SMS</div>
+                        <p style="font-size: 0.9rem; color: #1e293b; margin-bottom: 1rem;">💡 Rain expected 10am-2pm. Move 3 jobs to better days?</p>
+                        <div style="display: flex; gap: 0.75rem;">
+                            <button style="flex: 1; background: #3b82f6; color: white; border: none; padding: 0.75rem; border-radius: 8px; font-weight: 700; cursor: pointer;">Accept All</button>
+                            <button style="flex: 1; background: #f1f5f9; color: #64748b; border: none; padding: 0.75rem; border-radius: 8px; font-weight: 700; cursor: pointer;">Dismiss</button>
+                        </div>
+                    </div>
+                    <p style="font-size: 0.85rem; color: #64748b; margin-top: 1rem; margin-bottom: 0;">Click "Accept All" to automatically reschedule!</p>
+                </div>
+
+                <!-- Drag & Drop Jobs Card -->
+                <div class="feature-card" style="background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%); border: 2px solid #a855f7;">
+                    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem;">
+                        <div class="feature-icon" style="margin: 0;">🖱️</div>
+                        <h3 style="margin: 0; color: #6b21a8;">Drag & Drop Jobs</h3>
+                    </div>
+                    <p style="margin-bottom: 1.5rem;">Simply grab any job card and drag it to a different day. Your schedule updates instantly. Works perfectly on mobile too!</p>
+                    <div style="display: flex; gap: 0.75rem; align-items: center;">
+                        <div style="flex: 1; background: white; border: 2px solid #e5e7eb; border-radius: 12px; padding: 1rem;">
+                            <div style="font-weight: 700; color: #1e293b; margin-bottom: 0.25rem;">John Smith</div>
+                            <div style="font-size: 0.85rem; color: #64748b;">123 Main St</div>
+                            <div style="font-size: 0.85rem; color: #64748b;">8:00 AM</div>
+                        </div>
+                        <div style="font-size: 2rem;">👉</div>
+                        <div style="flex: 1; background: #eff6ff; border: 2px dashed #3b82f6; border-radius: 12px; padding: 1.5rem; text-align: center;">
+                            <div style="color: #3b82f6; font-weight: 700; font-size: 0.9rem;">Drop here</div>
+                            <div style="color: #64748b; font-size: 0.8rem;">for new date</div>
+                        </div>
+                    </div>
+                    <p style="font-size: 0.85rem; color: #64748b; margin-top: 1rem; margin-bottom: 0;">Click and hold a job card, then drag to any day!</p>
+                </div>
+
+                <!-- GPS Tracking Card -->
+                <div class="feature-card" style="background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); border: 2px solid #10b981;">
+                    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem;">
+                        <div class="feature-icon" style="margin: 0;">📍</div>
+                        <h3 style="margin: 0; color: #065f46;">GPS Notifications</h3>
+                    </div>
+                    <p style="margin-bottom: 1.5rem;">Customers automatically receive text updates when your crew is arriving at or leaving their property.</p>
+                    <div style="background: white; border-radius: 12px; padding: 1.25rem; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+                        <div style="background: #f1f5f9; border-radius: 12px; padding: 0.75rem; margin-bottom: 0.75rem;">
+                            <div style="font-size: 0.9rem; color: #1e293b;">📍 Your crew is arriving at Johnson Residence in 5 minutes</div>
+                            <div style="font-size: 0.75rem; color: #64748b; margin-top: 0.25rem;">10:25 AM</div>
+                        </div>
+                        <div style="background: #f1f5f9; border-radius: 12px; padding: 0.75rem;">
+                            <div style="font-size: 0.9rem; color: #1e293b;">✅ Service completed. Crew heading to next location.</div>
+                            <div style="font-size: 0.75rem; color: #64748b; margin-top: 0.25rem;">11:15 AM</div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Feature 5: Route Optimization -->
-            <div class="app-demo-container" style="margin-bottom: 4rem;">
-                <h3 style="text-align: center; font-size: 1.4rem; font-weight: 700; color: #1e293b; margin-bottom: 1.5rem;">One-Click Route Optimization</h3>
-                <div class="app-demo-screen" style="height: 70vh; max-height: 600px;">
-                    <div class="route-optimizer-container">
-                        <div class="optimizer-header">
-                            <button class="optimize-route-btn">
-                                <span class="btn-icon">🗺️</span>
-                                <span>Optimize Route</span>
-                            </button>
-                        </div>
-                        <div class="optimized-map-view">
-                            <div class="map-route-display">
-                                <svg class="route-svg" viewBox="0 0 300 400" style="width: 100%; height: 100%;">
-                                    <path class="route-path" d="M 150 50 L 200 120 L 180 200 L 120 280 L 100 350" stroke="#3b82f6" stroke-width="3" fill="none" stroke-dasharray="5,5"/>
-                                    <circle class="route-stop" cx="150" cy="50" r="12" fill="#10b981"/>
-                                    <circle class="route-stop" cx="200" cy="120" r="10" fill="#3b82f6"/>
-                                    <circle class="route-stop" cx="180" cy="200" r="10" fill="#3b82f6"/>
-                                    <circle class="route-stop" cx="120" cy="280" r="10" fill="#3b82f6"/>
-                                    <circle class="route-stop" cx="100" cy="350" r="10" fill="#3b82f6"/>
-                                </svg>
-                                <div class="stop-label" style="position: absolute; top: 40px; left: 55%;">Start</div>
-                                <div class="stop-label" style="position: absolute; top: 110px; right: 20%;">Stop 1</div>
-                                <div class="stop-label" style="position: absolute; top: 190px; right: 25%;">Stop 2</div>
-                                <div class="stop-label" style="position: absolute; top: 270px; left: 25%;">Stop 3</div>
-                                <div class="stop-label" style="position: absolute; bottom: 40px; left: 20%;">Stop 4</div>
+                <!-- Route Optimization Card -->
+                <div class="feature-card" style="background: linear-gradient(135deg, #fff7ed 0%, #fed7aa 100%); border: 2px solid #f97316;">
+                    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem;">
+                        <div class="feature-icon" style="margin: 0;">🗺️</div>
+                        <h3 style="margin: 0; color: #9a3412;">Route Optimization</h3>
+                    </div>
+                    <p style="margin-bottom: 1.5rem;">One click optimizes your entire route, saving time and fuel costs.</p>
+                    <div style="background: white; border-radius: 12px; padding: 1.25rem;">
+                        <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
+                            <div style="flex: 1; text-align: center;">
+                                <div style="font-size: 1.5rem; font-weight: 700; color: #1e293b;">18.4 mi</div>
+                                <div style="font-size: 0.75rem; color: #64748b;">Total Distance</div>
                             </div>
-                            <div class="route-stats">
-                                <div class="stat-item">
-                                    <div class="stat-label">Total Distance</div>
-                                    <div class="stat-value">18.4 miles</div>
-                                </div>
-                                <div class="stat-item">
-                                    <div class="stat-label">Estimated Time</div>
-                                    <div class="stat-value">3.5 hours</div>
-                                </div>
-                                <div class="stat-item">
-                                    <div class="stat-label">Stops</div>
-                                    <div class="stat-value">5 jobs</div>
-                                </div>
+                            <div style="flex: 1; text-align: center;">
+                                <div style="font-size: 1.5rem; font-weight: 700; color: #1e293b;">3.5 hrs</div>
+                                <div style="font-size: 0.75rem; color: #64748b;">Est. Time</div>
+                            </div>
+                            <div style="flex: 1; text-align: center;">
+                                <div style="font-size: 1.5rem; font-weight: 700; color: #1e293b;">5</div>
+                                <div style="font-size: 0.75rem; color: #64748b;">Stops</div>
                             </div>
                         </div>
-                    </div>
-                    <div class="demo-steps">
-                        <div class="demo-step active">
-                            <div class="step-number">1</div>
-                            <div class="step-label">Click optimize</div>
-                        </div>
-                        <div class="demo-step">
-                            <div class="step-number">2</div>
-                            <div class="step-label">Get best route</div>
-                        </div>
+                        <button style="width: 100%; background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; border: none; padding: 0.75rem; border-radius: 8px; font-weight: 700; cursor: pointer;">🗺️ View Optimized Route</button>
                     </div>
                 </div>
-            </div>
 
-            <!-- Feature 6: Drag & Drop -->
-            <div class="app-demo-container">
-                <h3 style="text-align: center; font-size: 1.4rem; font-weight: 700; color: #1e293b; margin-bottom: 1.5rem;">Drag & Drop Rescheduling</h3>
-                <div class="app-demo-screen" style="height: 70vh; max-height: 600px;">
-                    <div class="drag-drop-forecast">
-                        <div class="forecast-day-card">
-                            <div class="day-name">Monday</div>
-                            <div class="day-icon">☀️</div>
-                            <div class="day-temp">72°</div>
-                            <div class="forecast-gradient sunny"></div>
-                            <div class="draggable-job">
-                                <div class="job-customer">Wilson Estate</div>
-                                <div class="job-time-small">2:00 PM</div>
-                            </div>
-                        </div>
-                        <div class="forecast-day-card drop-target">
-                            <div class="day-name">Tuesday</div>
-                            <div class="day-icon">☀️</div>
-                            <div class="day-temp">75°</div>
-                            <div class="forecast-gradient sunny"></div>
-                            <div class="drop-zone">Drop here</div>
-                        </div>
-                        <div class="forecast-day-card">
-                            <div class="day-name">Wednesday</div>
-                            <div class="day-icon">⛅</div>
-                            <div class="day-temp">71°</div>
-                            <div class="forecast-gradient cloudy"></div>
-                        </div>
-                        <div class="forecast-day-card">
-                            <div class="day-name">Thursday</div>
-                            <div class="day-icon">☀️</div>
-                            <div class="day-temp">73°</div>
-                            <div class="forecast-gradient sunny"></div>
-                        </div>
+                <!-- Business Insights Card -->
+                <div class="feature-card" style="background: linear-gradient(135deg, #fef2f2 0%, #fecaca 100%); border: 2px solid #ef4444;">
+                    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem;">
+                        <div class="feature-icon" style="margin: 0;">📊</div>
+                        <h3 style="margin: 0; color: #991b1b;">Business Insights</h3>
                     </div>
-                    <div class="drag-instructions">
-                        <div class="instruction-icon">👆</div>
-                        <div class="instruction-text">Drag jobs between days to reschedule</div>
-                    </div>
-                    <div class="demo-steps">
-                        <div class="demo-step active">
-                            <div class="step-number">1</div>
-                            <div class="step-label">Grab job card</div>
-                        </div>
-                        <div class="demo-step">
-                            <div class="step-number">2</div>
-                            <div class="step-label">Drop on new day</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-        </div>
-    </section>
-
-    <!-- Simple Feature Highlights -->
-    <section class="features">
-        <div class="container">
-            <div class="section-header">
-                <h2>Complete Tools for Weather-Smart Operations</h2>
-                <p>Everything you need to run your outdoor service business efficiently, rain or shine</p>
-            </div>
-            <div class="features-grid">
-                <div class="feature-card">
-                    <div class="feature-icon">📱</div>
-                    <h3>Customer SMS Updates</h3>
-                    <p>Automated text notifications keep clients informed about appointments and schedule changes.</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">📊</div>
-                    <h3>Business Insights</h3>
                     <p>Track revenue, job completion rates, and business performance with real-time dashboards.</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">📅</div>
-                    <h3>Drag & Drop Scheduling</h3>
-                    <p>Easily reschedule jobs by dragging them to different days. Works perfectly on mobile devices.</p>
                 </div>
             </div>
         </div>
