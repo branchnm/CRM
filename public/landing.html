@@ -187,217 +187,210 @@
             border: 8px solid #1e293b;
         }
 
-        /* Weather Forecast Bar - Horizontal Days */
+        /* Simple Weather Forecast Bar */
         .demo-forecast-bar {
             display: flex;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 20px;
-            gap: 12px;
-            overflow-x: auto;
+            background: white;
+            padding: 24px;
+            gap: 16px;
+            border-bottom: 2px solid #e5e7eb;
         }
         .forecast-day-card {
             flex: 1;
-            min-width: 160px;
+            min-width: 120px;
             background: white;
-            border-radius: 20px;
-            padding: 0;
-            color: white;
-            transition: all 0.3s;
+            border-radius: 12px;
+            padding: 16px;
+            text-align: center;
+            transition: all 0.5s ease;
             cursor: pointer;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            overflow: hidden;
-            min-height: 280px;
-            display: flex;
-            flex-direction: column;
+            border: 2px solid #e5e7eb;
         }
         .forecast-day-card.active {
             transform: scale(1.05);
-            box-shadow: 0 8px 24px rgba(0,0,0,0.2);
-        }
-        .forecast-header {
-            padding: 16px;
-            background: rgba(30, 41, 59, 0.95);
-            backdrop-filter: blur(10px);
+            border-color: #3b82f6;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
         }
         .day-name {
             font-size: 0.875rem;
             font-weight: 700;
-            margin-bottom: 4px;
-            color: white;
-        }
-        .day-date {
-            font-size: 0.75rem;
-            opacity: 0.8;
-            color: rgba(255,255,255,0.8);
-        }
-        .forecast-body {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 24px 16px;
-            position: relative;
-        }
-        .forecast-body.sunny {
-            background: linear-gradient(180deg, 
-                rgb(254, 243, 199) 0%, 
-                rgb(253, 224, 71) 50%,
-                rgb(251, 191, 36) 100%);
-        }
-        .forecast-body.partly-cloudy {
-            background: linear-gradient(180deg, 
-                rgb(226, 232, 240) 0%, 
-                rgb(203, 213, 225) 50%,
-                rgb(148, 163, 184) 100%);
-        }
-        .forecast-body.rainy {
-            background: linear-gradient(180deg, 
-                rgb(30, 64, 175) 0%, 
-                rgb(37, 99, 235) 30%,
-                rgb(59, 130, 246) 60%,
-                rgb(96, 165, 250) 100%);
-        }
-        .forecast-body.clearing {
-            background: linear-gradient(180deg, 
-                rgb(96, 165, 250) 0%, 
-                rgb(147, 197, 253) 50%,
-                rgb(254, 243, 199) 100%);
-        }
-        .day-icon {
-            font-size: 3.5rem;
-            margin-bottom: 16px;
-            filter: drop-shadow(0 2px 8px rgba(0,0,0,0.15));
-        }
-        .day-temp {
-            font-size: 2rem;
-            font-weight: 800;
-            color: rgba(30, 41, 59, 0.9);
-            text-shadow: 0 2px 4px rgba(255,255,255,0.5);
-        }
-
-        /* Day Cards Container */
-        .day-cards-container {
-            background: white;
-            min-height: 600px;
-            position: relative;
-        }
-
-        /* Day Card with Time Slots */
-        .demo-day-card {
-            background: linear-gradient(to right, 
-                rgb(30, 64, 175) 0%, 
-                rgb(37, 99, 235) 20%, 
-                rgb(59, 130, 246) 40%, 
-                rgb(96, 165, 250) 60%,
-                rgb(147, 197, 253) 80%,
-                rgb(191, 219, 254) 100%);
-            min-height: 600px;
-            padding: 0;
-            position: relative;
-        }
-        .day-card-header-bar {
-            background: rgba(255,255,255,0.95);
-            backdrop-filter: blur(10px);
-            padding: 20px 24px;
-            border-bottom: 2px solid rgba(0,0,0,0.05);
-        }
-        .day-card-header-bar h3 {
-            font-size: 1.5rem;
-            font-weight: 700;
             color: #1e293b;
-            margin: 0 0 8px 0;
-        }
-        .weather-summary {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            color: #64748b;
-            font-size: 0.95rem;
-        }
-        .rain-icon {
-            font-size: 1.25rem;
-        }
-
-        /* Time Slots - Horizontal Layout */
-        .time-slots-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-            gap: 1px;
-            background: rgba(0,0,0,0.05);
-            padding: 0;
-        }
-        .time-slot {
-            background: rgba(255,255,255,0.9);
-            backdrop-filter: blur(10px);
-            padding: 16px 12px;
-            min-height: 160px;
-            display: flex;
-            flex-direction: column;
-            transition: all 0.3s;
-        }
-        .time-slot.has-job {
-            background: rgba(255,255,255,0.95);
-        }
-        .time-label {
-            font-size: 0.875rem;
-            font-weight: 700;
-            color: #1e293b;
-            margin-bottom: 8px;
-        }
-        .slot-weather {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 8px;
-            background: rgba(59, 130, 246, 0.1);
-            border-radius: 6px;
             margin-bottom: 12px;
         }
-        .slot-icon {
-            font-size: 1.25rem;
+        .day-icon {
+            font-size: 2.5rem;
+            margin-bottom: 8px;
         }
-        .slot-temp {
-            font-size: 0.875rem;
+        .day-temp {
+            font-size: 1.25rem;
             font-weight: 700;
             color: #1e293b;
         }
-
-        /* Jobs in Time Slots */
-        .time-slot .demo-job {
-            background: white;
-            border-radius: 10px;
-            padding: 12px;
-            border-left: 4px solid #3b82f6;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            transition: all 0.3s;
-            cursor: pointer;
+        .forecast-gradient {
+            height: 8px;
+            border-radius: 4px;
+            margin-top: 12px;
+            transition: all 0.5s ease;
         }
-        .time-slot .demo-job:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        .forecast-gradient.sunny {
+            background: linear-gradient(90deg, #fef3c7, #fbbf24);
+        }
+        .forecast-gradient.rainy {
+            background: linear-gradient(90deg, #1e40af, #60a5fa);
+        }
+        .forecast-gradient.cloudy {
+            background: linear-gradient(90deg, #9ca3af, #d1d5db);
+        }
+
+        /* Simple Jobs List */
+        .day-cards-container {
+            background: #f9fafb;
+            padding: 32px 24px;
+            min-height: 400px;
+        }
+        .jobs-header {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 20px;
+        }
+        .jobs-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .demo-job {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            border-left: 4px solid #3b82f6;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            transition: all 0.5s ease;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .demo-job.moving {
+            transform: translateX(-100px);
+            opacity: 0;
+        }
+        .job-info {
+            flex: 1;
         }
         .job-customer {
             font-weight: 700;
             color: #1e293b;
-            font-size: 0.95rem;
+            font-size: 1.1rem;
             margin-bottom: 4px;
         }
-        .job-address {
+        .job-time {
             color: #64748b;
-            font-size: 0.8rem;
-            margin-bottom: 6px;
+            font-size: 0.875rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
-        .job-duration {
-            color: #3b82f6;
-            font-size: 0.75rem;
-            font-weight: 600;
+        .job-weather-indicator {
+            width: 48px;
+            height: 48px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            transition: all 0.5s ease;
+        }
+        .job-weather-indicator.good {
+            background: linear-gradient(135deg, #fef3c7, #fbbf24);
+        }
+        .job-weather-indicator.bad {
+            background: linear-gradient(135deg, #1e40af, #60a5fa);
         }
 
-        /* Weather Alert Popup */
+        /* Simple Alert & SMS Popups */
         .weather-alert-popup {
             position: absolute;
             top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 400px;
+            width: 90%;
+            opacity: 0;
+            transition: all 0.4s ease;
+            z-index: 100;
+        }
+        .weather-alert-popup.show {
+            transform: translate(-50%, -50%) scale(1);
+            opacity: 1;
+        }
+        .alert-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        .alert-icon {
+            font-size: 2rem;
+        }
+        .alert-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #1e293b;
+        }
+        .alert-message {
+            color: #64748b;
+            line-height: 1.6;
+            margin-bottom: 16px;
+        }
+        .alert-suggestion {
+            background: #eff6ff;
+            padding: 12px;
+            border-radius: 8px;
+            color: #1e40af;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+
+        .sms-notification-popup {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            background: linear-gradient(135deg, #10b981, #059669);
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 400px;
+            width: 90%;
+            opacity: 0;
+            transition: all 0.4s ease;
+            z-index: 100;
+            text-align: center;
+            color: white;
+        }
+        .sms-notification-popup.show {
+            transform: translate(-50%, -50%) scale(1);
+            opacity: 1;
+        }
+        .sms-icon {
+            font-size: 3rem;
+            margin-bottom: 16px;
+        }
+        .sms-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        .sms-message {
+            font-size: 1rem;
+            opacity: 0.9;
+        }
             left: 50%;
             transform: translate(-50%, -50%) scale(0);
             background: white;
@@ -1096,194 +1089,102 @@
             <!-- Animated App Demo -->
             <div class="app-demo-container">
                 <div class="app-demo-screen">
-                    <!-- Weather Forecast Bar - Horizontal -->
+                    <!-- Simple Weather Forecast -->
                     <div class="demo-forecast-bar">
-                        <div class="forecast-day-card" data-day="0">
-                            <div class="forecast-header">
-                                <div class="day-name">Today</div>
-                                <div class="day-date">Nov 15</div>
-                            </div>
-                            <div class="forecast-body sunny">
-                                <div class="day-icon">☀️</div>
-                                <div class="day-temp">76°F</div>
-                            </div>
+                        <div class="forecast-day-card">
+                            <div class="day-name">Today</div>
+                            <div class="day-icon">☀️</div>
+                            <div class="day-temp">76°</div>
+                            <div class="forecast-gradient sunny"></div>
                         </div>
-                        <div class="forecast-day-card" data-day="1">
-                            <div class="forecast-header">
-                                <div class="day-name">Sat</div>
-                                <div class="day-date">Nov 16</div>
-                            </div>
-                            <div class="forecast-body partly-cloudy">
-                                <div class="day-icon">⛅</div>
-                                <div class="day-temp">74°F</div>
-                            </div>
+                        <div class="forecast-day-card">
+                            <div class="day-name">Saturday</div>
+                            <div class="day-icon">⛅</div>
+                            <div class="day-temp">74°</div>
+                            <div class="forecast-gradient cloudy"></div>
                         </div>
-                        <div class="forecast-day-card active" data-day="2">
-                            <div class="forecast-header">
-                                <div class="day-name">Sun</div>
-                                <div class="day-date">Nov 17</div>
-                            </div>
-                            <div class="forecast-body rainy">
-                                <div class="day-icon">🌧️</div>
-                                <div class="day-temp">68°F</div>
-                            </div>
+                        <div class="forecast-day-card active">
+                            <div class="day-name">Sunday</div>
+                            <div class="day-icon">🌧️</div>
+                            <div class="day-temp">68°</div>
+                            <div class="forecast-gradient rainy"></div>
                         </div>
-                        <div class="forecast-day-card" data-day="3">
-                            <div class="forecast-header">
-                                <div class="day-name">Mon</div>
-                                <div class="day-date">Nov 18</div>
-                            </div>
-                            <div class="forecast-body clearing">
-                                <div class="day-icon">⛅</div>
-                                <div class="day-temp">71°F</div>
-                            </div>
+                        <div class="forecast-day-card">
+                            <div class="day-name">Monday</div>
+                            <div class="day-icon">⛅</div>
+                            <div class="day-temp">71°</div>
+                            <div class="forecast-gradient cloudy"></div>
                         </div>
-                        <div class="forecast-day-card" data-day="4">
-                            <div class="forecast-header">
-                                <div class="day-name">Tue</div>
-                                <div class="day-date">Nov 19</div>
-                            </div>
-                            <div class="forecast-body sunny">
-                                <div class="day-icon">☀️</div>
-                                <div class="day-temp">75°F</div>
-                            </div>
+                        <div class="forecast-day-card">
+                            <div class="day-name">Tuesday</div>
+                            <div class="day-icon">☀️</div>
+                            <div class="day-temp">75°</div>
+                            <div class="forecast-gradient sunny"></div>
                         </div>
                     </div>
 
-                    <!-- Day Cards Container - Horizontal Scroll -->
+                    <!-- Jobs List -->
                     <div class="day-cards-container">
-                        <!-- Sunday Day Card (Active/Visible) -->
-                        <div class="demo-day-card active-day">
-                            <div class="day-card-header-bar">
-                                <h3>Sunday, Nov 17</h3>
-                                <div class="weather-summary">
-                                    <span class="rain-icon">🌧️</span>
-                                    <span>Heavy rain expected</span>
+                        <h3 class="jobs-header">Sunday's Schedule</h3>
+                        <div class="jobs-list">
+                            <div class="demo-job" data-job="1">
+                                <div class="job-info">
+                                    <div class="job-customer">Johnson Residence</div>
+                                    <div class="job-time">⏰ 9:00 AM - Sunday</div>
                                 </div>
+                                <div class="job-weather-indicator bad">🌧️</div>
                             </div>
-
-                            <!-- Time Slots with Jobs -->
-                            <div class="time-slots-container">
-                                <!-- 6 AM Slot -->
-                                <div class="time-slot">
-                                    <div class="time-label">6 AM</div>
-                                    <div class="slot-weather">
-                                        <span class="slot-icon">⛈️</span>
-                                        <span class="slot-temp">62°</span>
-                                    </div>
+                            <div class="demo-job" data-job="2">
+                                <div class="job-info">
+                                    <div class="job-customer">Smith Property</div>
+                                    <div class="job-time">⏰ 11:00 AM - Sunday</div>
                                 </div>
-
-                                <!-- 9 AM Slot with Job -->
-                                <div class="time-slot has-job">
-                                    <div class="time-label">9 AM</div>
-                                    <div class="slot-weather">
-                                        <span class="slot-icon">🌧️</span>
-                                        <span class="slot-temp">64°</span>
-                                    </div>
-                                    <div class="demo-job" data-job="1">
-                                        <div class="job-customer">Johnson Residence</div>
-                                        <div class="job-address">123 Oak Street</div>
-                                        <div class="job-duration">45 min</div>
-                                    </div>
+                                <div class="job-weather-indicator bad">🌧️</div>
+                            </div>
+                            <div class="demo-job" data-job="3">
+                                <div class="job-info">
+                                    <div class="job-customer">Brown Lawn Care</div>
+                                    <div class="job-time">⏰ 2:00 PM - Sunday</div>
                                 </div>
-
-                                <!-- 10 AM Slot -->
-                                <div class="time-slot">
-                                    <div class="time-label">10 AM</div>
-                                    <div class="slot-weather">
-                                        <span class="slot-icon">🌧️</span>
-                                        <span class="slot-temp">65°</span>
-                                    </div>
-                                </div>
-
-                                <!-- 11 AM Slot with Job -->
-                                <div class="time-slot has-job">
-                                    <div class="time-label">11 AM</div>
-                                    <div class="slot-weather">
-                                        <span class="slot-icon">🌧️</span>
-                                        <span class="slot-temp">66°</span>
-                                    </div>
-                                    <div class="demo-job" data-job="2">
-                                        <div class="job-customer">Smith Property</div>
-                                        <div class="job-address">456 Maple Ave</div>
-                                        <div class="job-duration">40 min</div>
-                                    </div>
-                                </div>
-
-                                <!-- 12 PM Slot with Job -->
-                                <div class="time-slot has-job">
-                                    <div class="time-label">12 PM</div>
-                                    <div class="slot-weather">
-                                        <span class="slot-icon">🌧️</span>
-                                        <span class="slot-temp">68°</span>
-                                    </div>
-                                    <div class="demo-job" data-job="3">
-                                        <div class="job-customer">Brown Lawn Care</div>
-                                        <div class="job-address">789 Pine Road</div>
-                                        <div class="job-duration">50 min</div>
-                                    </div>
-                                </div>
-
-                                <!-- 2 PM Slot -->
-                                <div class="time-slot">
-                                    <div class="time-label">2 PM</div>
-                                    <div class="slot-weather">
-                                        <span class="slot-icon">🌧️</span>
-                                        <span class="slot-temp">67°</span>
-                                    </div>
-                                </div>
-
-                                <!-- 6 PM Slot -->
-                                <div class="time-slot">
-                                    <div class="time-label">6 PM</div>
-                                    <div class="slot-weather">
-                                        <span class="slot-icon">🌧️</span>
-                                        <span class="slot-temp">63°</span>
-                                    </div>
-                                </div>
+                                <div class="job-weather-indicator bad">🌧️</div>
                             </div>
                         </div>
-                    </div>
 
-                    <!-- Weather Alert Popup -->
-                    <div class="weather-alert-popup">
-                        <div class="alert-popup-header">
-                            <span class="alert-popup-icon">⚠️</span>
-                            <span>Weather Alert</span>
+                        <!-- Weather Alert Popup -->
+                        <div class="weather-alert-popup">
+                            <div class="alert-header">
+                                <div class="alert-icon">⚠️</div>
+                                <div class="alert-title">Heavy Rain Sunday</div>
+                            </div>
+                            <div class="alert-message">
+                                3 jobs scheduled during heavy rain. Reschedule to avoid delays?
+                            </div>
+                            <div class="alert-suggestion">
+                                💡 Monday has clear weather and availability
+                            </div>
                         </div>
-                        <div class="alert-popup-body">
-                            Heavy rain forecast for Sunday. Reschedule 3 jobs?
-                        </div>
-                        <div class="alert-popup-actions">
-                            <button class="popup-btn popup-btn-primary">Reschedule & Notify</button>
-                            <button class="popup-btn popup-btn-secondary">Dismiss</button>
-                        </div>
-                    </div>
 
-                    <!-- SMS Notification Preview -->
-                    <div class="sms-notification-popup">
-                        <div class="sms-popup-header">
-                            <span>📱 Sending to 3 customers...</span>
+                        <!-- SMS Notification Popup -->
+                        <div class="sms-notification-popup">
+                            <div class="sms-icon">✓</div>
+                            <div class="sms-title">Customers Notified</div>
+                            <div class="sms-message">3 automated messages sent about schedule changes</div>
                         </div>
-                        <div class="sms-popup-message">
-                            "Hi! Due to heavy rain Sunday, we'll reschedule your service. We'll reach out with a new date soon!"
-                        </div>
-                        <div class="sms-popup-status">✓ Sent successfully</div>
                     </div>
 
                     <!-- Animation Steps Indicator -->
                     <div class="demo-steps">
                         <div class="demo-step active" data-step="1">
                             <div class="step-number">1</div>
-                            <div class="step-label">Weather gradient</div>
+                            <div class="step-label">Weather forecast</div>
                         </div>
                         <div class="demo-step" data-step="2">
                             <div class="step-number">2</div>
-                            <div class="step-label">Smart suggestions</div>
+                            <div class="step-label">Reschedule jobs</div>
                         </div>
                         <div class="demo-step" data-step="3">
                             <div class="step-number">3</div>
-                            <div class="step-label">Auto notifications</div>
+                            <div class="step-label">Notify customers</div>
                         </div>
                     </div>
                 </div>
@@ -1413,7 +1314,7 @@
     </footer>
 
     <script>
-        // Animated Demo Script - Horizontal Time Slots Layout
+        // Simple Animated Demo Script
         (function() {
             let currentStep = 0;
             const stepDuration = 4000; // 4 seconds per step
@@ -1423,124 +1324,110 @@
                 const weatherAlert = document.querySelector('.weather-alert-popup');
                 const smsNotification = document.querySelector('.sms-notification-popup');
                 const jobs = document.querySelectorAll('.demo-job');
-                const timeSlots = document.querySelectorAll('.time-slot.has-job');
-                const dayCard = document.querySelector('.demo-day-card');
-                const forecastDays = document.querySelectorAll('.forecast-day-card');
+                const gradients = document.querySelectorAll('.forecast-gradient');
+                const forecastCards = document.querySelectorAll('.forecast-day-card');
 
                 // Reset all
                 steps.forEach(s => s.classList.remove('active'));
                 weatherAlert.classList.remove('show');
                 smsNotification.classList.remove('show');
-                jobs.forEach(j => {
-                    j.style.opacity = '1';
-                    j.style.transform = 'scale(1)';
-                    j.style.animation = '';
+                jobs.forEach(job => {
+                    job.style.opacity = '1';
+                    job.style.transform = 'translateX(0)';
+                    job.classList.remove('moving');
                 });
-                dayCard.style.transform = 'scale(1)';
-                dayCard.style.boxShadow = 'none';
+                gradients.forEach(g => {
+                    g.style.transform = 'scaleX(1)';
+                    g.style.height = '8px';
+                });
+                forecastCards.forEach(card => {
+                    if (!card.classList.contains('active')) {
+                        card.style.transform = 'scale(1)';
+                        card.style.boxShadow = '';
+                    }
+                });
 
-                // Step 1: Highlight weather gradient (0-4s)
+                // Step 1: Animate weather gradients (0-4s)
                 setTimeout(() => {
                     steps[0].classList.add('active');
                     
-                    // Pulse the forecast days to show color coding
-                    forecastDays.forEach((day, i) => {
+                    // Pulse each gradient bar to show weather visualization
+                    gradients.forEach((gradient, i) => {
                         setTimeout(() => {
-                            day.style.animation = 'pulse 0.8s ease-in-out';
+                            gradient.style.transition = 'all 0.6s ease-out';
+                            gradient.style.transform = 'scaleX(1.05)';
+                            gradient.style.height = '12px';
                             setTimeout(() => {
-                                day.style.animation = '';
-                            }, 800);
-                        }, i * 200);
+                                gradient.style.transform = 'scaleX(1)';
+                                gradient.style.height = '8px';
+                            }, 600);
+                        }, i * 300);
                     });
 
-                    // After showing forecast, zoom in on day card gradient
+                    // Highlight Sunday (rainy day)
                     setTimeout(() => {
-                        dayCard.style.transition = 'all 1s ease-out';
-                        dayCard.style.transform = 'scale(1.02)';
-                        dayCard.style.boxShadow = '0 0 0 4px rgba(59, 130, 246, 0.5)';
-                    }, 1500);
-
-                    // Highlight each time slot weather to show gradient flow
-                    setTimeout(() => {
-                        document.querySelectorAll('.slot-weather').forEach((slot, i) => {
-                            setTimeout(() => {
-                                slot.style.transition = 'all 0.3s ease-out';
-                                slot.style.transform = 'scale(1.1)';
-                                slot.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.3)';
-                                setTimeout(() => {
-                                    slot.style.transform = 'scale(1)';
-                                    slot.style.boxShadow = 'none';
-                                }, 400);
-                            }, i * 150);
-                        });
-                    }, 2200);
+                        forecastCards[2].style.transition = 'all 0.5s ease';
+                        forecastCards[2].style.transform = 'scale(1.1)';
+                        forecastCards[2].style.boxShadow = '0 8px 20px rgba(59, 130, 246, 0.4)';
+                    }, 2000);
                 }, 100);
 
-                // Step 2: Show weather alert/suggestion (4-8s)
+                // Step 2: Show weather alert and highlight jobs (4-8s)
                 setTimeout(() => {
                     steps[0].classList.remove('active');
                     steps[1].classList.add('active');
                     
-                    // Reset day card
-                    dayCard.style.transform = 'scale(1)';
-                    dayCard.style.boxShadow = 'none';
+                    // Reset forecast card to active state
+                    forecastCards[2].style.transform = 'scale(1.05)';
+                    forecastCards[2].style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.2)';
                     
-                    // Pulse jobs to show they're affected
-                    timeSlots.forEach((slot, i) => {
-                        setTimeout(() => {
-                            const job = slot.querySelector('.demo-job');
-                            if (job) {
-                                job.style.animation = 'pulse 0.5s ease-in-out';
-                                setTimeout(() => {
-                                    job.style.animation = '';
-                                }, 500);
-                            }
-                        }, i * 150);
-                    });
-
-                    // Show alert popup
+                    // Show weather alert
                     setTimeout(() => {
                         weatherAlert.classList.add('show');
-                    }, 600);
-                    
-                    // Highlight rainy time slots
-                    document.querySelectorAll('.slot-weather').forEach(slot => {
-                        slot.style.background = 'rgba(239, 68, 68, 0.15)';
-                        slot.style.borderLeft = '3px solid #ef4444';
-                    });
+                    }, 300);
+
+                    // Pulse weather indicators on jobs
+                    setTimeout(() => {
+                        jobs.forEach((job, i) => {
+                            setTimeout(() => {
+                                const indicator = job.querySelector('.job-weather-indicator');
+                                if (indicator) {
+                                    indicator.style.transition = 'all 0.3s ease';
+                                    indicator.style.transform = 'scale(1.15)';
+                                    setTimeout(() => {
+                                        indicator.style.transform = 'scale(1)';
+                                    }, 300);
+                                }
+                            }, i * 200);
+                        });
+                    }, 800);
                 }, stepDuration);
 
-                // Step 3: Show SMS notification and reschedule (8-12s)
+                // Step 3: Reschedule jobs and show SMS notification (8-12s)
                 setTimeout(() => {
                     steps[1].classList.remove('active');
                     steps[2].classList.add('active');
                     weatherAlert.classList.remove('show');
                     
-                    // Fade out and shrink jobs one by one
+                    // Move jobs off screen (being rescheduled)
                     jobs.forEach((job, i) => {
                         setTimeout(() => {
-                            job.style.transition = 'all 0.5s ease-out';
-                            job.style.opacity = '0.2';
-                            job.style.transform = 'scale(0.95)';
-                        }, i * 200);
+                            job.classList.add('moving');
+                            job.style.transform = 'translateX(-100px)';
+                            job.style.opacity = '0';
+                        }, i * 300);
                     });
 
-                    // Show SMS popup after jobs fade
+                    // Show SMS notification after jobs move
                     setTimeout(() => {
                         smsNotification.classList.add('show');
-                    }, 800);
+                    }, 1200);
                 }, stepDuration * 2);
 
                 // Step 4: Reset and loop (12-14s)
                 setTimeout(() => {
                     steps[2].classList.remove('active');
                     smsNotification.classList.remove('show');
-                    
-                    // Reset slot weather backgrounds
-                    document.querySelectorAll('.slot-weather').forEach(slot => {
-                        slot.style.background = 'rgba(59, 130, 246, 0.1)';
-                        slot.style.borderLeft = 'none';
-                    });
                     
                     // Restart animation after brief pause
                     setTimeout(runDemoAnimation, 2000);
