@@ -91,8 +91,20 @@
         .hero p {
             font-size: 1.5rem;
             margin-bottom: 2.5rem;
+        }
+        .hero-phrase {
+            display: inline;
             opacity: 0;
-            animation: fadeInUp 1.5s ease-out 1s forwards;
+            animation: fadeInUp 0.8s ease-out forwards;
+        }
+        .hero-phrase:nth-child(1) {
+            animation-delay: 1s;
+        }
+        .hero-phrase:nth-child(2) {
+            animation-delay: 1.6s;
+        }
+        .hero-phrase:nth-child(3) {
+            animation-delay: 2.2s;
         }
         .cta-buttons {
             display: flex;
@@ -102,7 +114,7 @@
         }
         .hero-buttons {
             opacity: 0;
-            animation: popIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 5s forwards;
+            animation: popIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 3.5s forwards;
         }
         .btn {
             padding: 1rem 2.5rem;
@@ -1428,7 +1440,11 @@
     <section class="hero">
         <div class="container">
             <h1>Stop Losing Money to Weather Delays</h1>
-            <p class="hero-subtitle">JobFlowCO automatically reschedules your outdoor work around rain forecasts. See 5-day weather at a glance, get smart suggestions, and keep your schedule optimized—all in one app.</p>
+            <p class="hero-subtitle">
+                <span class="hero-phrase">Auto-reschedule around rain.</span>
+                <span class="hero-phrase"> See 5-day forecasts.</span>
+                <span class="hero-phrase"> Optimize your schedule.</span>
+            </p>
             <div class="hero-buttons">
                 <a href="#demo-features" class="btn btn-secondary">See How It Works</a>
                 <a href="/app" class="btn btn-primary">Sign Up / Login</a>
