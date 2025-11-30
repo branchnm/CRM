@@ -1251,15 +1251,15 @@
                     <div class="demo-steps">
                         <div class="demo-step active" data-step="1">
                             <div class="step-number">1</div>
-                            <div class="step-label">See weather</div>
+                            <div class="step-label">Weather gradient</div>
                         </div>
                         <div class="demo-step" data-step="2">
                             <div class="step-number">2</div>
-                            <div class="step-label">Get alert</div>
+                            <div class="step-label">Smart suggestions</div>
                         </div>
                         <div class="demo-step" data-step="3">
                             <div class="step-number">3</div>
-                            <div class="step-label">Notify customers</div>
+                            <div class="step-label">Auto notifications</div>
                         </div>
                     </div>
                 </div>
@@ -1392,7 +1392,7 @@
         // Animated Demo Script - Horizontal Time Slots Layout
         (function() {
             let currentStep = 0;
-            const stepDuration = 3500; // 3.5 seconds per step
+            const stepDuration = 4000; // 4 seconds per step
 
             function runDemoAnimation() {
                 const steps = document.querySelectorAll('.demo-step');
@@ -1400,6 +1400,8 @@
                 const smsNotification = document.querySelector('.sms-notification-popup');
                 const jobs = document.querySelectorAll('.demo-job');
                 const timeSlots = document.querySelectorAll('.time-slot.has-job');
+                const dayCard = document.querySelector('.demo-day-card');
+                const forecastDays = document.querySelectorAll('.forecast-day-card');
 
                 // Reset all
                 steps.forEach(s => s.classList.remove('active'));
@@ -1410,38 +1412,81 @@
                     j.style.transform = 'scale(1)';
                     j.style.animation = '';
                 });
+                dayCard.style.transform = 'scale(1)';
+                dayCard.style.boxShadow = 'none';
 
-                // Step 1: Show weather and highlight jobs (0-3.5s)
+                // Step 1: Highlight weather gradient (0-4s)
                 setTimeout(() => {
                     steps[0].classList.add('active');
                     
-                    // Pulse each job card to draw attention
+                    // Pulse the forecast days to show color coding
+                    forecastDays.forEach((day, i) => {
+                        setTimeout(() => {
+                            day.style.animation = 'pulse 0.8s ease-in-out';
+                            setTimeout(() => {
+                                day.style.animation = '';
+                            }, 800);
+                        }, i * 200);
+                    });
+
+                    // After showing forecast, zoom in on day card gradient
+                    setTimeout(() => {
+                        dayCard.style.transition = 'all 1s ease-out';
+                        dayCard.style.transform = 'scale(1.02)';
+                        dayCard.style.boxShadow = '0 0 0 4px rgba(59, 130, 246, 0.5)';
+                    }, 1500);
+
+                    // Highlight each time slot weather to show gradient flow
+                    setTimeout(() => {
+                        document.querySelectorAll('.slot-weather').forEach((slot, i) => {
+                            setTimeout(() => {
+                                slot.style.transition = 'all 0.3s ease-out';
+                                slot.style.transform = 'scale(1.1)';
+                                slot.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.3)';
+                                setTimeout(() => {
+                                    slot.style.transform = 'scale(1)';
+                                    slot.style.boxShadow = 'none';
+                                }, 400);
+                            }, i * 150);
+                        });
+                    }, 2200);
+                }, 100);
+
+                // Step 2: Show weather alert/suggestion (4-8s)
+                setTimeout(() => {
+                    steps[0].classList.remove('active');
+                    steps[1].classList.add('active');
+                    
+                    // Reset day card
+                    dayCard.style.transform = 'scale(1)';
+                    dayCard.style.boxShadow = 'none';
+                    
+                    // Pulse jobs to show they're affected
                     timeSlots.forEach((slot, i) => {
                         setTimeout(() => {
                             const job = slot.querySelector('.demo-job');
                             if (job) {
-                                job.style.animation = 'pulse 0.6s ease-in-out';
+                                job.style.animation = 'pulse 0.5s ease-in-out';
                                 setTimeout(() => {
                                     job.style.animation = '';
-                                }, 600);
+                                }, 500);
                             }
-                        }, i * 250);
+                        }, i * 150);
                     });
-                }, 100);
 
-                // Step 2: Show weather alert (3.5-7s)
-                setTimeout(() => {
-                    steps[0].classList.remove('active');
-                    steps[1].classList.add('active');
-                    weatherAlert.classList.add('show');
+                    // Show alert popup
+                    setTimeout(() => {
+                        weatherAlert.classList.add('show');
+                    }, 600);
                     
                     // Highlight rainy time slots
                     document.querySelectorAll('.slot-weather').forEach(slot => {
-                        slot.style.background = 'rgba(59, 130, 246, 0.2)';
+                        slot.style.background = 'rgba(239, 68, 68, 0.15)';
+                        slot.style.borderLeft = '3px solid #ef4444';
                     });
                 }, stepDuration);
 
-                // Step 3: Show SMS notification and fade out jobs (7-10.5s)
+                // Step 3: Show SMS notification and reschedule (8-12s)
                 setTimeout(() => {
                     steps[1].classList.remove('active');
                     steps[2].classList.add('active');
@@ -1459,10 +1504,10 @@
                     // Show SMS popup after jobs fade
                     setTimeout(() => {
                         smsNotification.classList.add('show');
-                    }, 700);
+                    }, 800);
                 }, stepDuration * 2);
 
-                // Step 4: Reset and loop (10.5-12s)
+                // Step 4: Reset and loop (12-14s)
                 setTimeout(() => {
                     steps[2].classList.remove('active');
                     smsNotification.classList.remove('show');
@@ -1470,10 +1515,11 @@
                     // Reset slot weather backgrounds
                     document.querySelectorAll('.slot-weather').forEach(slot => {
                         slot.style.background = 'rgba(59, 130, 246, 0.1)';
+                        slot.style.borderLeft = 'none';
                     });
                     
                     // Restart animation after brief pause
-                    setTimeout(runDemoAnimation, 1500);
+                    setTimeout(runDemoAnimation, 2000);
                 }, stepDuration * 3);
             }
 
