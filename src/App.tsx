@@ -517,7 +517,7 @@ function App() {
               </h1>
               {/* Demo Mode Badge */}
               {DEMO_MODE && (
-                <span className="text-xs font-semibold px-2 py-1 rounded bg-green-100 text-green-700 border border-green-300">
+                <span className="text-xs font-semibold px-2 py-1 rounded bg-purple-100 text-purple-700 border border-purple-300">
                   DEMO
                 </span>
               )}
@@ -645,7 +645,7 @@ function App() {
             <div className="flex-1 flex justify-end items-center gap-2">
               {/* Demo Mode Badge */}
               {DEMO_MODE && (
-                <span className="text-xs font-semibold px-2 py-1 rounded bg-green-100 text-green-700 border border-green-300">
+                <span className="text-xs font-semibold px-2 py-1 rounded bg-purple-100 text-purple-700 border border-purple-300">
                   DEMO
                 </span>
               )}
