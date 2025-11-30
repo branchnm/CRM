@@ -676,213 +676,299 @@
             color: #1e293b;
         }
 
-        /* Additional Feature Demos Styles */
-        .feature-demo-card {
-            background: #f8fafc;
-            border-radius: 16px;
-            padding: 2rem;
-            border: 2px solid #e5e7eb;
-        }
-        .mini-demo-container {
-            background: white;
-            border-radius: 12px;
-            padding: 1.5rem;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-        }
-        
-        /* Phone Mockup for GPS */
-        .phone-mockup-demo {
-            max-width: 280px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 20px;
-            border: 3px solid #1e293b;
-            overflow: hidden;
-        }
-        .phone-screen {
-            padding: 1.5rem 1rem;
-            background: #f8fafc;
-            min-height: 300px;
+        /* GPS Tracking Demo Styles */
+        .gps-map-container {
+            flex: 1;
             display: flex;
             flex-direction: column;
-            gap: 1rem;
+            padding: 2rem;
+            position: relative;
         }
-        .sms-message {
-            opacity: 0;
+        .map-view {
+            flex: 1;
+            background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
+            border-radius: 16px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .map-marker {
+            position: absolute;
+            text-align: center;
             animation: fadeInUp 0.6s ease-out forwards;
         }
-        .sms-message.incoming {
-            align-self: flex-start;
-            max-width: 85%;
+        .crew-marker {
+            top: 20%;
+            left: 30%;
+            animation-delay: 0.5s;
         }
-        .sms-bubble {
-            background: #e5e7eb;
-            padding: 0.75rem 1rem;
-            border-radius: 16px;
-            border-bottom-left-radius: 4px;
-            font-size: 0.9rem;
-            line-height: 1.5;
-            color: #1e293b;
+        .destination-marker {
+            bottom: 25%;
+            right: 25%;
+            animation-delay: 1s;
         }
-        .sms-time {
-            font-size: 0.7rem;
-            color: #64748b;
-            margin-top: 4px;
-            padding-left: 0.5rem;
+        .marker-icon {
+            font-size: 2.5rem;
+            margin-bottom: 0.25rem;
+            animation: bounce 2s ease-in-out infinite;
         }
-
-        /* Route Optimization Demo */
-        .route-demo {
+        .marker-label {
             background: white;
-            border-radius: 12px;
-        }
-        .route-header {
-            padding: 1rem;
-            border-bottom: 2px solid #e5e7eb;
-            text-align: center;
-        }
-        .route-stops {
-            padding: 1rem;
-        }
-        .route-stop {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            padding: 0.75rem;
-            background: #f8fafc;
-            border-radius: 8px;
-            margin: 0.5rem 0;
-            opacity: 0;
-            animation: fadeInUp 0.5s ease-out forwards;
-        }
-        .stop-number {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            background: #3b82f6;
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            flex-shrink: 0;
-        }
-        .stop-info {
-            flex: 1;
-        }
-        .stop-name {
+            padding: 0.4rem 0.8rem;
+            border-radius: 6px;
+            font-size: 0.8rem;
             font-weight: 600;
             color: #1e293b;
-            font-size: 0.9rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            white-space: nowrap;
         }
-        .stop-address {
-            font-size: 0.75rem;
-            color: #64748b;
+        .route-line {
+            position: absolute;
+            top: 25%;
+            left: 33%;
+            width: 40%;
+            height: 2px;
+            background: #3b82f6;
+            border-top: 3px dashed #3b82f6;
+            transform: rotate(35deg);
+            animation: fadeInUp 0.8s ease-out 1.5s forwards;
+            opacity: 0;
         }
-        .stop-time {
-            font-size: 0.85rem;
-            color: #64748b;
-            font-weight: 600;
-        }
-        .route-connector {
-            width: 2px;
-            height: 16px;
-            background: #cbd5e1;
-            margin-left: 1.75rem;
-        }
-        .optimize-btn {
-            width: 100%;
-            padding: 0.75rem;
-            background: linear-gradient(135deg, #3b82f6, #2563eb);
-            color: white;
-            border: none;
-            border-radius: 8px;
+        .distance-badge {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 0.6rem 1.2rem;
+            border-radius: 20px;
             font-weight: 700;
-            margin-top: 1rem;
-            cursor: pointer;
+            color: #3b82f6;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
             animation: popIn 0.6s ease-out 2s forwards;
             opacity: 0;
         }
-
-        /* Drag & Drop Calendar Demo */
-        .calendar-demo {
-            background: white;
+        .gps-notification {
+            position: absolute;
+            bottom: 2rem;
+            left: 2rem;
+            right: 2rem;
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white;
+            padding: 1.25rem;
             border-radius: 12px;
-        }
-        .calendar-days {
+            box-shadow: 0 8px 24px rgba(0,0,0,0.2);
             display: flex;
-            gap: 0.5rem;
-            padding: 1rem;
+            gap: 1rem;
+            align-items: flex-start;
+            animation: slideUp 0.6s ease-out 2.5s forwards;
+            opacity: 0;
+            transform: translateY(20px);
         }
-        .calendar-day {
+        .notification-icon {
+            font-size: 2rem;
+        }
+        .notification-content {
             flex: 1;
-            background: #f8fafc;
-            border: 2px solid #e5e7eb;
-            border-radius: 8px;
-            padding: 0.75rem 0.5rem;
-            text-align: center;
-            min-height: 180px;
-            position: relative;
-            transition: all 0.3s;
         }
-        .calendar-day.highlight {
+        .notification-title {
+            font-weight: 700;
+            font-size: 1rem;
+            margin-bottom: 0.25rem;
+        }
+        .notification-message {
+            font-size: 0.9rem;
+            opacity: 0.95;
+        }
+        @keyframes slideUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Route Optimization Demo Styles */
+        .route-optimizer-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 2rem;
+        }
+        .optimizer-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .optimize-route-btn {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white;
+            border: none;
+            padding: 1rem 2.5rem;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            box-shadow: 0 4px 16px rgba(59, 130, 246, 0.3);
+            animation: pulse 2s ease-in-out infinite;
+        }
+        .btn-icon {
+            font-size: 1.5rem;
+        }
+        .optimized-map-view {
+            flex: 1;
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+        .map-route-display {
+            flex: 1;
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+            border-radius: 16px;
+            padding: 2rem;
+            position: relative;
+            min-height: 300px;
+            animation: fadeInUp 0.8s ease-out 1s forwards;
+            opacity: 0;
+        }
+        .route-svg {
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+        }
+        .route-path {
+            stroke-dasharray: 500;
+            stroke-dashoffset: 500;
+            animation: drawPath 3s ease-out 1.5s forwards;
+        }
+        .route-stop {
+            opacity: 0;
+            animation: popIn 0.4s ease-out forwards;
+        }
+        .route-stop:nth-child(2) { animation-delay: 2s; }
+        .route-stop:nth-child(3) { animation-delay: 2.3s; }
+        .route-stop:nth-child(4) { animation-delay: 2.6s; }
+        .route-stop:nth-child(5) { animation-delay: 2.9s; }
+        .route-stop:nth-child(6) { animation-delay: 3.2s; }
+        .stop-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #1e293b;
+            background: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        @keyframes drawPath {
+            to {
+                stroke-dashoffset: 0;
+            }
+        }
+        .route-stats {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            animation: fadeInUp 0.8s ease-out 3.5s forwards;
+            opacity: 0;
+        }
+        .stat-item {
+            background: white;
+            padding: 1rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            text-align: center;
+        }
+        .stat-label {
+            font-size: 0.8rem;
+            color: #64748b;
+            margin-bottom: 0.25rem;
+        }
+        .stat-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+        /* Drag & Drop Demo Styles */
+        .drag-drop-forecast {
+            display: flex;
+            padding: 2rem;
+            gap: 1rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .drag-drop-forecast .forecast-day-card {
+            flex: 1;
+            min-width: 140px;
+            max-width: 180px;
+            position: relative;
+            min-height: 280px;
+        }
+        .drag-drop-forecast .forecast-day-card.drop-target {
             border-color: #3b82f6;
             background: #eff6ff;
+            animation: pulse 2s ease-in-out infinite;
         }
-        .calendar-day-name {
-            font-size: 0.75rem;
-            font-weight: 700;
-            color: #64748b;
-            margin-bottom: 4px;
-        }
-        .calendar-day-date {
-            font-size: 0.8rem;
-            color: #1e293b;
-            margin-bottom: 1rem;
-        }
-        .calendar-job {
+        .draggable-job {
+            margin-top: 1rem;
+            padding: 0.75rem;
             background: white;
             border: 2px solid #3b82f6;
-            border-radius: 6px;
-            padding: 0.5rem;
-            margin-top: 1rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
             cursor: move;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+            animation: dragFloat 3s ease-in-out infinite;
         }
-        .calendar-job.dragging {
-            animation: dragMove 3s ease-in-out infinite;
-        }
-        .job-name {
-            font-size: 0.8rem;
+        .draggable-job .job-customer {
+            font-size: 0.85rem;
             font-weight: 700;
             color: #1e293b;
+            margin-bottom: 0.25rem;
         }
-        .job-time-small {
-            font-size: 0.7rem;
+        .draggable-job .job-time-small {
+            font-size: 0.75rem;
             color: #64748b;
-            margin-top: 2px;
         }
-        .drop-indicator {
+        .drop-zone {
             position: absolute;
             bottom: 1rem;
             left: 50%;
             transform: translateX(-50%);
             background: #3b82f6;
             color: white;
-            padding: 0.5rem 1rem;
-            border-radius: 6px;
-            font-size: 0.75rem;
+            padding: 0.6rem 1.2rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
             font-weight: 700;
-            white-space: nowrap;
+            animation: pulse 2s ease-in-out infinite;
         }
-
-        @keyframes dragMove {
+        .drag-instructions {
+            text-align: center;
+            padding: 1.5rem;
+            background: white;
+            border-radius: 12px;
+            margin: 0 2rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        .instruction-icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+        .instruction-text {
+            color: #64748b;
+            font-size: 0.95rem;
+        }
+        @keyframes dragFloat {
             0%, 100% {
-                transform: translateY(0);
+                transform: translateY(0) rotate(0deg);
+            }
+            25% {
+                transform: translateY(-10px) rotate(2deg);
             }
             50% {
-                transform: translateY(60px) translateX(80px);
-                opacity: 0.7;
+                transform: translateY(40px) translateX(100px) rotate(-3deg);
+            }
+            75% {
+                transform: translateY(30px) translateX(80px) rotate(1deg);
             }
         }
 
@@ -1840,114 +1926,158 @@
     </section>
 
     <!-- Additional Features Demos Section -->
-    <section class="more-features-demos" style="padding: 80px 0; background: white;">
+    <section class="more-features-demos" style="padding: 80px 0; background: #f8fafc;">
         <div class="container">
             <div class="section-header">
                 <h2>More Powerful Features</h2>
-                <p>Additional tools to streamline your operations</p>
             </div>
 
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 3rem; max-width: 1200px; margin: 0 auto;">
-                
-                <!-- Feature 4: GPS Notifications -->
-                <div class="feature-demo-card">
-                    <h3 style="font-size: 1.3rem; font-weight: 700; color: #1e293b; margin-bottom: 1rem; text-align: center;">Automated GPS Updates</h3>
-                    <div class="mini-demo-container">
-                        <div class="phone-mockup-demo">
-                            <div class="phone-screen">
-                                <div class="sms-message incoming">
-                                    <div class="sms-bubble">
-                                        📍 Your crew is arriving at Johnson Residence in 5 minutes
-                                    </div>
-                                    <div class="sms-time">10:25 AM</div>
-                                </div>
-                                <div class="sms-message incoming" style="animation-delay: 2s;">
-                                    <div class="sms-bubble">
-                                        ✅ Service completed at Johnson Residence. Crew is heading to next location.
-                                    </div>
-                                    <div class="sms-time">11:15 AM</div>
-                                </div>
+            <!-- Feature 4: GPS Tracking -->
+            <div class="app-demo-container" style="margin-bottom: 4rem;">
+                <h3 style="text-align: center; font-size: 1.4rem; font-weight: 700; color: #1e293b; margin-bottom: 1.5rem;">Automated GPS Notifications</h3>
+                <div class="app-demo-screen" style="height: 70vh; max-height: 600px;">
+                    <div class="gps-map-container">
+                        <div class="map-view">
+                            <div class="map-marker crew-marker">
+                                <div class="marker-icon">🚚</div>
+                                <div class="marker-label">Crew Location</div>
+                            </div>
+                            <div class="map-marker destination-marker">
+                                <div class="marker-icon">📍</div>
+                                <div class="marker-label">Johnson Residence</div>
+                            </div>
+                            <div class="route-line"></div>
+                            <div class="distance-badge">0.3 miles away</div>
+                        </div>
+                        <div class="gps-notification">
+                            <div class="notification-icon">📱</div>
+                            <div class="notification-content">
+                                <div class="notification-title">Auto-Message Sent</div>
+                                <div class="notification-message">"Your crew is arriving at Johnson Residence in 5 minutes"</div>
                             </div>
                         </div>
-                        <p style="text-align: center; margin-top: 1rem; color: #64748b; font-size: 0.9rem;">Customers receive real-time location updates automatically</p>
+                    </div>
+                    <div class="demo-steps">
+                        <div class="demo-step active">
+                            <div class="step-number">1</div>
+                            <div class="step-label">Track crew location</div>
+                        </div>
+                        <div class="demo-step">
+                            <div class="step-number">2</div>
+                            <div class="step-label">Auto-send SMS</div>
+                        </div>
                     </div>
                 </div>
+            </div>
 
-                <!-- Feature 5: Route Optimization -->
-                <div class="feature-demo-card">
-                    <h3 style="font-size: 1.3rem; font-weight: 700; color: #1e293b; margin-bottom: 1rem; text-align: center;">Route Optimization</h3>
-                    <div class="mini-demo-container">
-                        <div class="route-demo">
-                            <div class="route-header">
-                                <div style="font-weight: 700; color: #1e293b;">Today's Route</div>
-                                <div style="font-size: 0.85rem; color: #64748b;">5 stops • 23 miles • 4.5 hrs</div>
-                            </div>
-                            <div class="route-stops">
-                                <div class="route-stop" style="animation-delay: 0.5s;">
-                                    <div class="stop-number">1</div>
-                                    <div class="stop-info">
-                                        <div class="stop-name">Johnson Residence</div>
-                                        <div class="stop-address">123 Oak Street</div>
-                                    </div>
-                                    <div class="stop-time">9:00 AM</div>
-                                </div>
-                                <div class="route-connector"></div>
-                                <div class="route-stop" style="animation-delay: 1s;">
-                                    <div class="stop-number">2</div>
-                                    <div class="stop-info">
-                                        <div class="stop-name">Smith Property</div>
-                                        <div class="stop-address">456 Maple Ave</div>
-                                    </div>
-                                    <div class="stop-time">10:15 AM</div>
-                                </div>
-                                <div class="route-connector"></div>
-                                <div class="route-stop" style="animation-delay: 1.5s;">
-                                    <div class="stop-number">3</div>
-                                    <div class="stop-info">
-                                        <div class="stop-name">Brown Lawn Care</div>
-                                        <div class="stop-address">789 Pine Road</div>
-                                    </div>
-                                    <div class="stop-time">11:30 AM</div>
-                                </div>
-                            </div>
-                            <button class="optimize-btn">
-                                🗺️ Optimized Route Ready
+            <!-- Feature 5: Route Optimization -->
+            <div class="app-demo-container" style="margin-bottom: 4rem;">
+                <h3 style="text-align: center; font-size: 1.4rem; font-weight: 700; color: #1e293b; margin-bottom: 1.5rem;">One-Click Route Optimization</h3>
+                <div class="app-demo-screen" style="height: 70vh; max-height: 600px;">
+                    <div class="route-optimizer-container">
+                        <div class="optimizer-header">
+                            <button class="optimize-route-btn">
+                                <span class="btn-icon">🗺️</span>
+                                <span>Optimize Route</span>
                             </button>
                         </div>
-                        <p style="text-align: center; margin-top: 1rem; color: #64748b; font-size: 0.9rem;">One-click route optimization saves time and fuel</p>
-                    </div>
-                </div>
-
-                <!-- Feature 6: Drag & Drop -->
-                <div class="feature-demo-card">
-                    <h3 style="font-size: 1.3rem; font-weight: 700; color: #1e293b; margin-bottom: 1rem; text-align: center;">Drag & Drop Scheduling</h3>
-                    <div class="mini-demo-container">
-                        <div class="calendar-demo">
-                            <div class="calendar-days">
-                                <div class="calendar-day">
-                                    <div class="calendar-day-name">Monday</div>
-                                    <div class="calendar-day-date">Nov 25</div>
-                                    <div class="calendar-job dragging" style="animation-delay: 1s;">
-                                        <div class="job-name">Wilson Estate</div>
-                                        <div class="job-time-small">2:00 PM</div>
-                                    </div>
+                        <div class="optimized-map-view">
+                            <div class="map-route-display">
+                                <svg class="route-svg" viewBox="0 0 300 400" style="width: 100%; height: 100%;">
+                                    <path class="route-path" d="M 150 50 L 200 120 L 180 200 L 120 280 L 100 350" stroke="#3b82f6" stroke-width="3" fill="none" stroke-dasharray="5,5"/>
+                                    <circle class="route-stop" cx="150" cy="50" r="12" fill="#10b981"/>
+                                    <circle class="route-stop" cx="200" cy="120" r="10" fill="#3b82f6"/>
+                                    <circle class="route-stop" cx="180" cy="200" r="10" fill="#3b82f6"/>
+                                    <circle class="route-stop" cx="120" cy="280" r="10" fill="#3b82f6"/>
+                                    <circle class="route-stop" cx="100" cy="350" r="10" fill="#3b82f6"/>
+                                </svg>
+                                <div class="stop-label" style="position: absolute; top: 40px; left: 55%;">Start</div>
+                                <div class="stop-label" style="position: absolute; top: 110px; right: 20%;">Stop 1</div>
+                                <div class="stop-label" style="position: absolute; top: 190px; right: 25%;">Stop 2</div>
+                                <div class="stop-label" style="position: absolute; top: 270px; left: 25%;">Stop 3</div>
+                                <div class="stop-label" style="position: absolute; bottom: 40px; left: 20%;">Stop 4</div>
+                            </div>
+                            <div class="route-stats">
+                                <div class="stat-item">
+                                    <div class="stat-label">Total Distance</div>
+                                    <div class="stat-value">18.4 miles</div>
                                 </div>
-                                <div class="calendar-day highlight">
-                                    <div class="calendar-day-name">Tuesday</div>
-                                    <div class="calendar-day-date">Nov 26</div>
-                                    <div class="drop-indicator" style="animation: pulse 2s ease-in-out infinite;">Drop here</div>
+                                <div class="stat-item">
+                                    <div class="stat-label">Estimated Time</div>
+                                    <div class="stat-value">3.5 hours</div>
                                 </div>
-                                <div class="calendar-day">
-                                    <div class="calendar-day-name">Wednesday</div>
-                                    <div class="calendar-day-date">Nov 27</div>
+                                <div class="stat-item">
+                                    <div class="stat-label">Stops</div>
+                                    <div class="stat-value">5 jobs</div>
                                 </div>
                             </div>
                         </div>
-                        <p style="text-align: center; margin-top: 1rem; color: #64748b; font-size: 0.9rem;">Easily reschedule jobs with drag and drop</p>
+                    </div>
+                    <div class="demo-steps">
+                        <div class="demo-step active">
+                            <div class="step-number">1</div>
+                            <div class="step-label">Click optimize</div>
+                        </div>
+                        <div class="demo-step">
+                            <div class="step-number">2</div>
+                            <div class="step-label">Get best route</div>
+                        </div>
                     </div>
                 </div>
-
             </div>
+
+            <!-- Feature 6: Drag & Drop -->
+            <div class="app-demo-container">
+                <h3 style="text-align: center; font-size: 1.4rem; font-weight: 700; color: #1e293b; margin-bottom: 1.5rem;">Drag & Drop Rescheduling</h3>
+                <div class="app-demo-screen" style="height: 70vh; max-height: 600px;">
+                    <div class="drag-drop-forecast">
+                        <div class="forecast-day-card">
+                            <div class="day-name">Monday</div>
+                            <div class="day-icon">☀️</div>
+                            <div class="day-temp">72°</div>
+                            <div class="forecast-gradient sunny"></div>
+                            <div class="draggable-job">
+                                <div class="job-customer">Wilson Estate</div>
+                                <div class="job-time-small">2:00 PM</div>
+                            </div>
+                        </div>
+                        <div class="forecast-day-card drop-target">
+                            <div class="day-name">Tuesday</div>
+                            <div class="day-icon">☀️</div>
+                            <div class="day-temp">75°</div>
+                            <div class="forecast-gradient sunny"></div>
+                            <div class="drop-zone">Drop here</div>
+                        </div>
+                        <div class="forecast-day-card">
+                            <div class="day-name">Wednesday</div>
+                            <div class="day-icon">⛅</div>
+                            <div class="day-temp">71°</div>
+                            <div class="forecast-gradient cloudy"></div>
+                        </div>
+                        <div class="forecast-day-card">
+                            <div class="day-name">Thursday</div>
+                            <div class="day-icon">☀️</div>
+                            <div class="day-temp">73°</div>
+                            <div class="forecast-gradient sunny"></div>
+                        </div>
+                    </div>
+                    <div class="drag-instructions">
+                        <div class="instruction-icon">👆</div>
+                        <div class="instruction-text">Drag jobs between days to reschedule</div>
+                    </div>
+                    <div class="demo-steps">
+                        <div class="demo-step active">
+                            <div class="step-number">1</div>
+                            <div class="step-label">Grab job card</div>
+                        </div>
+                        <div class="demo-step">
+                            <div class="step-number">2</div>
+                            <div class="step-label">Drop on new day</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </section>
 
