@@ -25,11 +25,8 @@
         /* Header */
         .header {
             background: white;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            padding: 1rem 0;
-            position: sticky;
-            top: 0;
-            z-index: 1000;
+            padding: 2rem 0;
+            border-bottom: 1px solid #e2e8f0;
         }
         .container {
             max-width: 1200px;
@@ -39,10 +36,11 @@
         .header-content {
             display: flex;
             align-items: center;
-            justify-content: space-between;
+            justify-content: center;
+            gap: 3rem;
         }
         .logo {
-            font-size: 1.75rem;
+            font-size: 1.5rem;
             font-weight: 900;
             background: linear-gradient(135deg, #2563EB, #1D4ED8);
             -webkit-background-clip: text;
@@ -53,28 +51,26 @@
             gap: 1rem;
         }
         .nav-btn {
-            padding: 0.6rem 1.5rem;
+            padding: 0.5rem 1.25rem;
             border-radius: 0.5rem;
             text-decoration: none;
             font-weight: 600;
             transition: all 0.2s;
+            font-size: 0.95rem;
         }
         .nav-btn-demo {
-            background: linear-gradient(135deg, #10B981, #059669);
-            color: white;
+            background: transparent;
+            color: #64748b;
         }
         .nav-btn-demo:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+            color: #2563eb;
         }
         .nav-btn-login {
-            background: white;
-            color: #2563EB;
-            border: 2px solid #2563EB;
+            background: #2563eb;
+            color: white;
         }
         .nav-btn-login:hover {
-            background: #2563EB;
-            color: white;
+            background: #1d4ed8;
         }
 
         /* Hero Section */
@@ -765,8 +761,6 @@
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
-            text-align: center;
-        }
 
         /* GPS Phone Mockup */
         .phone-mockup {
@@ -1447,7 +1441,7 @@
         <div class="container">
             <div class="section-header">
                 <h2>See JobFlowCO in Action</h2>
-                <p>Watch how the app handles weather changes, scheduling, and customer notifications automatically</p>
+                <p>Automatic weather-aware scheduling and customer notifications</p>
             </div>
             
             <!-- Animated App Demo -->
