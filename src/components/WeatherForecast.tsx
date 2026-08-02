@@ -1921,16 +1921,121 @@ export function WeatherForecast({
     toast.success(`${jobCount} job${jobCount !== 1 ? 's' : ''} rescheduled to better weather day`);
   }, [jobs, onRescheduleJob, checkDayCapacity]);
 
-  // Accept individual start time suggestion
-  const acceptStartTimeSuggestion = useCallback((date: string, newStartTime: number, newEndTime?: number) => {
-    // Update the local dayStartTimes state
+  const selectJobsToMoveForCapacity = useCallback((jobsOnDay: Job[], availableMinutes: number) => {
+    if (availableMinutes <= 0 || jobsOnDay.length === 0) {
+      return [] as Job[];
+    }
+
+    const sortedJobs = [...jobsOnDay].sort((a, b) => {
+      const aCustomer = customers.find(c => c.id === a.customerId);
+      const bCustomer = customers.find(c => c.id === b.customerId);
+      const aPrice = Number(aCustomer?.price || 0);
+      const bPrice = Number(bCustomer?.price || 0);
+      const aTime = (a.totalTime || 30) + (a.driveTime || 0);
+      const bTime = (b.totalTime || 30) + (b.driveTime || 0);
+      const aPriority = (aPrice * 1000) - aTime;
+      const bPriority = (bPrice * 1000) - bTime;
+      return bPriority - aPriority;
+    });
+
+    const keptJobs: Job[] = [];
+    let usedMinutes = 0;
+
+    sortedJobs.forEach(job => {
+      const jobMinutes = (job.totalTime || 30) + (job.driveTime || 0);
+      if (usedMinutes + jobMinutes <= availableMinutes) {
+        keptJobs.push(job);
+        usedMinutes += jobMinutes;
+      }
+    });
+
+    return jobsOnDay.filter(job => !keptJobs.some(keptJob => keptJob.id === job.id));
+  }, [customers]);
+
+  const findBestAlternativeDayForJobs = useCallback((jobIds: string[], currentDate: string) => {
+    if (!weatherData?.daily) {
+      return null;
+    }
+
+    const forecast = weatherData.daily;
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = today.getMonth();
+    const day = today.getDate();
+
+    const currentDateValue = new Date(currentDate);
+    const forecastDates: string[] = [];
+
+    forecast.forEach((_, index) => {
+      const date = new Date(year, month, day + index);
+      const yyyy = date.getFullYear();
+      const mm = String(date.getMonth() + 1).padStart(2, '0');
+      const dd = String(date.getDate()).padStart(2, '0');
+      forecastDates.push(`${yyyy}-${mm}-${dd}`);
+    });
+
+    const candidateDays = new Set<string>();
+
+    forecastDates.forEach((dateStr, index) => {
+      if (dateStr === currentDate || !isGoodWeatherDay(forecast[index])) return;
+      candidateDays.add(dateStr);
+    });
+
+    for (let offset = 1; offset <= 7; offset++) {
+      const futureDate = new Date(currentDateValue);
+      futureDate.setDate(futureDate.getDate() + offset);
+      candidateDays.add(futureDate.toLocaleDateString('en-CA'));
+
+      const pastDate = new Date(currentDateValue);
+      pastDate.setDate(pastDate.getDate() - offset);
+      candidateDays.add(pastDate.toLocaleDateString('en-CA'));
+    }
+
+    let bestDay: string | null = null;
+    let bestScore = Number.POSITIVE_INFINITY;
+
+    Array.from(candidateDays).forEach(dateStr => {
+      if (dateStr === currentDate) return;
+
+      const capacityCheck = checkDayCapacity(dateStr, jobIds);
+      if (!capacityCheck.hasCapacity) return;
+
+      const jobsOnDay = jobs.filter(job => job.date === dateStr && job.status === 'scheduled').length;
+      const distance = Math.abs((new Date(dateStr).getTime() - currentDateValue.getTime()) / (1000 * 60 * 60 * 24));
+      const score = jobsOnDay * 10 + distance;
+
+      if (score < bestScore) {
+        bestScore = score;
+        bestDay = dateStr;
+      }
+    });
+
+    return bestDay;
+  }, [weatherData, jobs, checkDayCapacity, isGoodWeatherDay]);
+
+  const applyDayTimeAdjustment = useCallback((date: string, newStartTime: number, newEndTime?: number) => {
+    const resolvedEndTime = newEndTime ?? dayEndTimes.get(date) ?? DEFAULT_DAY_END_HOUR;
+    const capacityCheck = getDayCapacity(jobs, date, {
+      dayStartHour: newStartTime,
+      dayEndHour: resolvedEndTime
+    });
+
+    const jobsOnDay = jobs.filter(job => job.date === date && job.status === 'scheduled');
+    const jobsToMove = capacityCheck.hasCapacity
+      ? []
+      : selectJobsToMoveForCapacity(jobsOnDay, capacityCheck.availableMinutes);
+
+    let targetDate: string | null = null;
+    if (jobsToMove.length > 0 && onRescheduleJob) {
+      targetDate = findBestAlternativeDayForJobs(jobsToMove.map(job => job.id), date);
+    }
+
     setDayStartTimes(prev => {
       const newMap = new Map(prev);
       newMap.set(date, newStartTime);
       return newMap;
     });
-    
-    // Update end time if provided (for "End Early" suggestions)
+
     if (newEndTime !== undefined) {
       setDayEndTimes(prev => {
         const newMap = new Map(prev);
@@ -1938,12 +2043,27 @@ export function WeatherForecast({
         return newMap;
       });
     }
-    
-    // Notify parent component of start time change
+
     if (onStartTimeChange) {
       onStartTimeChange(date, newStartTime);
     }
-    
+
+    if (jobsToMove.length > 0 && targetDate && onRescheduleJob) {
+      jobsToMove.forEach(job => {
+        onRescheduleJob(job.id, targetDate!);
+      });
+    }
+
+    return {
+      movedJobs: jobsToMove,
+      targetDate
+    };
+  }, [dayEndTimes, findBestAlternativeDayForJobs, jobs, onRescheduleJob, onStartTimeChange, selectJobsToMoveForCapacity]);
+
+  // Accept individual start time suggestion
+  const acceptStartTimeSuggestion = useCallback((date: string, newStartTime: number, newEndTime?: number) => {
+    const adjustment = applyDayTimeAdjustment(date, newStartTime, newEndTime);
+
     // Remove this suggestion from the list
     setWeatherSuggestions(prev => {
       const updated = {
@@ -1951,24 +2071,26 @@ export function WeatherForecast({
         startTimeSuggestions: prev.startTimeSuggestions.filter(s => s.date !== date),
         overnightRainDays: prev.overnightRainDays || new Set<string>()
       };
-      
+
       // Hide suggestions panel if no suggestions left
       if (updated.moveSuggestions.length === 0 && updated.startTimeSuggestions.length === 0) {
         setShowSuggestions(false);
       }
-      
+
       return updated;
     });
-    
+
     const startLabel = newStartTime > 12 ? `${newStartTime - 12} PM` : newStartTime === 12 ? '12 PM' : `${newStartTime} AM`;
     const endLabel = newEndTime ? (newEndTime > 12 ? `${newEndTime - 12} PM` : newEndTime === 12 ? '12 PM' : `${newEndTime} AM`) : null;
-    
-    if (endLabel) {
+
+    if (adjustment.movedJobs.length > 0 && adjustment.targetDate) {
+      toast.success(`Schedule adjusted: ${startLabel} - ${endLabel || 'day end'} and ${adjustment.movedJobs.length} job${adjustment.movedJobs.length !== 1 ? 's' : ''} moved to ${adjustment.targetDate}`);
+    } else if (endLabel) {
       toast.success(`Schedule adjusted: ${startLabel} - ${endLabel}`);
     } else {
       toast.success(`Start time adjusted to ${startLabel}`);
     }
-  }, [onStartTimeChange]);
+  }, [applyDayTimeAdjustment]);
 
   // Accept all move suggestions and move jobs
   const acceptAllSuggestions = useCallback(() => {
@@ -1987,26 +2109,7 @@ export function WeatherForecast({
 
     // Adjust start times for partial bad weather days
     weatherSuggestions.startTimeSuggestions.forEach(suggestion => {
-      // Update local start time state
-      setDayStartTimes(prev => {
-        const newMap = new Map(prev);
-        newMap.set(suggestion.date, suggestion.suggestedStartTime);
-        return newMap;
-      });
-      
-      // Update end time if provided
-      if (suggestion.suggestedEndTime !== undefined) {
-        setDayEndTimes(prev => {
-          const newMap = new Map(prev);
-          newMap.set(suggestion.date, suggestion.suggestedEndTime!);
-          return newMap;
-        });
-      }
-      
-      // Notify parent
-      if (onStartTimeChange) {
-        onStartTimeChange(suggestion.date, suggestion.suggestedStartTime);
-      }
+      applyDayTimeAdjustment(suggestion.date, suggestion.suggestedStartTime, suggestion.suggestedEndTime);
     });
 
     const totalChanges = weatherSuggestions.moveSuggestions.length + weatherSuggestions.startTimeSuggestions.length;
