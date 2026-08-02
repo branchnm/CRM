@@ -1029,15 +1029,28 @@ export function WeatherForecast({
   const [dragOverSlot, setDragOverSlot] = useState<{ date: string; slot: number } | null>(null);
   const [showLocationSearch, setShowLocationSearch] = useState(false);
   const [dragPosition, setDragPosition] = useState<{ x: number; y: number } | null>(null);
-  
-  // Debug log when dragPosition changes (throttled)
-  useEffect(() => {
-    if (dragPosition) {
-      console.log('🔄 DRAG POSITION:', dragPosition);
-    } else {
-      console.log('🔄 DRAG POSITION CLEARED');
-    }
-  }, [dragPosition]);
+  const dragHoverRef = useRef<{ date: string; slot?: number } | null>(null);
+
+  const setDragHoverTarget = useCallback((dateStr: string, slotIndex?: number) => {
+    const nextTarget = slotIndex !== undefined ? { date: dateStr, slot: slotIndex } : { date: dateStr };
+    const currentTarget = dragHoverRef.current;
+    const isSameTarget =
+      currentTarget?.date === nextTarget.date &&
+      (currentTarget?.slot ?? null) === (nextTarget.slot ?? null);
+
+    if (isSameTarget) return;
+
+    dragHoverRef.current = nextTarget;
+    setDragOverDay(dateStr);
+    setDragOverSlot(slotIndex !== undefined ? { date: dateStr, slot: slotIndex } : null);
+  }, []);
+
+  const clearDragHoverTarget = useCallback(() => {
+    if (!dragHoverRef.current) return;
+    dragHoverRef.current = null;
+    setDragOverDay(null);
+    setDragOverSlot(null);
+  }, []);
   const touchStartPos = useRef<{ x: number; y: number } | null>(null);
   const touchStartTime = useRef<number | null>(null);
   const dragDelayTimeout = useRef<number | null>(null);
@@ -2655,137 +2668,116 @@ export function WeatherForecast({
   // Drag and drop handlers
   const handleDragStart = (e: React.DragEvent, jobId: string) => {
     e.dataTransfer.effectAllowed = 'move';
-    
-    // Hide default drag image but we'll show our own custom preview
+
     const img = new Image();
     img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
     e.dataTransfer.setDragImage(img, 0, 0);
-    
-    // Check if this job is part of a group
+
     const job = jobs.find(j => j.id === jobId);
     const customer = customers.find(c => c.id === job?.customerId);
     const groupId = customer?.groupId;
-    
-    console.log('🎯 DRAG START:', {
-      jobId,
-      customerName: customer?.name,
-      currentDate: job?.date,
-      groupId: groupId || 'none'
-    });
-    
+
     if (groupId) {
-      // Find the group details
       const group = customerGroups.find(g => g.id === groupId);
-      
       if (group) {
-        // Find all jobs for customers in this group on the same date
         const jobDate = job?.date;
         const groupJobs = jobs.filter(j => {
           if (j.date !== jobDate) return false;
           const jobCustomer = customers.find(c => c.id === j.customerId);
           return jobCustomer?.groupId === groupId;
         }).map(j => j.id);
-        
+
         setDraggedGroupJobs(groupJobs);
-        console.log('🔷 Dragging group:', group.name, 'with', groupJobs.length, 'jobs');
       } else {
         setDraggedGroupJobs([]);
       }
     } else {
       setDraggedGroupJobs([]);
     }
-    
+
     setDraggedJobId(jobId);
     setDragPosition({ x: e.clientX, y: e.clientY });
   };
 
   const handleDragOver = (e: React.DragEvent, dateStr: string, slotIndex?: number) => {
     e.preventDefault();
-    if (dragOverDay !== dateStr) {
-      setDragOverDay(dateStr);
-    }
-    if (slotIndex !== undefined) {
-      setDragOverSlot({ date: dateStr, slot: slotIndex });
-    }
+    e.dataTransfer.dropEffect = 'move';
+    setDragHoverTarget(dateStr, slotIndex);
   };
 
   const handleDayCardDragOver = (e: React.DragEvent, dateStr: string) => {
     e.preventDefault();
-    // Only set the day-level drag state, don't let it bubble to children
-    if (dragOverDay !== dateStr) {
-      setDragOverDay(dateStr);
-    }
+    e.dataTransfer.dropEffect = 'move';
+    setDragHoverTarget(dateStr);
   };
 
   const handleDragLeave = (e: React.DragEvent) => {
-    // Only clear if we're actually leaving the entire day card (not just moving between slots)
-    const relatedTarget = e.relatedTarget as HTMLElement;
     const currentTarget = e.currentTarget as HTMLElement;
-    if (relatedTarget) {
-      const dayCard = relatedTarget.closest('[data-day-card]');
-      if (dayCard && dayCard === currentTarget) {
-        return;
-      }
+    const relatedTarget = e.relatedTarget as Node | null;
+
+    if (relatedTarget && currentTarget.contains(relatedTarget)) {
+      return;
     }
-    setDragOverDay(null);
-    setDragOverSlot(null);
+
+    clearDragHoverTarget();
   };
   
-  // Track mouse movement for drag preview
+  // Track mouse movement for drag preview without flooding the console or rerendering on every pixel.
   useEffect(() => {
+    let rafId: number | null = null;
+
     const handleMouseMove = (e: MouseEvent) => {
-      if (draggedJobId) {
-        setDragPosition({ x: e.clientX, y: e.clientY });
+      if (!draggedJobId) return;
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
       }
+      rafId = window.requestAnimationFrame(() => {
+        setDragPosition({ x: e.clientX, y: e.clientY });
+      });
     };
 
     const handleMouseUp = (e: MouseEvent) => {
-      if (draggedJobId) {
-        console.log('🖱️ MOUSE UP - Ending drag', { x: e.clientX, y: e.clientY });
-        
-        // Find what element we're over
-        const elementUnderMouse = document.elementFromPoint(e.clientX, e.clientY);
-        const slotElement = elementUnderMouse?.closest('[data-time-slot]');
-        
-        if (slotElement) {
-          const slotIndex = slotElement.getAttribute('data-slot-index');
-          const dayCard = elementUnderMouse?.closest('[data-day-card]');
-          const dateStr = dayCard?.getAttribute('data-date');
-          
-          console.log('📍 DROPPED ON SLOT:', { dateStr, slotIndex });
-          
-          if (dateStr && slotIndex) {
-            // Manually trigger the drop
-            handleSlotDrop({
-              preventDefault: () => {},
-              stopPropagation: () => {}
-            } as any, dateStr, parseInt(slotIndex));
-          } else {
-            console.log('❌ INVALID DROP TARGET - clearing drag');
-            setDraggedJobId(null);
-            setDraggedGroupJobs([]);
-            setDragPosition(null);
-          }
+      if (!draggedJobId) return;
+
+      const elementUnderMouse = document.elementFromPoint(e.clientX, e.clientY);
+      const slotElement = elementUnderMouse?.closest('[data-time-slot]');
+
+      if (slotElement) {
+        const slotIndex = slotElement.getAttribute('data-slot-index');
+        const dayCard = elementUnderMouse?.closest('[data-day-card]');
+        const dateStr = dayCard?.getAttribute('data-date');
+
+        if (dateStr && slotIndex) {
+          handleSlotDrop({
+            preventDefault: () => {},
+            stopPropagation: () => {}
+          } as any, dateStr, parseInt(slotIndex));
         } else {
-          console.log('❌ NO SLOT FOUND - clearing drag');
+          clearDragHoverTarget();
           setDraggedJobId(null);
           setDraggedGroupJobs([]);
           setDragPosition(null);
         }
+      } else {
+        clearDragHoverTarget();
+        setDraggedJobId(null);
+        setDraggedGroupJobs([]);
+        setDragPosition(null);
       }
     };
 
     if (draggedJobId) {
-      console.log('✅ MOUSE TRACKING ENABLED for job:', draggedJobId);
       window.addEventListener('mousemove', handleMouseMove);
       window.addEventListener('mouseup', handleMouseUp);
       return () => {
-        console.log('❌ MOUSE TRACKING DISABLED');
+        if (rafId !== null) {
+          cancelAnimationFrame(rafId);
+        }
         window.removeEventListener('mousemove', handleMouseMove);
         window.removeEventListener('mouseup', handleMouseUp);
       };
     }
-  }, [draggedJobId]);
+  }, [draggedJobId, clearDragHoverTarget]);
 
   const handleSlotDrop = async (e: React.DragEvent, dateStr: string, targetSlot: number) => {
     e.preventDefault();
@@ -2799,10 +2791,9 @@ export function WeatherForecast({
       hasOnRescheduleJob: !!onRescheduleJob
     });
     
-    // Immediately clear drag preview to prevent ghost card
+    clearDragHoverTarget();
     setDragPosition(null);
-    console.log('🧹 DRAG POSITION CLEARED in handleSlotDrop');
-    
+
     if (draggedJobId && onRescheduleJob) {
       const job = jobs.find(j => j.id === draggedJobId);
       
@@ -2883,9 +2874,9 @@ export function WeatherForecast({
       isGroupDrag: draggedGroupJobs.length > 1
     });
     
-    // Immediately clear drag preview to prevent ghost card
+    clearDragHoverTarget();
     setDragPosition(null);
-    
+
     if (draggedJobId) {
       const job = jobs.find(j => j.id === draggedJobId);
       
@@ -2987,12 +2978,10 @@ export function WeatherForecast({
       console.log('✅ DRAG COMPLETED: Preview removed');
     }
     
-    // Clean up drag state - ALWAYS clear on drag end
+    clearDragHoverTarget();
     setDraggedJobId(null);
     setDraggedGroupJobs([]);
     setDragPosition(null);
-    setDragOverDay(null);
-    setDragOverSlot(null);
   };
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -5823,9 +5812,11 @@ export function WeatherForecast({
           <div
             className="fixed pointer-events-none"
             style={{
-              left: `${dragPosition.x + 15}px`,
-              top: `${dragPosition.y + 15}px`,
+              left: 0,
+              top: 0,
+              transform: `translate3d(${dragPosition.x + 15}px, ${dragPosition.y + 15}px, 0)`,
               zIndex: 999999,
+              willChange: 'transform',
             }}
           >
             {isGroupDrag && group ? (
