@@ -7,7 +7,13 @@ const WEATHER_API_URL = 'https://api.openweathermap.org/data/2.5';
 
 // Enable test mode to demonstrate rainfall tracking features
 // Use zipcode 12345 or address "Test Weather" to trigger test mode
-const USE_TEST_WEATHER = false;
+// Check if demo mode is enabled
+const checkDemoMode = () => {
+  const envDemo = import.meta.env.VITE_DEMO_MODE === 'true';
+  const urlDemo = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('demo') === 'true';
+  return envDemo || urlDemo;
+};
+const USE_TEST_WEATHER = checkDemoMode();
 
 // Check if test mode should be enabled based on location
 export function shouldUseTestWeather(locationName: string): boolean {
@@ -189,17 +195,20 @@ function getTestWeatherData(): WeatherData {
         date: 'Today',
         tempMax: 72,
         tempMin: 58,
-        precipitation: 8.5,
-        precipitationChance: 90,
-        description: 'moderate rain',
+        precipitation: 18.5,
+        precipitationChance: 95,
+        description: 'heavy rain',
         icon: '10d',
-        windSpeed: 12,
-        humidity: 85,
+        windSpeed: 15,
+        humidity: 90,
         hourlyForecasts: [
-          { time: '8 AM', temp: 60, precipitation: 85, icon: '10d', description: 'moderate rain', rainAmount: 3.5, hour24: 8 },
-          { time: '11 AM', temp: 65, precipitation: 90, icon: '10d', description: 'moderate rain', rainAmount: 4.2, hour24: 11 },
-          { time: '2 PM', temp: 70, precipitation: 85, icon: '10d', description: 'moderate rain', rainAmount: 3.8, hour24: 14 },
-          { time: '5 PM', temp: 68, precipitation: 80, icon: '10d', description: 'light rain', rainAmount: 2.5, hour24: 17 },
+          { time: '6 AM', temp: 58, precipitation: 90, icon: '10d', description: 'heavy rain', rainAmount: 5.2, hour24: 6 },
+          { time: '8 AM', temp: 60, precipitation: 90, icon: '10d', description: 'heavy rain', rainAmount: 4.8, hour24: 8 },
+          { time: '10 AM', temp: 62, precipitation: 95, icon: '10d', description: 'heavy rain', rainAmount: 5.5, hour24: 10 },
+          { time: '12 PM', temp: 65, precipitation: 95, icon: '10d', description: 'heavy rain', rainAmount: 6.2, hour24: 12 },
+          { time: '2 PM', temp: 68, precipitation: 90, icon: '10d', description: 'heavy rain', rainAmount: 5.8, hour24: 14 },
+          { time: '4 PM', temp: 70, precipitation: 85, icon: '10d', description: 'moderate rain', rainAmount: 4.5, hour24: 16 },
+          { time: '6 PM', temp: 68, precipitation: 80, icon: '10d', description: 'moderate rain', rainAmount: 3.8, hour24: 18 },
         ]
       },
       {

@@ -10,6 +10,7 @@ import { getDriveTime } from '../services/googleMaps';
 import { optimizeRoute as optimizeRouteWithGoogleMaps } from '../services/routeOptimizer';
 import { Clock, MapPin, Navigation, CheckCircle, Play, Phone, StopCircle, MessageSquare, Send, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
+import { getDayCapacity, DEFAULT_DAY_START_HOUR, DEFAULT_DAY_END_HOUR, getStoredDayStartHour, getStoredDayEndHour } from '../utils/scheduleCapacity';
 import { Textarea } from './ui/textarea';
 import { Label } from './ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
@@ -94,6 +95,11 @@ export function DailySchedule({
   });
   const [driveTimesCache, setDriveTimesCache] = useState<Map<string, string>>(new Map());
   const [dayStartTimes, setDayStartTimes] = useState<Map<string, number>>(new Map());
+
+  const getDayWindow = (dateStr: string) => ({
+    dayStartHour: getStoredDayStartHour(dateStr, dayStartTimes.get(dateStr) || DEFAULT_DAY_START_HOUR),
+    dayEndHour: getStoredDayEndHour(dateStr, DEFAULT_DAY_END_HOUR)
+  });
   
   // Track optimized job order for change detection
   const [optimizedJobOrder, setOptimizedJobOrder] = useState<Map<string, number>>(new Map());
@@ -444,7 +450,10 @@ export function DailySchedule({
       if (customersDueOnDate.length === 0) return;
       
       // Get current job IDs to avoid re-creating
-      const existingJobCustomerIds = new Set(jobs.filter(j => j.date === currentViewDate).map(j => j.customerId));
+      // Check if customer has ANY scheduled job (on any date) to avoid duplicates during moves
+      const existingJobCustomerIds = new Set(
+        jobs.filter(j => j.status === 'scheduled').map(j => j.customerId)
+      );
       const missing = customersDueOnDate.filter(c => {
         const key = `${c.id}-${currentViewDate}`;
         // Skip if already exists OR currently being created
@@ -460,19 +469,45 @@ export function DailySchedule({
       
       try {
         // Calculate next order number based on ALL jobs (not just displayed filtered list)
-        const dateJobsList = jobs.filter(j => j.date === currentViewDate);
-        const maxOrder = Math.max(0, ...dateJobsList.map(j => j.order || 0));
-        
-        const results = await Promise.allSettled(
-          missing.map((c, index) =>
-            addJob({ 
+        const results: PromiseSettledResult<unknown>[] = [];
+        const draftJobs = [...jobs];
+
+        for (const c of missing) {
+          const { dayStartHour, dayEndHour } = getDayWindow(currentViewDate);
+          const capacityCheck = getDayCapacity(draftJobs, currentViewDate, {
+            dayStartHour,
+            dayEndHour
+          });
+
+          if (!capacityCheck.hasCapacity) {
+            results.push({ status: 'rejected', reason: new Error(capacityCheck.reason || 'Day is full') });
+            continue;
+          }
+
+          const maxOrder = Math.max(0, ...draftJobs.filter(j => j.date === currentViewDate).map(j => j.order || 0));
+          const nextOrder = maxOrder + 1;
+
+          try {
+            await addJob({ 
               customerId: c.id, 
               date: currentViewDate, 
               status: 'scheduled',
-              order: maxOrder + index + 1
-            })
-          )
-        );
+              order: nextOrder
+            });
+
+            draftJobs.push({
+              id: `pending-${c.id}-${currentViewDate}-${nextOrder}`,
+              customerId: c.id,
+              date: currentViewDate,
+              status: 'scheduled',
+              order: nextOrder
+            } as Job);
+
+            results.push({ status: 'fulfilled', value: undefined });
+          } catch (error) {
+            results.push({ status: 'rejected', reason: error });
+          }
+        }
         
         const created = results.filter(r => r.status === 'fulfilled').length;
         const duplicates = results.filter(r => 
@@ -510,14 +545,21 @@ export function DailySchedule({
       if (customersWithNextCut.length === 0) return;
       
       // Find customers who have a nextCutDate but no corresponding job
+      // Include check for ANY scheduled job for this customer to avoid duplicates during moves
+      const customersWithScheduledJobs = new Set(
+        jobs.filter(j => j.status === 'scheduled').map(j => j.customerId)
+      );
+      
       const existingJobMap = new Map(
         jobs.map(j => [`${j.customerId}-${j.date}`, j])
       );
       
       const missingJobs = customersWithNextCut.filter(c => {
         const key = `${c.id}-${c.nextCutDate}`;
-        // Skip if already exists OR currently being created
-        return !existingJobMap.has(key) && !creatingJobsRef.current.has(key);
+        // Skip if already exists OR currently being created OR customer already has a scheduled job
+        return !existingJobMap.has(key) && 
+               !creatingJobsRef.current.has(key) &&
+               !customersWithScheduledJobs.has(c.id);
       });
       
       if (missingJobs.length === 0) return;
@@ -528,26 +570,46 @@ export function DailySchedule({
       missingJobs.forEach(c => creatingJobsRef.current.add(`${c.id}-${c.nextCutDate}`));
       
       try {
-        // Group by date to calculate order numbers
-        const jobsByDate = new Map<string, number>();
-        jobs.forEach(j => {
-          const current = jobsByDate.get(j.date) || 0;
-          jobsByDate.set(j.date, Math.max(current, j.order || 0));
-        });
-        
-        const results = await Promise.allSettled(
-          missingJobs.map((c) => {
-            const maxOrder = jobsByDate.get(c.nextCutDate!) || 0;
-            jobsByDate.set(c.nextCutDate!, maxOrder + 1);
-            
-            return addJob({ 
+        const results: PromiseSettledResult<unknown>[] = [];
+        const draftJobs = [...jobs];
+
+        for (const c of missingJobs) {
+          const targetDate = c.nextCutDate!;
+          const { dayStartHour, dayEndHour } = getDayWindow(targetDate);
+          const capacityCheck = getDayCapacity(draftJobs, targetDate, {
+            dayStartHour,
+            dayEndHour
+          });
+
+          if (!capacityCheck.hasCapacity) {
+            results.push({ status: 'rejected', reason: new Error(capacityCheck.reason || 'Day is full') });
+            continue;
+          }
+
+          const maxOrder = Math.max(0, ...draftJobs.filter(j => j.date === targetDate).map(j => j.order || 0));
+          const nextOrder = maxOrder + 1;
+
+          try {
+            await addJob({ 
               customerId: c.id, 
-              date: c.nextCutDate!, 
+              date: targetDate, 
               status: 'scheduled',
-              order: maxOrder + 1
+              order: nextOrder
             });
-          })
-        );
+
+            draftJobs.push({
+              id: `pending-${c.id}-${targetDate}-${nextOrder}`,
+              customerId: c.id,
+              date: targetDate,
+              status: 'scheduled',
+              order: nextOrder
+            } as Job);
+
+            results.push({ status: 'fulfilled', value: undefined });
+          } catch (error) {
+            results.push({ status: 'rejected', reason: error });
+          }
+        }
         
         const created = results.filter(r => r.status === 'fulfilled').length;
         const duplicates = results.filter(r => 
@@ -987,6 +1049,17 @@ export function DailySchedule({
           // Check if job already exists for this date
           const existingJob = jobs.find(j => j.customerId === customer.id && j.date === nextCutDateStr);
           if (!existingJob) {
+            const { dayStartHour, dayEndHour } = getDayWindow(nextCutDateStr);
+            const capacityCheck = getDayCapacity(jobs, nextCutDateStr, {
+              dayStartHour,
+              dayEndHour
+            });
+
+            if (!capacityCheck.hasCapacity) {
+              toast.error(`Skipped creating next job for ${customer.name}: ${capacityCheck.reason}`);
+              return;
+            }
+
             // Calculate order for the new job
             const jobsOnDate = jobs.filter(j => j.date === nextCutDateStr);
             const maxOrder = Math.max(0, ...jobsOnDate.map(j => j.order || 0));
@@ -1043,11 +1116,23 @@ export function DailySchedule({
   const handleRescheduleJob = async (jobId: string, newDate: string, timeSlot?: number) => {
     const job = jobs.find(j => j.id === jobId);
     if (!job) return;
+    const { dayStartHour, dayEndHour } = getDayWindow(newDate);
+
+    const capacityCheck = getDayCapacity(jobs, newDate, {
+      additionalJobIds: job.date === newDate ? [] : [jobId],
+      dayStartHour,
+      dayEndHour
+    });
+
+    if (!capacityCheck.hasCapacity) {
+      toast.error(`Cannot move job: ${capacityCheck.reason}`);
+      return;
+    }
 
     try {
       // Calculate scheduled time from time slot
       // Time slots start at 5am, may be offset by day start time
-      const dayStartHour = dayStartTimes.get(newDate) || 5;
+      const dayStartHour = getDayWindow(newDate).dayStartHour;
       const slotOffset = Math.max(0, dayStartHour - 5);
       const actualHour = 5 + (timeSlot || 0) + slotOffset;
       const scheduledTime = timeSlot !== undefined ? `${actualHour}:00` : undefined;
@@ -1090,6 +1175,7 @@ export function DailySchedule({
     setDayStartTimes(prev => {
       const newMap = new Map(prev);
       newMap.set(date, startHour);
+      localStorage.setItem('dayStartTimes', JSON.stringify(Array.from(newMap.entries())));
       return newMap;
     });
 

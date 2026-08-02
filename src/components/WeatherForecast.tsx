@@ -43,6 +43,11 @@ import {
   getHistoricalWeather, 
   ensureHistoricalWeatherData 
 } from '../services/weatherHistory';
+import { 
+  DEFAULT_DAY_END_HOUR,
+  DEFAULT_DAY_START_HOUR,
+  getDayCapacity 
+} from '../utils/scheduleCapacity';
 import { toast } from 'sonner';
 
 // Check if demo mode is enabled
@@ -55,6 +60,9 @@ const checkDemoMode = (): boolean => {
 };
 
 const DEMO_MODE = checkDemoMode();
+
+const WORK_DAY_START_HOUR = DEFAULT_DAY_START_HOUR; // 5 AM earliest start
+const WORK_DAY_END_HOUR = DEFAULT_DAY_END_HOUR; // 7 PM latest end (19:00 = 7 PM)
 
 // Demo mode default location (Homewood, AL - matches sample customer addresses)
 const DEMO_LOCATION: Coordinates = { lat: 33.4665, lon: -86.8089 };
@@ -1251,6 +1259,141 @@ export function WeatherForecast({
     return goodWeatherSlots.length >= dailyWeather.hourlyForecasts.length * 0.75;
   };
 
+  // Helper function to check if a day has capacity for additional jobs (time-based)
+  const checkDayCapacity = useCallback((dateStr: string, additionalJobIds: string[] = []): { 
+    hasCapacity: boolean; 
+    reason?: string;
+    totalMinutes?: number;
+    maxMinutes?: number;
+  } => {
+    const assignedJobIds = Array.from(jobAssignments.entries())
+      .filter(([_, targetDate]) => targetDate === dateStr)
+      .map(([jobId]) => jobId);
+
+    const reassignedAwayJobIds = Array.from(jobAssignments.entries())
+      .filter(([_, targetDate]) => targetDate !== dateStr)
+      .map(([jobId]) => jobId);
+
+    const capacity = getDayCapacity(jobs, dateStr, {
+      additionalJobIds,
+      dayStartHour: dayStartTimes.get(dateStr) || WORK_DAY_START_HOUR,
+      dayEndHour: dayEndTimes.get(dateStr) || WORK_DAY_END_HOUR,
+      excludeJobIds: [...assignedJobIds, ...reassignedAwayJobIds]
+    });
+
+    return {
+      hasCapacity: capacity.hasCapacity,
+      reason: capacity.reason,
+      totalMinutes: capacity.totalMinutes,
+      maxMinutes: capacity.maxMinutes
+    };
+  }, [jobs, jobAssignments, dayStartTimes, dayEndTimes]);
+
+  // Check for days that overflow the work hour limit
+  const checkForOverflow = useCallback(() => {
+    const overflowSuggestions: Array<{
+      jobId?: string;
+      jobIds?: string[];
+      jobName?: string;
+      jobNames?: string[];
+      jobCount?: number;
+      currentDate: string;
+      suggestedDate: string;
+      reason: string;
+      weatherSeverity: 'moderate';
+    }> = [];
+    
+    // Get unique dates that have jobs
+    const datesWithJobs = new Set(jobs.filter(j => j.status === 'scheduled').map(j => j.date));
+    
+    datesWithJobs.forEach(dateStr => {
+      const capacityCheck = checkDayCapacity(dateStr, []);
+      
+      if (capacityCheck.totalMinutes !== undefined && capacityCheck.maxMinutes !== undefined && capacityCheck.totalMinutes > capacityCheck.maxMinutes) {
+        // Day is overflowing - need to move some jobs
+        const jobsOnDay = jobs.filter(j => j.date === dateStr && j.status === 'scheduled');
+        
+        if (jobsOnDay.length === 0) return;
+        
+        // Calculate how many jobs need to be moved
+        const overflowMinutes = capacityCheck.totalMinutes - capacityCheck.maxMinutes;
+        
+        // Sort jobs by total time (work + drive) to find which jobs to move
+        const sortedJobs = [...jobsOnDay].sort((a, b) => {
+          const aTime = (a.totalTime || 30) + (a.driveTime || 0);
+          const bTime = (b.totalTime || 30) + (b.driveTime || 0);
+          return bTime - aTime; // Largest first
+        });
+        
+        // Select jobs to move (start with longest jobs)
+        let remainingOverflow = overflowMinutes;
+        const jobsToMove: Job[] = [];
+        
+        for (const job of sortedJobs) {
+          if (remainingOverflow <= 0) break;
+          jobsToMove.push(job);
+          remainingOverflow -= (job.totalTime || 30) + (job.driveTime || 0);
+        }
+        
+        if (jobsToMove.length === 0) return;
+        
+        // Find the next available day (within next 7 days)
+        const currentDate = new Date(dateStr);
+        let bestDay: string | null = null;
+        
+        for (let i = 1; i <= 7; i++) {
+          const testDate = new Date(currentDate);
+          testDate.setDate(testDate.getDate() + i);
+          const testDateStr = testDate.toLocaleDateString('en-CA');
+          
+          // Check if this day can accept the jobs
+          const testCapacity = checkDayCapacity(testDateStr, jobsToMove.map(j => j.id));
+          if (testCapacity.hasCapacity) {
+            bestDay = testDateStr;
+            break;
+          }
+        }
+        
+        if (!bestDay) {
+          // Try previous days
+          for (let i = 1; i <= 7; i++) {
+            const testDate = new Date(currentDate);
+            testDate.setDate(testDate.getDate() - i);
+            const testDateStr = testDate.toLocaleDateString('en-CA');
+            
+            const testCapacity = checkDayCapacity(testDateStr, jobsToMove.map(j => j.id));
+            if (testCapacity.hasCapacity) {
+              bestDay = testDateStr;
+              break;
+            }
+          }
+        }
+        
+        if (bestDay) {
+          const hours = Math.floor(capacityCheck.totalMinutes / 60);
+          const mins = capacityCheck.totalMinutes % 60;
+          const maxHours = Math.floor(capacityCheck.maxMinutes / 60);
+          const maxMins = capacityCheck.maxMinutes % 60;
+          
+          overflowSuggestions.push({
+            jobIds: jobsToMove.map(j => j.id),
+            jobNames: jobsToMove.map(j => {
+              const customer = customers.find(c => c.id === j.customerId);
+              return customer ? customer.name : 'Unknown';
+            }),
+            jobCount: jobsToMove.length,
+            currentDate: dateStr,
+            suggestedDate: bestDay,
+            reason: `Day overflows by ${Math.ceil(overflowMinutes / 60)}h. Total: ${hours}h ${mins}m exceeds ${maxHours}h ${maxMins}m limit.`,
+            weatherSeverity: 'moderate'
+          });
+        }
+      }
+    });
+    
+    return overflowSuggestions;
+  }, [jobs, customers, checkDayCapacity, dayStartTimes]);
+
   // Generate suggestions for moving jobs from bad weather days to good weather days
   const getWeatherBasedSuggestions = useCallback(() => {
     if (!weatherData?.daily || !jobs || jobs.length === 0) {
@@ -1525,14 +1668,21 @@ export function WeatherForecast({
               ? `Morning rain expected. Weather clears around ${weatherInfo.clearsByHour - 1}:00, grass needs time to dry`
               : `Rain clearing. Safe to start around ${weatherInfo.clearsByHour}:00 AM`;
 
-            // Calculate how many jobs can fit in the remaining time
-            // Time slots from suggestedStartTime to 6 PM (18:00)
-            const availableHours = 18 - weatherInfo.clearsByHour; // e.g., 18 - 14 = 4 hours
-            const maxJobsAfterDelay = Math.floor(availableHours); // Rough estimate: 1 job per hour
+            // Calculate how much time remains after the delayed start
+            const availableMinutes = Math.max(0, (WORK_DAY_END_HOUR - weatherInfo.clearsByHour) * 60);
+            let fitMinutes = 0;
+            let jobsThatFit = 0;
+
+            for (const job of jobsOnDay) {
+              const jobMinutes = (job.totalTime || 30) + (job.driveTime || 0);
+              if (fitMinutes + jobMinutes > availableMinutes) break;
+              fitMinutes += jobMinutes;
+              jobsThatFit++;
+            }
             
             // If we have more jobs than can fit, suggest moving the overflow
-            if (jobsOnDay.length > maxJobsAfterDelay) {
-              const jobsToMove = jobsOnDay.length - maxJobsAfterDelay;
+            if (jobsThatFit < jobsOnDay.length) {
+              const jobsToMove = jobsOnDay.length - jobsThatFit;
               
               // Calculate workload for good weather days
               const workloadByDay = new Map<string, number>();
@@ -1566,7 +1716,7 @@ export function WeatherForecast({
                 }),
                 currentDate: dateStr,
                 suggestedDate: bestDay,
-                reason: `Not enough time after delaying start to ${weatherInfo.clearsByHour}:00. Only ${maxJobsAfterDelay} job${maxJobsAfterDelay !== 1 ? 's' : ''} can fit.`,
+                reason: `Not enough time after delaying start to ${weatherInfo.clearsByHour}:00. Only ${jobsThatFit} job${jobsThatFit !== 1 ? 's' : ''} fit in the remaining window.`,
                 weatherSeverity: 'moderate',
                 jobCount: jobsToMove
               } as any);
@@ -1582,7 +1732,7 @@ export function WeatherForecast({
                 currentStartTime,
                 suggestedStartTime: weatherInfo.clearsByHour,
                 reason,
-                jobCount: Math.min(jobsOnDay.length, maxJobsAfterDelay), // Only jobs that will fit
+                jobCount: jobsThatFit,
                 type: 'delay'
               });
             }
@@ -1594,14 +1744,21 @@ export function WeatherForecast({
           // Check if user already set a custom end time for this day
           const hasCustomEndTime = dayEndTimes.has(dateStr);
           
-          // Calculate how many jobs can fit before rain starts
-          // From 6 AM to lastGoodHour
-          const availableHours = lastGoodHour - 6;
-          const maxJobsBeforeRain = Math.floor(availableHours);
+          // Calculate how much time fits before rain starts
+          const availableMinutes = Math.max(0, (lastGoodHour - 6) * 60);
+          let fitMinutes = 0;
+          let jobsThatFit = 0;
+
+          for (const job of jobsOnDay) {
+            const jobMinutes = (job.totalTime || 30) + (job.driveTime || 0);
+            if (fitMinutes + jobMinutes > availableMinutes) break;
+            fitMinutes += jobMinutes;
+            jobsThatFit++;
+          }
           
           // If we have more jobs than can fit before rain, suggest moving the overflow
-          if (jobsOnDay.length > maxJobsBeforeRain) {
-            const jobsToMove = jobsOnDay.length - maxJobsBeforeRain;
+          if (jobsThatFit < jobsOnDay.length) {
+            const jobsToMove = jobsOnDay.length - jobsThatFit;
             
             // Calculate workload for good weather days
             const workloadByDay = new Map<string, number>();
@@ -1635,7 +1792,7 @@ export function WeatherForecast({
               }),
               currentDate: dateStr,
               suggestedDate: bestDay,
-              reason: `Rain starts at ${lastGoodHour}:00. Only ${maxJobsBeforeRain} job${maxJobsBeforeRain !== 1 ? 's' : ''} can be completed before rain.`,
+              reason: `Rain starts at ${lastGoodHour}:00. Only ${jobsThatFit} job${jobsThatFit !== 1 ? 's' : ''} fit before rain.`,
               weatherSeverity: 'moderate',
               jobCount: jobsToMove
             } as any);
@@ -1650,8 +1807,8 @@ export function WeatherForecast({
               currentStartTime,
               suggestedStartTime: 6, // Start at 6 AM
               suggestedEndTime: lastGoodHour, // End before rain
-              reason: `Rain expected at ${lastGoodHour}:00. Limit work to ${availableHours} hours (6 AM - ${lastGoodHour}:00)`,
-              jobCount: Math.min(jobsOnDay.length, maxJobsBeforeRain), // Only jobs that will fit
+              reason: `Rain expected at ${lastGoodHour}:00. Limit work to ${Math.floor(availableMinutes / 60)}h ${availableMinutes % 60}m (6 AM - ${lastGoodHour}:00)`,
+              jobCount: jobsThatFit,
               lastGoodHour,
               type: 'start-early'
             });
@@ -1682,14 +1839,25 @@ export function WeatherForecast({
   // Update suggestions when weather or jobs change
   useEffect(() => {
     const suggestions = getWeatherBasedSuggestions();
-    setWeatherSuggestions(suggestions);
-    setDaysWithOvernightRain(suggestions.overnightRainDays || new Set());
+    
+    // Check for overflow and add overflow suggestions
+    const overflowSuggestions = checkForOverflow();
+    
+    // Merge weather-based and overflow suggestions
+    const mergedSuggestions = {
+      moveSuggestions: [...suggestions.moveSuggestions, ...overflowSuggestions],
+      startTimeSuggestions: suggestions.startTimeSuggestions,
+      overnightRainDays: suggestions.overnightRainDays || new Set()
+    };
+    
+    setWeatherSuggestions(mergedSuggestions);
+    setDaysWithOvernightRain(mergedSuggestions.overnightRainDays);
     // Always show suggestions when there are any (even if previously dismissed)
-    const hasSuggestions = suggestions.moveSuggestions.length > 0 || suggestions.startTimeSuggestions.length > 0;
+    const hasSuggestions = mergedSuggestions.moveSuggestions.length > 0 || mergedSuggestions.startTimeSuggestions.length > 0;
     if (hasSuggestions) {
       setShowSuggestions(true);
     }
-  }, [getWeatherBasedSuggestions]);
+  }, [getWeatherBasedSuggestions, jobs, dayStartTimes]);
 
   // Accept individual move suggestion (handles both single job and multiple jobs)
   const acceptMoveSuggestion = useCallback((suggestion: any, newDate: string) => {
@@ -1697,6 +1865,16 @@ export function WeatherForecast({
     
     // Handle both single job (jobId) and multiple jobs (jobIds)
     const jobIds = suggestion.jobIds || [suggestion.jobId];
+    const additionalJobIds = jobIds.filter((jobId: string) => {
+      const job = jobs.find(j => j.id === jobId);
+      return job?.date !== newDate;
+    });
+
+    const capacityCheck = checkDayCapacity(newDate, additionalJobIds);
+    if (!capacityCheck.hasCapacity) {
+      toast.error(`Cannot move ${jobIds.length} job${jobIds.length !== 1 ? 's' : ''}: ${capacityCheck.reason}`);
+      return;
+    }
     
     jobIds.forEach((jobId: string) => {
       onRescheduleJob(jobId, newDate);
@@ -1726,7 +1904,7 @@ export function WeatherForecast({
     
     const jobCount = jobIds.length;
     toast.success(`${jobCount} job${jobCount !== 1 ? 's' : ''} rescheduled to better weather day`);
-  }, [onRescheduleJob]);
+  }, [jobs, onRescheduleJob, checkDayCapacity]);
 
   // Accept individual start time suggestion
   const acceptStartTimeSuggestion = useCallback((date: string, newStartTime: number, newEndTime?: number) => {
@@ -2629,6 +2807,28 @@ export function WeatherForecast({
       const job = jobs.find(j => j.id === draggedJobId);
       
       if (job) {
+        // Check capacity before allowing drop
+        const jobIdsToMove = draggedGroupJobs.length > 1 ? draggedGroupJobs : [draggedJobId];
+        
+        // Filter out jobs already on this date (just reordering)
+        const additionalJobIds = jobIdsToMove.filter(jId => {
+          const j = jobs.find(job => job.id === jId);
+          return j?.date !== dateStr;
+        });
+        
+        if (additionalJobIds.length > 0) {
+          const capacityCheck = checkDayCapacity(dateStr, additionalJobIds);
+          if (!capacityCheck.hasCapacity) {
+            toast.error(`Cannot move ${jobIdsToMove.length} job${jobIdsToMove.length > 1 ? 's' : ''}: ${capacityCheck.reason}`);
+            setDraggedJobId(null);
+            setDraggedGroupJobs([]);
+            setDragPosition(null);
+            setDragOverSlot(null);
+            setDragOverDay(null);
+            return;
+          }
+        }
+        
         // Check if this is a group drag
         if (draggedGroupJobs.length > 1) {
           console.log('🔷 Dropping group of', draggedGroupJobs.length, 'jobs at slot', targetSlot);
@@ -2690,6 +2890,28 @@ export function WeatherForecast({
       const job = jobs.find(j => j.id === draggedJobId);
       
       if (job && onRescheduleJob) {
+        // Check capacity before allowing drop
+        const jobIdsToMove = draggedGroupJobs.length > 1 ? draggedGroupJobs : [draggedJobId];
+        
+        // Filter out jobs already on this date (just reordering)
+        const additionalJobIds = jobIdsToMove.filter(jId => {
+          const j = jobs.find(job => job.id === jId);
+          return j?.date !== dateStr;
+        });
+        
+        if (additionalJobIds.length > 0) {
+          const capacityCheck = checkDayCapacity(dateStr, additionalJobIds);
+          if (!capacityCheck.hasCapacity) {
+            toast.error(`Cannot move ${jobIdsToMove.length} job${jobIdsToMove.length > 1 ? 's' : ''}: ${capacityCheck.reason}`);
+            setDraggedJobId(null);
+            setDraggedGroupJobs([]);
+            setDragPosition(null);
+            setDragOverDay(null);
+            setDragOverSlot(null);
+            return;
+          }
+        }
+        
         // Check if this is a group drag
         if (draggedGroupJobs.length > 1) {
           console.log('🔷 Dropping group of', draggedGroupJobs.length, 'jobs');
@@ -2699,6 +2921,13 @@ export function WeatherForecast({
             const timeSlot = jobTimeSlots.get(groupJobId);
             await onRescheduleJob(groupJobId, dateStr, timeSlot);
           }
+          
+          // Clear job assignments for all moved jobs
+          setJobAssignments(prev => {
+            const newMap = new Map(prev);
+            draggedGroupJobs.forEach(jobId => newMap.delete(jobId));
+            return newMap;
+          });
           
           console.log('✅ GROUP DROP SUCCESS:', { movedJobs: draggedGroupJobs.length, toDate: dateStr });
           toast.success(`Moved ${draggedGroupJobs.length} properties`);
@@ -2718,6 +2947,13 @@ export function WeatherForecast({
           
           // Immediately save the change
           await onRescheduleJob(draggedJobId, dateStr, timeSlot);
+          
+          // Clear job assignment after successful move
+          setJobAssignments(prev => {
+            const newMap = new Map(prev);
+            newMap.delete(draggedJobId);
+            return newMap;
+          });
           
           // Show undo button
           setShowUndo(true);
@@ -2905,6 +3141,16 @@ export function WeatherForecast({
       const jobsToMove = Array.from(selectedJobIds)
         .map(id => jobs.find(j => j.id === id))
         .filter(Boolean) as Job[];
+
+      const additionalJobIds = jobsToMove
+        .filter(job => job.date !== dateStr)
+        .map(job => job.id);
+
+      const capacityCheck = checkDayCapacity(dateStr, additionalJobIds);
+      if (!capacityCheck.hasCapacity) {
+        toast.error(`Cannot move ${jobsToMove.length} job${jobsToMove.length !== 1 ? 's' : ''}: ${capacityCheck.reason}`);
+        return;
+      }
       
       // Move each job to the target date, starting at the target slot
       for (let i = 0; i < jobsToMove.length; i++) {
@@ -2935,6 +3181,13 @@ export function WeatherForecast({
       const job = jobs.find(j => j.id === cutJobId);
       
       if (job && job.date !== dateStr) {
+        const capacityCheck = checkDayCapacity(dateStr, [cutJobId]);
+        if (!capacityCheck.hasCapacity) {
+          toast.error(`Cannot move job: ${capacityCheck.reason}`);
+          lastTapTime.current = 0;
+          return;
+        }
+
         // Save last action for undo
         setLastAction({
           type: 'move',
@@ -2966,7 +3219,7 @@ export function WeatherForecast({
     } else {
       lastTapTime.current = now;
     }
-  }, [cutJobId, jobs, onRescheduleJob, isSelectionMode, selectedJobIds, showTutorialBanner, dismissTutorial]);
+  }, [cutJobId, jobs, onRescheduleJob, isSelectionMode, selectedJobIds, showTutorialBanner, dismissTutorial, checkDayCapacity]);
 
   // Remove old touch handlers - replaced with tap handlers
   /*
@@ -3883,6 +4136,14 @@ export function WeatherForecast({
                     .filter(Boolean) as Job[];
                   
                   const totalJobs = scheduledJobsForDay.length + assignedJobs.length;
+                  const dayStartHour = dayStartTimes.get(dateStr) || WORK_DAY_START_HOUR;
+                  const dayEndHour = dayEndTimes.get(dateStr) || WORK_DAY_END_HOUR;
+                  const totalWorkMinutes = [...scheduledJobsForDay, ...assignedJobs].reduce((sum, job) => sum + (job.totalTime || 30), 0);
+                  const totalDriveMinutes = [...scheduledJobsForDay, ...assignedJobs].reduce((sum, job) => sum + (job.driveTime || 0), 0);
+                  const totalMinutes = totalWorkMinutes + totalDriveMinutes;
+                  const availableMinutes = Math.max(0, (dayEndHour - dayStartHour) * 60);
+                  const isAtCapacity = availableMinutes <= 0 ? totalMinutes > 0 : totalMinutes >= availableMinutes;
+                  const capacityPercentage = availableMinutes <= 0 ? 100 : Math.round((totalMinutes / availableMinutes) * 100);
                   
                   const rainChance = weatherForDay?.precipitationChance || 0;
                   const isBeingDraggedOver = dragOverDay === dateStr;
@@ -4002,12 +4263,29 @@ export function WeatherForecast({
                       
                       {/* Day Card */}
                       <div
-                        onDragOver={(e) => handleDayCardDragOver(e, dateStr)}
+                        onDragOver={(e) => {
+                          // Check if we can accept the drop
+                          const jobIdsToMove = draggedGroupJobs.length > 1 ? draggedGroupJobs : [draggedJobId].filter((id): id is string => id !== null);
+                          const additionalJobIds = jobIdsToMove.filter(jId => {
+                            const j = jobs.find(job => job.id === jId);
+                            return j?.date !== dateStr;
+                          });
+                          
+                          if (additionalJobIds.length > 0) {
+                            const capacityCheck = checkDayCapacity(dateStr, additionalJobIds);
+                            if (!capacityCheck.hasCapacity) {
+                              e.dataTransfer.dropEffect = 'none';
+                            }
+                          }
+                          handleDayCardDragOver(e, dateStr);
+                        }}
                         onDragLeave={handleDragLeave}
                         onDrop={(e) => handleDrop(e, dateStr)}
                         className={`forecast-day-card relative ${
                           isMobile ? 'mb-6 h-[78vh] overflow-hidden flex flex-col snap-end' : 'h-[81.6vh] shrink-0 flex flex-col rounded-lg'
-                        } shadow-lg overflow-hidden`}
+                        } shadow-lg overflow-hidden ${
+                          isBeingDraggedOver ? (isAtCapacity ? 'ring-4 ring-red-500' : 'ring-4 ring-blue-500') : ''
+                        }`}
                         style={{
                           scrollSnapStop: isMobile ? 'always' : 'always',
                           background: weatherForDay?.hourlyForecasts && weatherForDay.hourlyForecasts.length > 0
@@ -4084,11 +4362,20 @@ export function WeatherForecast({
                           )}
                         </div>
                         
-                        {/* Work Stats Row - Centered - Always show job count - LARGER TEXT */}
+                        {/* Work Stats Row - Centered - Always show job count with capacity indicator */}
                         <div className={`flex items-center justify-center gap-[0.53vh] ${isMobile ? 'text-[1vh]' : 'text-[1.24vh]'}`}>
                           <div className="flex items-center gap-[0.27vh] text-gray-700">
-                            <span className={`font-bold text-blue-600 ${isMobile ? 'text-[1.3vh]' : 'text-[1.59vh]'}`}>{totalJobs}</span>
-                            <span className={`text-gray-600 font-medium ${isMobile ? 'text-[1vh]' : 'text-[1.24vh]'}`}>job{totalJobs !== 1 ? 's' : ''}</span>
+                            <span className={`font-bold ${isAtCapacity ? 'text-red-600' : capacityPercentage >= 80 ? 'text-orange-600' : 'text-blue-600'} ${isMobile ? 'text-[1.3vh]' : 'text-[1.59vh]'}`}>
+                              {totalJobs}
+                            </span>
+                            <span className={`text-gray-600 font-medium ${isMobile ? 'text-[1vh]' : 'text-[1.24vh]'}`}>
+                              job{totalJobs !== 1 ? 's' : ''}
+                            </span>
+                            {capacityPercentage >= 80 && (
+                              <Badge variant={isAtCapacity ? "destructive" : "default"} className="ml-1 text-[0.9vh] px-1 py-0">
+                                {isAtCapacity ? 'FULL' : `${capacityPercentage}%`}
+                              </Badge>
+                            )}
                           </div>
                           {totalJobs > 0 && (() => {
                             const totalWorkMinutes = [...scheduledJobsForDay, ...assignedJobs].reduce((sum, job) => sum + (job.totalTime || 30), 0);
@@ -4311,7 +4598,7 @@ export function WeatherForecast({
                               const jobsBySlot: { [key: number]: typeof allJobs[0] } = {};
                               const jobSlotRanges = new Map<string, { startSlot: number; slotsNeeded: number }>();
                               
-                              let currentSlot = 0;
+                              let currentSlot = slotOffset; // Start jobs at the offset position based on day start time
                               
                               allJobs.forEach((job) => {
                                 if (job.id === draggedJobId) return;
@@ -4713,7 +5000,7 @@ export function WeatherForecast({
                                                     ? 'bg-gray-100 border border-gray-300 cursor-default'
                                                     : isDraggedItem
                                                       ? 'bg-white border-2 border-blue-500'
-                                                      : 'bg-white border border-gray-300 cursor-move'
+                                                      : 'bg-white border border-gray-300 cursor-grab hover:cursor-grabbing active:cursor-grabbing'
                                                 }`}
                                                 style={{
                                                   marginLeft: overlapsWeatherIcon ? (isMobile ? '3.5vh' : '5vh') : '0',
@@ -4977,7 +5264,7 @@ export function WeatherForecast({
                                                     input.select();
                                                   }
                                                 }}
-                                                className={`absolute top-0 left-0 right-0 flex flex-wrap justify-center ${isMobile ? 'items-start' : 'items-center'} ${!isCompleted ? 'cursor-move' : 'cursor-default'}`}
+                                                className={`absolute top-0 left-0 right-0 flex flex-wrap justify-center ${isMobile ? 'items-start' : 'items-center'} ${!isCompleted ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'}`}
                                                 style={{ 
                                                   paddingLeft: isMobile ? '0.4vh' : '0.3vh',
                                                   paddingRight: isMobile ? '0.4vh' : '0.3vh',
@@ -5098,10 +5385,10 @@ export function WeatherForecast({
                                                   : isCutItem
                                                   ? 'bg-yellow-100 border-2 border-yellow-500 shadow-lg'
                                                   : isAssigned
-                                                  ? 'bg-gray-100 border-2 border-gray-400 animate-pulse cursor-move'
+                                                  ? 'bg-gray-100 border-2 border-gray-400 animate-pulse cursor-grabbing'
                                                   : isAffectedByRain
-                                                  ? 'bg-blue-50 border-2 border-blue-300 cursor-move'
-                                                  : 'bg-white border border-gray-300 cursor-move active:bg-blue-50 active:border-blue-400'
+                                                  ? 'bg-blue-50 border-2 border-blue-300 cursor-grab hover:cursor-grabbing'
+                                                  : 'bg-white border border-gray-300 cursor-grab hover:cursor-grabbing active:cursor-grabbing active:bg-blue-50 active:border-blue-400'
                                               }`}
                                               style={{
                                                 marginLeft: startsAtWeatherIcon ? (isMobile ? '3.5vh' : '5vh') : '0',

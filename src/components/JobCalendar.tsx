@@ -12,6 +12,7 @@ import { Label } from './ui/label';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { getDayCapacity, DEFAULT_DAY_START_HOUR, DEFAULT_DAY_END_HOUR, getStoredDayStartHour, getStoredDayEndHour } from '../utils/scheduleCapacity';
 
 interface JobCalendarProps {
   jobs: Job[];
@@ -133,6 +134,11 @@ export function JobCalendar({ jobs, customers, onUpdateJobs, onRefreshCustomers,
       .filter((customer): customer is Customer => customer !== null);
   };
 
+  const getDayWindow = (dateStr: string) => ({
+    dayStartHour: getStoredDayStartHour(dateStr, DEFAULT_DAY_START_HOUR),
+    dayEndHour: getStoredDayEndHour(dateStr, DEFAULT_DAY_END_HOUR)
+  });
+
   const handleDragStart = (e: React.DragEvent, job: Job) => {
     setDraggedJob(job);
     e.dataTransfer.effectAllowed = 'move';
@@ -159,6 +165,19 @@ export function JobCalendar({ jobs, customers, onUpdateJobs, onRefreshCustomers,
     const customer = customers.find(c => c.id === draggedJob.customerId);
     
     try {
+      const { dayStartHour, dayEndHour } = getDayWindow(newDateStr);
+      const capacityCheck = getDayCapacity(jobs, newDateStr, {
+        additionalJobIds: [draggedJob.id],
+        dayStartHour,
+        dayEndHour
+      });
+
+      if (!capacityCheck.hasCapacity) {
+        toast.error(`Cannot move job: ${capacityCheck.reason}`);
+        setDraggedJob(null);
+        return;
+      }
+
       // Update the job's date in Supabase
       await updateJob({ ...draggedJob, date: newDateStr });
       
@@ -242,6 +261,21 @@ export function JobCalendar({ jobs, customers, onUpdateJobs, onRefreshCustomers,
           const customer = customers.find(c => c.id === touchDraggedJob.customerId);
           
           try {
+            const { dayStartHour, dayEndHour } = getDayWindow(newDateStr);
+            const capacityCheck = getDayCapacity(jobs, newDateStr, {
+              additionalJobIds: [touchDraggedJob.id],
+              dayStartHour,
+              dayEndHour
+            });
+
+            if (!capacityCheck.hasCapacity) {
+              toast.error(`Cannot move job: ${capacityCheck.reason}`);
+              setTouchDraggedJob(null);
+              setDraggedJob(null);
+              document.body.style.overflow = '';
+              return;
+            }
+
             // Update the job's date in Supabase
             await updateJob({ ...touchDraggedJob, date: newDateStr });
             
