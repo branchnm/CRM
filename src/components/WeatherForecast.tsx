@@ -1031,6 +1031,7 @@ export function WeatherForecast({
   const [dragPosition, setDragPosition] = useState<{ x: number; y: number } | null>(null);
   const [dragPreviewSize, setDragPreviewSize] = useState<{ width: number; height: number } | null>(null);
   const dragHoverRef = useRef<{ date: string; slot?: number } | null>(null);
+  const pendingDragRef = useRef<{ jobId: string; x: number; y: number; target: HTMLElement | null } | null>(null);
 
   const setDragHoverTarget = useCallback((dateStr: string, slotIndex?: number) => {
     const nextTarget = slotIndex !== undefined ? { date: dateStr, slot: slotIndex } : { date: dateStr };
@@ -2667,15 +2668,24 @@ export function WeatherForecast({
   const recommendations = getWeatherRecommendations();
 
   // Drag and drop handlers
-  const handleDragStart = (e: React.DragEvent, jobId: string) => {
-    e.dataTransfer.effectAllowed = 'move';
+  const handleDragStart = (e: React.MouseEvent | React.DragEvent, jobId: string) => {
+    const target = e.currentTarget as HTMLElement;
+    if ((e.target as HTMLElement)?.closest('button, input, a, select, textarea')) {
+      return;
+    }
 
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    setDragPreviewSize({ width: rect.width, height: rect.height });
+    e.preventDefault();
+    pendingDragRef.current = {
+      jobId,
+      x: e.clientX,
+      y: e.clientY,
+      target,
+    };
+  };
 
-    const img = new Image();
-    img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
-    e.dataTransfer.setDragImage(img, 0, 0);
+  const activateDrag = (jobId: string, clientX: number, clientY: number, target: HTMLElement | null) => {
+    const rect = target?.getBoundingClientRect();
+    setDragPreviewSize({ width: rect?.width ?? 140, height: rect?.height ?? 70 });
 
     const job = jobs.find(j => j.id === jobId);
     const customer = customers.find(c => c.id === job?.customerId);
@@ -2700,7 +2710,7 @@ export function WeatherForecast({
     }
 
     setDraggedJobId(jobId);
-    setDragPosition({ x: e.clientX, y: e.clientY });
+    setDragPosition({ x: clientX, y: clientY });
   };
 
   const handleDragOver = (e: React.DragEvent, dateStr: string, slotIndex?: number) => {
@@ -2731,6 +2741,17 @@ export function WeatherForecast({
     let rafId: number | null = null;
 
     const handleMouseMove = (e: MouseEvent) => {
+      const pending = pendingDragRef.current;
+      if (pending) {
+        const deltaX = e.clientX - pending.x;
+        const deltaY = e.clientY - pending.y;
+        if (Math.hypot(deltaX, deltaY) > 4) {
+          activateDrag(pending.jobId, e.clientX, e.clientY, pending.target);
+          pendingDragRef.current = null;
+        }
+        return;
+      }
+
       if (!draggedJobId) return;
       if (rafId !== null) {
         cancelAnimationFrame(rafId);
@@ -2741,6 +2762,12 @@ export function WeatherForecast({
     };
 
     const handleMouseUp = (e: MouseEvent) => {
+      const pending = pendingDragRef.current;
+      if (pending) {
+        pendingDragRef.current = null;
+        return;
+      }
+
       if (!draggedJobId) return;
 
       const elementUnderMouse = document.elementFromPoint(e.clientX, e.clientY);
@@ -2773,17 +2800,15 @@ export function WeatherForecast({
       }
     };
 
-    if (draggedJobId) {
-      window.addEventListener('mousemove', handleMouseMove);
-      window.addEventListener('mouseup', handleMouseUp);
-      return () => {
-        if (rafId !== null) {
-          cancelAnimationFrame(rafId);
-        }
-        window.removeEventListener('mousemove', handleMouseMove);
-        window.removeEventListener('mouseup', handleMouseUp);
-      };
-    }
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+      }
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
   }, [draggedJobId, clearDragHoverTarget]);
 
   const handleSlotDrop = async (e: React.DragEvent, dateStr: string, targetSlot: number) => {
@@ -4987,9 +5012,14 @@ export function WeatherForecast({
                                             
                                             return (
                                               <div
-                                                draggable={!isCompleted}
-                                                onDragStart={(e) => !isCompleted && handleDragStart(e, groupSpan.firstJobId)}
-                                                onDragEnd={handleDragEnd}
+                                                role="button"
+                                                tabIndex={isCompleted ? -1 : 0}
+                                                onMouseDown={(e) => !isCompleted && handleDragStart(e, groupSpan.firstJobId)}
+                                                onMouseUp={() => {
+                                                  if (pendingDragRef.current) {
+                                                    pendingDragRef.current = null;
+                                                  }
+                                                }}
                                                 className={`h-full rounded text-xs overflow-hidden flex flex-col select-none mx-auto ${
                                                   isMobile ? 'px-[0.5vh] py-[0.4vh] max-w-[85vw]' : 'px-[0.58vh] py-[0.48vh] max-w-[260px]'
                                                 } ${
@@ -5250,9 +5280,14 @@ export function WeatherForecast({
                                               
                                               {/* Overlay content on top of all rows */}
                                               <div 
-                                                draggable={!isCompleted}
-                                                onDragStart={(e) => !isCompleted && handleDragStart(e, jobInSlot.id)}
-                                                onDragEnd={!isCompleted ? handleDragEnd : undefined}
+                                                role="button"
+                                                tabIndex={isCompleted ? -1 : 0}
+                                                onMouseDown={(e) => !isCompleted && handleDragStart(e, jobInSlot.id)}
+                                                onMouseUp={() => {
+                                                  if (pendingDragRef.current) {
+                                                    pendingDragRef.current = null;
+                                                  }
+                                                }}
                                                 onDoubleClick={(e) => {
                                                   const input = document.getElementById(`job-time-${jobInSlot.id}`) as HTMLInputElement;
                                                   if (input) {
@@ -5348,9 +5383,14 @@ export function WeatherForecast({
                                           ) : (
                                             // Single-slot card (original)
                                             <div
-                                              draggable={!isCompleted}
-                                              onDragStart={(e) => !isCompleted && handleDragStart(e, jobInSlot.id)}
-                                              onDragEnd={handleDragEnd}
+                                              role="button"
+                                              tabIndex={isCompleted ? -1 : 0}
+                                              onMouseDown={(e) => !isCompleted && handleDragStart(e, jobInSlot.id)}
+                                              onMouseUp={() => {
+                                                if (pendingDragRef.current) {
+                                                  pendingDragRef.current = null;
+                                                }
+                                              }}
                                               onDoubleClick={(e) => {
                                                 // On double-click, focus the time input
                                                 const input = document.getElementById(`job-time-${jobInSlot.id}`) as HTMLInputElement;
@@ -5825,6 +5865,7 @@ export function WeatherForecast({
               transform: `translate3d(${dragPosition.x + 15}px, ${dragPosition.y + 15}px, 0)`,
               zIndex: 999999,
               willChange: 'transform',
+              filter: 'drop-shadow(0 10px 20px rgba(59, 130, 246, 0.35))',
             }}
           >
             {isGroupDrag && group ? (
