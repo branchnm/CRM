@@ -1029,6 +1029,7 @@ export function WeatherForecast({
   const [dragOverSlot, setDragOverSlot] = useState<{ date: string; slot: number } | null>(null);
   const [showLocationSearch, setShowLocationSearch] = useState(false);
   const [dragPosition, setDragPosition] = useState<{ x: number; y: number } | null>(null);
+  const [dragPreviewSize, setDragPreviewSize] = useState<{ width: number; height: number } | null>(null);
   const dragHoverRef = useRef<{ date: string; slot?: number } | null>(null);
 
   const setDragHoverTarget = useCallback((dateStr: string, slotIndex?: number) => {
@@ -2669,6 +2670,9 @@ export function WeatherForecast({
   const handleDragStart = (e: React.DragEvent, jobId: string) => {
     e.dataTransfer.effectAllowed = 'move';
 
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    setDragPreviewSize({ width: rect.width, height: rect.height });
+
     const img = new Image();
     img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
     e.dataTransfer.setDragImage(img, 0, 0);
@@ -2742,27 +2746,30 @@ export function WeatherForecast({
       const elementUnderMouse = document.elementFromPoint(e.clientX, e.clientY);
       const slotElement = elementUnderMouse?.closest('[data-time-slot]');
 
+      let targetDate: string | null = null;
+      let targetSlot: number | null = null;
+
       if (slotElement) {
         const slotIndex = slotElement.getAttribute('data-slot-index');
         const dayCard = elementUnderMouse?.closest('[data-day-card]');
-        const dateStr = dayCard?.getAttribute('data-date');
+        targetDate = dayCard?.getAttribute('data-date') || null;
+        targetSlot = slotIndex !== null ? parseInt(slotIndex) : null;
+      } else if (dragHoverRef.current) {
+        targetDate = dragHoverRef.current.date;
+        targetSlot = dragHoverRef.current.slot ?? null;
+      }
 
-        if (dateStr && slotIndex) {
-          handleSlotDrop({
-            preventDefault: () => {},
-            stopPropagation: () => {}
-          } as any, dateStr, parseInt(slotIndex));
-        } else {
-          clearDragHoverTarget();
-          setDraggedJobId(null);
-          setDraggedGroupJobs([]);
-          setDragPosition(null);
-        }
+      if (targetDate && targetSlot !== null) {
+        handleSlotDrop({
+          preventDefault: () => {},
+          stopPropagation: () => {}
+        } as any, targetDate, targetSlot);
       } else {
         clearDragHoverTarget();
         setDraggedJobId(null);
         setDraggedGroupJobs([]);
         setDragPosition(null);
+        setDragPreviewSize(null);
       }
     };
 
@@ -2982,6 +2989,7 @@ export function WeatherForecast({
     setDraggedJobId(null);
     setDraggedGroupJobs([]);
     setDragPosition(null);
+    setDragPreviewSize(null);
   };
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -5820,52 +5828,39 @@ export function WeatherForecast({
             }}
           >
             {isGroupDrag && group ? (
-              // Mini group card
               <div
-                className="text-xs overflow-hidden flex flex-col select-none shadow-2xl"
+                className="text-xs overflow-hidden flex flex-col select-none shadow-2xl bg-white"
                 style={{
-                  backgroundColor: 'white',
                   border: '2px solid rgb(107, 114, 128)',
                   borderRadius: '3vh',
                   padding: '8px',
-                  minWidth: '140px',
+                  minWidth: dragPreviewSize?.width ? Math.max(dragPreviewSize.width, 140) : 140,
+                  minHeight: dragPreviewSize?.height ? Math.max(dragPreviewSize.height, 70) : 70,
+                  width: dragPreviewSize?.width ? dragPreviewSize.width : undefined,
+                  height: dragPreviewSize?.height ? dragPreviewSize.height : undefined,
                   opacity: 0.95,
                 }}
               >
-                <div 
-                  className="w-full h-[4px] rounded-sm -mx-2 -mt-2 mb-2"
-                  style={{ 
-                    width: 'calc(100% + 16px)',
-                    backgroundColor: group.color || '#2563eb'
-                  }}
-                />
-                <div className="font-semibold text-gray-900 text-sm">
-                  {group.name}
-                </div>
-                <div className="text-gray-600 text-xs mt-1">
-                  {draggedGroupJobs.length} properties • {group.workTimeMinutes} min
-                </div>
+                <div className="w-full h-[4px] rounded-sm -mx-2 -mt-2 mb-2" style={{ width: 'calc(100% + 16px)', backgroundColor: group.color || '#2563eb' }} />
+                <div className="font-semibold text-gray-900 text-sm truncate">{group.name}</div>
+                <div className="text-gray-600 text-xs mt-1">{draggedGroupJobs.length} properties • {group.workTimeMinutes} min</div>
               </div>
             ) : (
-              // Mini single job card - matches actual card styling
               <div
-                className={`text-xs overflow-hidden flex flex-col select-none shadow-2xl ${
-                  isCompleted ? 'bg-gray-200/80' : 'bg-white'
-                }`}
+                className={`text-xs overflow-hidden flex flex-col select-none shadow-2xl ${isCompleted ? 'bg-gray-200/80' : 'bg-white'}`}
                 style={{
                   border: '2px solid rgb(107, 114, 128)',
                   borderRadius: '3vh',
                   padding: '6px 8px',
-                  minWidth: '140px',
+                  minWidth: dragPreviewSize?.width ? Math.max(dragPreviewSize.width, 140) : 140,
+                  minHeight: dragPreviewSize?.height ? Math.max(dragPreviewSize.height, 70) : 70,
+                  width: dragPreviewSize?.width ? dragPreviewSize.width : undefined,
+                  height: dragPreviewSize?.height ? dragPreviewSize.height : undefined,
                   opacity: 0.95,
                 }}
               >
-                <div className="font-semibold text-gray-900 text-sm truncate">
-                  {customer.name}
-                </div>
-                <div className="text-gray-600 text-xs mt-1">
-                  ${customer.price} • {draggedJob.totalTime || 60} min
-                </div>
+                <div className="font-semibold text-gray-900 text-sm truncate">{customer.name}</div>
+                <div className="text-gray-600 text-xs mt-1">${customer.price} • {draggedJob.totalTime || 60} min</div>
               </div>
             )}
           </div>
