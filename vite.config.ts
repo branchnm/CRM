@@ -3,8 +3,13 @@ import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
+const BUILD_VERSION = Date.now().toString(36)
+
 // https://vite.dev/config/
 export default defineConfig({
+  define: {
+    __APP_BUILD_VERSION__: JSON.stringify(BUILD_VERSION),
+  },
   plugins: [
     tailwindcss(),
     react({
@@ -12,6 +17,15 @@ export default defineConfig({
         plugins: [['babel-plugin-react-compiler']],
       },
     }),
+    {
+      name: 'app-build-stamp',
+      apply: 'build',
+      transformIndexHtml(html) {
+        return html
+          .replace(/(src="\/assets\/[^"#?]+)"/g, `$1?v=${BUILD_VERSION}"`)
+          .replace(/(href="\/assets\/[^"#?]+)"/g, `$1?v=${BUILD_VERSION}"`)
+      },
+    },
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['vite.svg', 'icon-192.svg', 'icon-512.svg'],
@@ -38,7 +52,9 @@ export default defineConfig({
         ]
       },
       workbox: {
+        cleanupOutdatedCaches: true,
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
+        globIgnores: ['**/index.html'],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/api\.openweathermap\.org\/.*/i,

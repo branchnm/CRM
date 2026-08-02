@@ -50,6 +50,8 @@ import {
 } from '../utils/scheduleCapacity';
 import { toast } from 'sonner';
 
+declare const __APP_BUILD_VERSION__: string;
+
 // Check if demo mode is enabled
 const checkDemoMode = (): boolean => {
   const urlParams = new URLSearchParams(window.location.search);
@@ -143,6 +145,13 @@ export function WeatherForecast({
       onWeatherLoadingChange(loading || !weatherData);
     }
   }, [loading, weatherData, onWeatherLoadingChange]);
+
+  useEffect(() => {
+    document.title = `Job Flow • Capacity ${__APP_BUILD_VERSION__}`;
+    return () => {
+      document.title = 'Job Flow';
+    };
+  }, []);
   const [error, setError] = useState<string | null>(null);
   const [location, setLocation] = useState<Coordinates | null>(() => {
     if (DEMO_MODE) return DEMO_LOCATION;
@@ -1274,6 +1283,45 @@ export function WeatherForecast({
     return goodWeatherSlots.length >= dailyWeather.hourlyForecasts.length * 0.75;
   };
 
+  const [weatherSuggestions, setWeatherSuggestions] = useState<ReturnType<typeof getWeatherBasedSuggestions>>({
+    moveSuggestions: [],
+    startTimeSuggestions: [],
+    overnightRainDays: new Set()
+  });
+  const [showSuggestions, setShowSuggestions] = useState(true);
+
+  const getEffectiveWorkWindow = useCallback((dateStr: string) => {
+    const currentStartTime = dayStartTimes.get(dateStr) ?? WORK_DAY_START_HOUR;
+    const currentEndTime = dayEndTimes.get(dateStr) ?? WORK_DAY_END_HOUR;
+    const pendingSuggestion = weatherSuggestions.startTimeSuggestions.find(s => s.date === dateStr);
+
+    if (!pendingSuggestion) {
+      return {
+        dayStartHour: currentStartTime,
+        dayEndHour: currentEndTime
+      };
+    }
+
+    if (pendingSuggestion.type === 'delay') {
+      return {
+        dayStartHour: Math.max(currentStartTime, pendingSuggestion.suggestedStartTime ?? currentStartTime),
+        dayEndHour: pendingSuggestion.suggestedEndTime ?? currentEndTime
+      };
+    }
+
+    if (pendingSuggestion.type === 'start-early') {
+      return {
+        dayStartHour: Math.min(currentStartTime, pendingSuggestion.suggestedStartTime ?? currentStartTime),
+        dayEndHour: pendingSuggestion.suggestedEndTime ?? currentEndTime
+      };
+    }
+
+    return {
+      dayStartHour: currentStartTime,
+      dayEndHour: currentEndTime
+    };
+  }, [dayEndTimes, dayStartTimes, weatherSuggestions.startTimeSuggestions]);
+
   // Helper function to check if a day has capacity for additional jobs (time-based)
   const checkDayCapacity = useCallback((dateStr: string, additionalJobIds: string[] = []): { 
     hasCapacity: boolean; 
@@ -1289,10 +1337,12 @@ export function WeatherForecast({
       .filter(([_, targetDate]) => targetDate !== dateStr)
       .map(([jobId]) => jobId);
 
+    const { dayStartHour, dayEndHour } = getEffectiveWorkWindow(dateStr);
+
     const capacity = getDayCapacity(jobs, dateStr, {
       additionalJobIds,
-      dayStartHour: dayStartTimes.get(dateStr) || WORK_DAY_START_HOUR,
-      dayEndHour: dayEndTimes.get(dateStr) || WORK_DAY_END_HOUR,
+      dayStartHour,
+      dayEndHour,
       excludeJobIds: [...assignedJobIds, ...reassignedAwayJobIds]
     });
 
@@ -1302,7 +1352,7 @@ export function WeatherForecast({
       totalMinutes: capacity.totalMinutes,
       maxMinutes: capacity.maxMinutes
     };
-  }, [jobs, jobAssignments, dayStartTimes, dayEndTimes]);
+  }, [getEffectiveWorkWindow, jobs, jobAssignments]);
 
   // Check for days that overflow the work hour limit
   const checkForOverflow = useCallback(() => {
@@ -1843,14 +1893,6 @@ export function WeatherForecast({
     return { moveSuggestions, startTimeSuggestions, overnightRainDays };
   }, [weatherData, jobs, customers, dayStartTimes, dayEndTimes]);
 
-  // State for weather suggestions
-  const [weatherSuggestions, setWeatherSuggestions] = useState<ReturnType<typeof getWeatherBasedSuggestions>>({
-    moveSuggestions: [],
-    startTimeSuggestions: [],
-    overnightRainDays: new Set()
-  });
-  const [showSuggestions, setShowSuggestions] = useState(true);
-
   // Update suggestions when weather or jobs change
   useEffect(() => {
     const suggestions = getWeatherBasedSuggestions();
@@ -2034,8 +2076,7 @@ export function WeatherForecast({
     Array.from(candidateDates).forEach(dateStr => {
       if (dateStr === currentDate) return;
 
-      const dayStartHour = dayStartTimes.get(dateStr) || DEFAULT_DAY_START_HOUR;
-      const dayEndHour = dayEndTimes.get(dateStr) || DEFAULT_DAY_END_HOUR;
+      const { dayStartHour, dayEndHour } = getEffectiveWorkWindow(dateStr);
       const availableMinutes = Math.max(0, (dayEndHour - dayStartHour) * 60);
 
       if (availableMinutes <= 0) return;
@@ -4308,8 +4349,7 @@ export function WeatherForecast({
                     .filter(Boolean) as Job[];
                   
                   const totalJobs = scheduledJobsForDay.length + assignedJobs.length;
-                  const dayStartHour = dayStartTimes.get(dateStr) || WORK_DAY_START_HOUR;
-                  const dayEndHour = dayEndTimes.get(dateStr) || WORK_DAY_END_HOUR;
+                  const { dayStartHour, dayEndHour } = getEffectiveWorkWindow(dateStr);
                   const totalWorkMinutes = [...scheduledJobsForDay, ...assignedJobs].reduce((sum, job) => sum + (job.totalTime || 30), 0);
                   const totalDriveMinutes = [...scheduledJobsForDay, ...assignedJobs].reduce((sum, job) => sum + (job.driveTime || 0), 0);
                   const totalMinutes = totalWorkMinutes + totalDriveMinutes;
