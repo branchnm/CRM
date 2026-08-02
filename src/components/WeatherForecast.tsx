@@ -1921,49 +1921,84 @@ export function WeatherForecast({
     toast.success(`${jobCount} job${jobCount !== 1 ? 's' : ''} rescheduled to better weather day`);
   }, [jobs, onRescheduleJob, checkDayCapacity]);
 
+  const getJobPriority = useCallback((job: Job) => {
+    const customer = customers.find(c => c.id === job.customerId);
+    const price = Number(customer?.price || 0);
+    const duration = (job.totalTime || 30) + (job.driveTime || 0);
+    const ratio = duration > 0 ? price / duration : price;
+    return { price, duration, ratio };
+  }, [customers]);
+
   const selectJobsToMoveForCapacity = useCallback((jobsOnDay: Job[], availableMinutes: number) => {
     if (availableMinutes <= 0 || jobsOnDay.length === 0) {
       return [] as Job[];
     }
 
-    const sortedJobs = [...jobsOnDay].sort((a, b) => {
-      const aCustomer = customers.find(c => c.id === a.customerId);
-      const bCustomer = customers.find(c => c.id === b.customerId);
-      const aPrice = Number(aCustomer?.price || 0);
-      const bPrice = Number(bCustomer?.price || 0);
-      const aTime = (a.totalTime || 30) + (a.driveTime || 0);
-      const bTime = (b.totalTime || 30) + (b.driveTime || 0);
-      const aPriority = (aPrice * 1000) - aTime;
-      const bPriority = (bPrice * 1000) - bTime;
-      return bPriority - aPriority;
-    });
+    const rankedJobs = [...jobsOnDay]
+      .map(job => ({ job, ...getJobPriority(job) }))
+      .sort((a, b) => b.ratio - a.ratio);
 
-    const keptJobs: Job[] = [];
+    const keptJobIds = new Set<string>();
     let usedMinutes = 0;
 
-    sortedJobs.forEach(job => {
-      const jobMinutes = (job.totalTime || 30) + (job.driveTime || 0);
-      if (usedMinutes + jobMinutes <= availableMinutes) {
-        keptJobs.push(job);
-        usedMinutes += jobMinutes;
+    rankedJobs.forEach(({ job, duration }) => {
+      if (usedMinutes + duration <= availableMinutes) {
+        keptJobIds.add(job.id);
+        usedMinutes += duration;
       }
     });
 
-    return jobsOnDay.filter(job => !keptJobs.some(keptJob => keptJob.id === job.id));
-  }, [customers]);
+    return jobsOnDay.filter(job => !keptJobIds.has(job.id));
+  }, [getJobPriority]);
 
-  const findBestAlternativeDayForJobs = useCallback((jobIds: string[], currentDate: string) => {
-    if (!weatherData?.daily) {
+  const selectBestFitSubsetForDay = useCallback((jobIds: string[], targetDate: string): Job[] => {
+    const jobsToTry = jobIds
+      .map(jobId => jobs.find(job => job.id === jobId))
+      .filter((job): job is Job => job !== undefined);
+
+    if (jobsToTry.length === 0) {
+      return [];
+    }
+
+    const dayStartHour = dayStartTimes.get(targetDate) || DEFAULT_DAY_START_HOUR;
+    const dayEndHour = dayEndTimes.get(targetDate) || DEFAULT_DAY_END_HOUR;
+    const existingMinutes = jobs
+      .filter(job => job.date === targetDate && job.status === 'scheduled' && !jobIds.includes(job.id))
+      .reduce((sum, job) => sum + ((job.totalTime || 30) + (job.driveTime || 0)), 0);
+    const availableMinutes = Math.max(0, (dayEndHour - dayStartHour) * 60 - existingMinutes);
+
+    if (availableMinutes <= 0) {
+      return [];
+    }
+
+    const rankedJobs = [...jobsToTry]
+      .map(job => ({ job, ...getJobPriority(job) }))
+      .sort((a, b) => b.ratio - a.ratio);
+
+    const selectedJobs: Job[] = [];
+    let usedMinutes = 0;
+
+    rankedJobs.forEach(({ job, duration }) => {
+      if (usedMinutes + duration <= availableMinutes) {
+        selectedJobs.push(job);
+        usedMinutes += duration;
+      }
+    });
+
+    return selectedJobs;
+  }, [dayStartTimes, dayEndTimes, getJobPriority, jobs]);
+
+  const findBestAlternativeDayForJobs = useCallback((jobIds: string[], currentDate: string): { date: string; movedJobs: Job[] } | null => {
+    if (jobIds.length === 0) {
       return null;
     }
 
-    const forecast = weatherData.daily;
+    const currentDateValue = new Date(currentDate);
+    const forecast = weatherData?.daily || [];
     const today = new Date();
     const year = today.getFullYear();
     const month = today.getMonth();
     const day = today.getDate();
-
-    const currentDateValue = new Date(currentDate);
     const forecastDates: string[] = [];
 
     forecast.forEach((_, index) => {
@@ -1974,44 +2009,53 @@ export function WeatherForecast({
       forecastDates.push(`${yyyy}-${mm}-${dd}`);
     });
 
-    const candidateDays = new Set<string>();
+    const candidateDates = new Set<string>();
 
     forecastDates.forEach((dateStr, index) => {
-      if (dateStr === currentDate || !isGoodWeatherDay(forecast[index])) return;
-      candidateDays.add(dateStr);
+      if (dateStr === currentDate) return;
+      if (forecast[index] && isGoodWeatherDay(forecast[index])) {
+        candidateDates.add(dateStr);
+      }
     });
 
     for (let offset = 1; offset <= 7; offset++) {
       const futureDate = new Date(currentDateValue);
       futureDate.setDate(futureDate.getDate() + offset);
-      candidateDays.add(futureDate.toLocaleDateString('en-CA'));
+      candidateDates.add(futureDate.toLocaleDateString('en-CA'));
 
       const pastDate = new Date(currentDateValue);
       pastDate.setDate(pastDate.getDate() - offset);
-      candidateDays.add(pastDate.toLocaleDateString('en-CA'));
+      candidateDates.add(pastDate.toLocaleDateString('en-CA'));
     }
 
-    let bestDay: string | null = null;
+    let bestPlan: { date: string; movedJobs: Job[] } | null = null;
     let bestScore = Number.POSITIVE_INFINITY;
 
-    Array.from(candidateDays).forEach(dateStr => {
+    Array.from(candidateDates).forEach(dateStr => {
       if (dateStr === currentDate) return;
 
-      const capacityCheck = checkDayCapacity(dateStr, jobIds);
-      if (!capacityCheck.hasCapacity) return;
+      const dayStartHour = dayStartTimes.get(dateStr) || DEFAULT_DAY_START_HOUR;
+      const dayEndHour = dayEndTimes.get(dateStr) || DEFAULT_DAY_END_HOUR;
+      const availableMinutes = Math.max(0, (dayEndHour - dayStartHour) * 60);
+
+      if (availableMinutes <= 0) return;
+
+      const movingJobs = selectBestFitSubsetForDay(jobIds, dateStr);
+      if (movingJobs.length === 0) return;
 
       const jobsOnDay = jobs.filter(job => job.date === dateStr && job.status === 'scheduled').length;
       const distance = Math.abs((new Date(dateStr).getTime() - currentDateValue.getTime()) / (1000 * 60 * 60 * 24));
-      const score = jobsOnDay * 10 + distance;
+      const weatherPenalty = forecastDates.includes(dateStr) && weatherData?.daily ? 0 : 1;
+      const score = (jobIds.length - movingJobs.length) * 1000 + jobsOnDay + distance + weatherPenalty;
 
       if (score < bestScore) {
         bestScore = score;
-        bestDay = dateStr;
+        bestPlan = { date: dateStr, movedJobs: movingJobs };
       }
     });
 
-    return bestDay;
-  }, [weatherData, jobs, checkDayCapacity, isGoodWeatherDay]);
+    return bestPlan;
+  }, [dayStartTimes, dayEndTimes, jobs, selectBestFitSubsetForDay, weatherData, isGoodWeatherDay]);
 
   const applyDayTimeAdjustment = useCallback((date: string, newStartTime: number, newEndTime?: number) => {
     const resolvedEndTime = newEndTime ?? dayEndTimes.get(date) ?? DEFAULT_DAY_END_HOUR;
@@ -2026,8 +2070,11 @@ export function WeatherForecast({
       : selectJobsToMoveForCapacity(jobsOnDay, capacityCheck.availableMinutes);
 
     let targetDate: string | null = null;
+    let movedJobs: Job[] = [];
     if (jobsToMove.length > 0 && onRescheduleJob) {
-      targetDate = findBestAlternativeDayForJobs(jobsToMove.map(job => job.id), date);
+      const bestPlan = findBestAlternativeDayForJobs(jobsToMove.map(job => job.id), date);
+      targetDate = bestPlan?.date || null;
+      movedJobs = bestPlan?.movedJobs || [];
     }
 
     setDayStartTimes(prev => {
@@ -2048,14 +2095,14 @@ export function WeatherForecast({
       onStartTimeChange(date, newStartTime);
     }
 
-    if (jobsToMove.length > 0 && targetDate && onRescheduleJob) {
-      jobsToMove.forEach(job => {
+    if (movedJobs.length > 0 && targetDate && onRescheduleJob) {
+      movedJobs.forEach(job => {
         onRescheduleJob(job.id, targetDate!);
       });
     }
 
     return {
-      movedJobs: jobsToMove,
+      movedJobs,
       targetDate
     };
   }, [dayEndTimes, findBestAlternativeDayForJobs, jobs, onRescheduleJob, onStartTimeChange, selectJobsToMoveForCapacity]);
