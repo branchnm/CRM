@@ -5,7 +5,7 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
 import type { Equipment } from '../App';
-import { Plus, Wrench, AlertTriangle } from 'lucide-react';
+import { Plus, Wrench, AlertTriangle, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from './ui/badge';
 import { Alert, AlertDescription } from './ui/alert';
@@ -13,10 +13,13 @@ import { Alert, AlertDescription } from './ui/alert';
 interface SettingsProps {
   equipment: Equipment[];
   onUpdateEquipment: (equipment: Equipment[]) => void;
+  isDemoMode?: boolean;
+  onResetDemoDay?: () => Promise<void> | void;
 }
 
-export function Settings({ equipment, onUpdateEquipment }: SettingsProps) {
+export function Settings({ equipment, onUpdateEquipment, isDemoMode = false, onResetDemoDay }: SettingsProps) {
   const [isAddingEquipment, setIsAddingEquipment] = useState(false);
+  const [isResettingDemoDay, setIsResettingDemoDay] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     lastMaintenance: new Date().toISOString().split('T')[0],
@@ -83,8 +86,44 @@ export function Settings({ equipment, onUpdateEquipment }: SettingsProps) {
     return diff;
   };
 
+  const handleResetDemoDay = async () => {
+    if (!onResetDemoDay) return;
+
+    try {
+      setIsResettingDemoDay(true);
+      await onResetDemoDay();
+      toast.success('Demo day reset complete. Today jobs were re-seeded.');
+    } catch (error) {
+      console.error('Failed to reset demo day:', error);
+      toast.error('Failed to reset demo day. Please try again.');
+    } finally {
+      setIsResettingDemoDay(false);
+    }
+  };
+
   return (
     <div className="space-y-4 md:space-y-6">
+      {isDemoMode && onResetDemoDay && (
+        <Card className="bg-blue-50/80 backdrop-blur border-blue-200">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg md:text-xl text-blue-900">Demo Testing Tools</CardTitle>
+            <CardDescription className="text-sm text-blue-700">
+              Reset today to a known test baseline without clearing browser cache or cookies.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button
+              onClick={handleResetDemoDay}
+              disabled={isResettingDemoDay}
+              className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto"
+            >
+              <RotateCcw className="h-4 w-4 mr-2" />
+              {isResettingDemoDay ? 'Resetting Demo Day...' : 'Reset Demo Day'}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       <Card className="bg-white/80 backdrop-blur">
         <CardHeader className="pb-3">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">

@@ -10,12 +10,13 @@ import { getDriveTime } from '../services/googleMaps';
 import { optimizeRoute as optimizeRouteWithGoogleMaps } from '../services/routeOptimizer';
 import { Clock, MapPin, Navigation, CheckCircle, Play, Phone, StopCircle, MessageSquare, Send, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
-import { getDayCapacity, DEFAULT_DAY_START_HOUR, DEFAULT_DAY_END_HOUR, getStoredDayStartHour, getStoredDayEndHour } from '../utils/scheduleCapacity';
+import { getDayCapacity, DEFAULT_DAY_START_HOUR, DEFAULT_DAY_END_HOUR, getStoredDayStartHour, getStoredDayEndHour, getUsableDayMinutes, getEstimatedJobMinutes, DEFAULT_JOB_WORK_MINUTES, DEFAULT_JOB_DRIVE_MINUTES } from '../utils/scheduleCapacity';
 import { Textarea } from './ui/textarea';
 import { Label } from './ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from './ui/alert-dialog';
 import { WeatherForecast } from './WeatherForecast';
+import { ROUTE_OPTIMIZATION_ENABLED, ROUTE_OPTIMIZATION_MAX_DAYS, ROUTE_OPTIMIZATION_MAX_JOBS_PER_DAY } from '../config/routeOptimization';
 
 interface DailyScheduleProps {
   customers: Customer[];
@@ -98,8 +99,13 @@ export function DailySchedule({
 
   const getDayWindow = (dateStr: string) => ({
     dayStartHour: getStoredDayStartHour(dateStr, dayStartTimes.get(dateStr) || DEFAULT_DAY_START_HOUR),
-    dayEndHour: getStoredDayEndHour(dateStr, DEFAULT_DAY_END_HOUR)
+    dayEndHour: getStoredDayEndHour(dateStr, DEFAULT_DAY_END_HOUR),
+    usableMinutes: getUsableDayMinutes(
+      getStoredDayStartHour(dateStr, dayStartTimes.get(dateStr) || DEFAULT_DAY_START_HOUR),
+      getStoredDayEndHour(dateStr, DEFAULT_DAY_END_HOUR)
+    )
   });
+  const estimatedNewJobMinutes = DEFAULT_JOB_WORK_MINUTES + DEFAULT_JOB_DRIVE_MINUTES;
   
   // Track optimized job order for change detection
   const [optimizedJobOrder, setOptimizedJobOrder] = useState<Map<string, number>>(new Map());
@@ -328,6 +334,77 @@ export function DailySchedule({
     return a.scheduledTime.localeCompare(b.scheduledTime);
   });
 
+  const formatDateForSuggestion = (dateStr: string): string => {
+    const targetDate = new Date(dateStr + 'T00:00:00');
+    const todayDate = new Date();
+    todayDate.setHours(0, 0, 0, 0);
+    const diffDays = Math.round((targetDate.getTime() - todayDate.getTime()) / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) return 'today';
+    if (diffDays === 1) return 'tomorrow';
+    return targetDate.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+  };
+
+  const findBestDateForJobs = (jobIds: string[], baseDate: string): string | null => {
+    const sourceDate = new Date(baseDate + 'T00:00:00');
+    let bestDate: string | null = null;
+    let bestRemainingMinutes = Number.NEGATIVE_INFINITY;
+
+    for (let dayOffset = 1; dayOffset <= 14; dayOffset++) {
+      const candidateDate = new Date(sourceDate);
+      candidateDate.setDate(candidateDate.getDate() + dayOffset);
+      const candidateDateStr = candidateDate.toLocaleDateString('en-CA');
+
+      const additionalJobIds = jobIds.filter(jobId => {
+        const existingJob = jobs.find(job => job.id === jobId);
+        return existingJob?.date !== candidateDateStr;
+      });
+
+      const { dayStartHour, dayEndHour } = getDayWindow(candidateDateStr);
+      const capacityCheck = getDayCapacity(jobs, candidateDateStr, {
+        additionalJobIds,
+        dayStartHour,
+        dayEndHour
+      });
+
+      if (!capacityCheck.hasCapacity) {
+        continue;
+      }
+
+      const remainingMinutes = capacityCheck.maxMinutes - capacityCheck.totalMinutes;
+      if (remainingMinutes > bestRemainingMinutes) {
+        bestRemainingMinutes = remainingMinutes;
+        bestDate = candidateDateStr;
+      }
+    }
+
+    return bestDate;
+  };
+
+  const { dayStartHour: currentDayStartHour, dayEndHour: currentDayEndHour } = getDayWindow(currentViewDate);
+  const currentDayCapacity = getDayCapacity(jobs, currentViewDate, {
+    dayStartHour: currentDayStartHour,
+    dayEndHour: currentDayEndHour
+  });
+  const currentDayUsagePercent = currentDayCapacity.maxMinutes > 0
+    ? Math.min(100, Math.round((currentDayCapacity.totalMinutes / currentDayCapacity.maxMinutes) * 100))
+    : 0;
+
+  const scheduledJobsForCurrentDay = displayedJobs.filter(job => job.status === 'scheduled');
+  let overflowMinutesRemaining = Math.max(0, currentDayCapacity.totalMinutes - currentDayCapacity.maxMinutes);
+  const overflowJobsForCurrentDay: Job[] = [];
+
+  for (let i = scheduledJobsForCurrentDay.length - 1; i >= 0 && overflowMinutesRemaining > 0; i--) {
+    const job = scheduledJobsForCurrentDay[i];
+    const jobMinutes = getEstimatedJobMinutes(job);
+    overflowJobsForCurrentDay.unshift(job);
+    overflowMinutesRemaining -= jobMinutes;
+  }
+
+  const suggestedOverflowDate = overflowJobsForCurrentDay.length > 0
+    ? findBestDateForJobs(overflowJobsForCurrentDay.map(job => job.id), currentViewDate)
+    : null;
+
  // console.log('📅 Displayed jobs for', currentViewDate + ':', displayedJobs.length);
  // console.log('📅 All jobs count:', jobs.length);
  // console.log('📅 Jobs by date:', jobs.reduce((acc, j) => { acc[j.date] = (acc[j.date] || 0) + 1; return acc; }, {} as Record<string, number>));
@@ -479,8 +556,12 @@ export function DailySchedule({
             dayEndHour
           });
 
-          if (!capacityCheck.hasCapacity) {
-            results.push({ status: 'rejected', reason: new Error(capacityCheck.reason || 'Day is full') });
+          const projectedMinutes = capacityCheck.totalMinutes + estimatedNewJobMinutes;
+          if (!capacityCheck.hasCapacity || projectedMinutes > capacityCheck.maxMinutes) {
+            results.push({
+              status: 'rejected',
+              reason: new Error(capacityCheck.reason || 'Day is full')
+            });
             continue;
           }
 
@@ -581,8 +662,12 @@ export function DailySchedule({
             dayEndHour
           });
 
-          if (!capacityCheck.hasCapacity) {
-            results.push({ status: 'rejected', reason: new Error(capacityCheck.reason || 'Day is full') });
+          const projectedMinutes = capacityCheck.totalMinutes + estimatedNewJobMinutes;
+          if (!capacityCheck.hasCapacity || projectedMinutes > capacityCheck.maxMinutes) {
+            results.push({
+              status: 'rejected',
+              reason: new Error(capacityCheck.reason || 'Day is full')
+            });
             continue;
           }
 
@@ -1055,7 +1140,8 @@ export function DailySchedule({
               dayEndHour
             });
 
-            if (!capacityCheck.hasCapacity) {
+            const projectedMinutes = capacityCheck.totalMinutes + estimatedNewJobMinutes;
+            if (!capacityCheck.hasCapacity || projectedMinutes > capacityCheck.maxMinutes) {
               toast.error(`Skipped creating next job for ${customer.name}: ${capacityCheck.reason}`);
               return;
             }
@@ -1125,17 +1211,22 @@ export function DailySchedule({
     });
 
     if (!capacityCheck.hasCapacity) {
-      toast.error(`Cannot move job: ${capacityCheck.reason}`);
+      const suggestedDate = findBestDateForJobs([jobId], newDate);
+      if (suggestedDate) {
+        toast.error(`Cannot move job: ${capacityCheck.reason}. Try ${formatDateForSuggestion(suggestedDate)}.`);
+      } else {
+        toast.error(`Cannot move job: ${capacityCheck.reason}`);
+      }
       return;
     }
 
     try {
-      // Calculate scheduled time from time slot
-      // Time slots start at 5am, may be offset by day start time
-      const dayStartHour = getDayWindow(newDate).dayStartHour;
-      const slotOffset = Math.max(0, dayStartHour - 5);
-      const actualHour = 5 + (timeSlot || 0) + slotOffset;
-      const scheduledTime = timeSlot !== undefined ? `${actualHour}:00` : undefined;
+      // Calculate scheduled time from 15-minute slot index.
+      // Slot 0 = 5:00 AM, slot 1 = 5:15 AM, etc.
+      const totalMinutes = timeSlot !== undefined ? (5 * 60) + (timeSlot * 15) : undefined;
+      const scheduledTime = totalMinutes !== undefined
+        ? `${Math.floor(totalMinutes / 60)}:${(totalMinutes % 60).toString().padStart(2, '0')}`
+        : undefined;
       
       await updateJob({ ...job, date: newDate, scheduledTime });
       
@@ -1211,6 +1302,12 @@ export function DailySchedule({
   };
 
   const handleOptimizeRoute = async () => {
+    if (!ROUTE_OPTIMIZATION_ENABLED) {
+      toast.info('Route optimization is disabled right now');
+      onOptimizationStatusChange?.('idle');
+      return;
+    }
+
     if (!startingAddress.trim()) {
       toast.error('Please set a starting address first');
       return;
@@ -1232,15 +1329,15 @@ export function DailySchedule({
       toast.loading('Calculating optimal routes for all days...', { id: 'optimize-route' });
       
       // Get next 30 days (today + 29 days ahead)
-      const next30Days = [];
-      for (let i = 0; i < 30; i++) {
+      const nextDays = [];
+      for (let i = 0; i < ROUTE_OPTIMIZATION_MAX_DAYS; i++) {
         const date = new Date();
         date.setDate(date.getDate() + i);
-        next30Days.push(date.toLocaleDateString('en-CA'));
+        nextDays.push(date.toLocaleDateString('en-CA'));
       }
       
       console.log('=== STARTING MULTI-DAY ROUTE OPTIMIZATION ===');
-      console.log('Optimizing jobs for dates:', next30Days);
+      console.log('Optimizing jobs for dates:', nextDays);
       console.log('Starting address:', startingAddress);
       
       const allOptimizedJobs: Job[] = [];
@@ -1248,10 +1345,16 @@ export function DailySchedule({
       let totalOptimizedDays = 0;
       
       // Optimize each day's jobs - using fresh jobs from database
-      for (const dateStr of next30Days) {
+      for (const dateStr of nextDays) {
         const dayJobs = freshJobs.filter(j => j.date === dateStr);
         const scheduledJobs = dayJobs.filter(j => j.status === 'scheduled');
         const nonScheduledJobs = dayJobs.filter(j => j.status !== 'scheduled');
+
+        if (scheduledJobs.length > ROUTE_OPTIMIZATION_MAX_JOBS_PER_DAY) {
+          toast.warning(`Skipping ${dateStr} - too many scheduled jobs for route optimization`);
+          allOptimizedJobs.push(...dayJobs);
+          continue;
+        }
         
         if (scheduledJobs.length === 0) {
           console.log(`Skipping ${dateStr} - no scheduled jobs`);
@@ -1302,32 +1405,32 @@ export function DailySchedule({
           newDriveTimesCache.set(cacheKey, segment.durationText);
         });
         
-        // Map the optimized jobs back to the original job objects with new order and scheduled times
+        // Map the optimized jobs back to the original job objects with new order, actual inbound drive time,
+        // and scheduled start times that include travel from the starting address.
         const startHour = dayStartTimes.get(dateStr) || 5;
         let currentTime = startHour * 60; // Convert to minutes from midnight
         
         const optimizedJobsWithData = optimizedRoute.jobs.map((optimizedJob, index) => {
           const originalJob = scheduledJobs.find(j => j.id === optimizedJob.id);
+          const inboundDriveMinutes = optimizedRoute.segments[index]?.durationMinutes || 0;
+          const jobDuration = originalJob?.totalTime || 60;
+
+          // Each job's visible start time is when work starts after driving to that stop.
+          currentTime += inboundDriveMinutes;
           
           // Calculate scheduled time
           const hours = Math.floor(currentTime / 60);
           const minutes = currentTime % 60;
           const scheduledTime = `${hours}:${minutes.toString().padStart(2, '0')}`;
           
-          // Add estimated job duration (60 minutes) + drive time for next iteration
-          const jobDuration = 60; // 1 hour per job
+          // Add service duration before moving to the next stop.
           currentTime += jobDuration;
-          
-          // Add drive time to next location if available
-          if (index < optimizedRoute.segments.length) {
-            const driveMinutes = optimizedRoute.segments[index].durationMinutes || 10;
-            currentTime += driveMinutes;
-          }
           
           return {
             ...originalJob!,
             order: optimizedJob.order,
-            scheduledTime
+            scheduledTime,
+            driveTime: inboundDriveMinutes
           };
         });
         
@@ -1433,6 +1536,11 @@ export function DailySchedule({
   // Listen for optimize route event from nav bar
   useEffect(() => {
     const handleOptimizeEvent = () => {
+      if (!ROUTE_OPTIMIZATION_ENABLED) {
+        toast.info('Route optimization is disabled right now');
+        return;
+      }
+
       handleOptimizeRoute();
     };
     
@@ -1541,6 +1649,23 @@ export function DailySchedule({
     if (!customer) return;
 
     try {
+      const { dayStartHour, dayEndHour } = getDayWindow(newDate);
+      const capacityCheck = getDayCapacity(jobs, newDate, {
+        additionalJobIds: job.date === newDate ? [] : [jobId],
+        dayStartHour,
+        dayEndHour
+      });
+
+      if (!capacityCheck.hasCapacity) {
+        const suggestedDate = findBestDateForJobs([jobId], newDate);
+        if (suggestedDate) {
+          toast.error(`Cannot move job: ${capacityCheck.reason}. Try ${formatDateForSuggestion(suggestedDate)}.`);
+        } else {
+          toast.error(`Cannot move job: ${capacityCheck.reason}`);
+        }
+        return;
+      }
+
       // Update job date
       const updatedJob = { ...job, date: newDate };
       await updateJob(updatedJob);
@@ -1568,6 +1693,39 @@ export function DailySchedule({
     } catch (error) {
       console.error('Failed to move job:', error);
       toast.error('Failed to move job to different day');
+    }
+  };
+
+  const handleMoveOverflowJobs = async () => {
+    if (overflowJobsForCurrentDay.length === 0) return;
+    if (!suggestedOverflowDate) {
+      toast.error('No nearby day has enough capacity for overflow jobs yet.');
+      return;
+    }
+
+    try {
+      const sourceDate = currentViewDate;
+
+      await Promise.all(
+        overflowJobsForCurrentDay.map(async (job) => {
+          await updateJob({ ...job, date: suggestedOverflowDate });
+
+          const customer = customers.find(c => c.id === job.customerId);
+          if (customer && customer.nextCutDate === sourceDate) {
+            await updateCustomer({ ...customer, nextCutDate: suggestedOverflowDate });
+          }
+        })
+      );
+
+      await onRefreshJobs?.();
+      await onRefreshCustomers();
+
+      toast.success(
+        `Moved ${overflowJobsForCurrentDay.length} overflow job${overflowJobsForCurrentDay.length !== 1 ? 's' : ''} to ${formatDateForSuggestion(suggestedOverflowDate)}.`
+      );
+    } catch (error) {
+      console.error('Failed to move overflow jobs:', error);
+      toast.error('Failed to move overflow jobs. Please try again.');
     }
   };
 
@@ -1671,6 +1829,51 @@ export function DailySchedule({
               <div style={{ height: 'max(5vh, 40px)' }} />
             )}
           </div>
+
+          <Card className="bg-white/85 backdrop-blur border border-blue-100 max-w-3xl mx-auto">
+            <CardContent className="py-3 px-4">
+              <div className="flex items-center justify-between text-sm text-blue-900 font-medium">
+                <span>
+                  Day Capacity: {Math.floor(currentDayCapacity.totalMinutes / 60)}h {currentDayCapacity.totalMinutes % 60}m / {Math.floor(currentDayCapacity.maxMinutes / 60)}h {currentDayCapacity.maxMinutes % 60}m
+                </span>
+                <span>{currentDayUsagePercent}% used</span>
+              </div>
+              <div className="mt-2 h-2 rounded-full bg-blue-100 overflow-hidden">
+                <div
+                  className={`h-full transition-all ${
+                    currentDayUsagePercent >= 100 ? 'bg-red-500' : currentDayUsagePercent >= 85 ? 'bg-amber-500' : 'bg-blue-600'
+                  }`}
+                  style={{ width: `${currentDayUsagePercent}%` }}
+                />
+              </div>
+              <div className="mt-2 text-xs text-gray-700">
+                Work window: {currentDayCapacity.dayStartHour}:00 - {currentDayCapacity.dayEndHour}:00
+              </div>
+            </CardContent>
+          </Card>
+
+          {overflowJobsForCurrentDay.length > 0 && (
+            <Card className="bg-amber-50 border-amber-300 max-w-3xl mx-auto">
+              <CardContent className="py-3 px-4">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                  <p className="text-sm text-amber-900">
+                    This day is over capacity by {Math.max(0, currentDayCapacity.totalMinutes - currentDayCapacity.maxMinutes)} minutes.
+                    {suggestedOverflowDate
+                      ? ` Move ${overflowJobsForCurrentDay.length} overflow job${overflowJobsForCurrentDay.length !== 1 ? 's' : ''} to ${formatDateForSuggestion(suggestedOverflowDate)}.`
+                      : ' No nearby day has enough open capacity yet.'}
+                  </p>
+                  <Button
+                    type="button"
+                    onClick={handleMoveOverflowJobs}
+                    disabled={!suggestedOverflowDate}
+                    className="bg-amber-700 hover:bg-amber-800 text-white"
+                  >
+                    Move Overflow Jobs
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
       {/* Job List */}

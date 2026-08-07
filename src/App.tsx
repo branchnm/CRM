@@ -19,12 +19,20 @@ import {
   CheckCircle,
   Loader2,
 } from "lucide-react";
-import { fetchCustomers } from "./services/customers";
-import { fetchJobs } from "./services/jobs";
+import { fetchCustomers, updateCustomer } from "./services/customers";
+import { fetchJobs, addJob, updateJob } from "./services/jobs";
 import { fetchCustomerGroups } from "./services/groups";
 import { getCurrentUser, onAuthStateChange, signOut } from "./services/auth";
 import type { User } from "@supabase/supabase-js";
 import { Button } from "./components/ui/button";
+import {
+  getDayCapacity,
+  getStoredDayStartHour,
+  getStoredDayEndHour,
+  DEFAULT_JOB_WORK_MINUTES,
+  DEFAULT_JOB_DRIVE_MINUTES,
+} from "./utils/scheduleCapacity";
+import { ROUTE_OPTIMIZATION_ENABLED } from "./config/routeOptimization";
 
 // Check if demo mode is enabled via environment variable OR URL parameter
 const checkDemoMode = (): boolean => {
@@ -44,6 +52,9 @@ const checkDemoMode = (): boolean => {
 };
 
 const DEMO_MODE = checkDemoMode();
+const DEMO_TARGET_TODAY_JOBS = 10;
+const DEMO_BOOTSTRAP_VERSION = 'demo-today-jobs-v1';
+const DEMO_ESTIMATED_NEW_JOB_MINUTES = DEFAULT_JOB_WORK_MINUTES + DEFAULT_JOB_DRIVE_MINUTES;
 
 export interface CustomerGroup {
   id: string;
@@ -274,6 +285,126 @@ function App() {
   };
 
   const [jobs, setJobs] = useState<Job[]>([]);
+  const demoBootstrapRef = useRef(false);
+
+  const bootstrapDemoTodayJobs = async () => {
+    if (!DEMO_MODE) return;
+    if (customers.length === 0) return;
+    if (demoBootstrapRef.current) return;
+
+    const today = new Date().toLocaleDateString('en-CA');
+    const seedKey = `demoBootstrap:${DEMO_BOOTSTRAP_VERSION}`;
+    const seedTodayKey = `${seedKey}:${today}`;
+    const requiredTodayJobs = Math.min(DEMO_TARGET_TODAY_JOBS, customers.length);
+
+    // Seed once per day only. After that, allow manual testing changes freely.
+    if (localStorage.getItem(seedTodayKey)) {
+      return;
+    }
+
+    const todayJobs = jobs.filter((job) => job.date === today && job.status === 'scheduled');
+    if (todayJobs.length >= requiredTodayJobs) {
+      localStorage.setItem(seedTodayKey, '1');
+      return;
+    }
+
+    demoBootstrapRef.current = true;
+
+    try {
+      // Stable deterministic customer order by name so each bootstrap is predictable.
+      const sortedCustomers = [...customers].sort((a, b) => a.name.localeCompare(b.name));
+      const selectedCustomers = sortedCustomers.slice(0, requiredTodayJobs);
+      const dayStartHour = getStoredDayStartHour(today);
+      const dayEndHour = getStoredDayEndHour(today);
+      const draftJobs = [...jobs];
+      let seededTodayCount = 0;
+
+      const jobsByCustomer = new Map<string, Job[]>();
+      jobs.forEach((job) => {
+        const arr = jobsByCustomer.get(job.customerId) || [];
+        arr.push(job);
+        jobsByCustomer.set(job.customerId, arr);
+      });
+
+      let nextOrder = Math.max(0, ...jobs.filter((job) => job.date === today).map((job) => job.order || 0)) + 1;
+
+      for (const customer of selectedCustomers) {
+        const customerJobs = jobsByCustomer.get(customer.id) || [];
+        const todayJob = customerJobs.find((job) => job.date === today && job.status === 'scheduled');
+
+        if (todayJob) {
+          seededTodayCount += 1;
+          if (!todayJob.order) {
+            await updateJob({ ...todayJob, order: nextOrder });
+            nextOrder += 1;
+          }
+        } else {
+          const movableJob = customerJobs.find((job) => job.status === 'scheduled');
+
+          const capacityCheck = getDayCapacity(draftJobs, today, {
+            additionalJobIds: movableJob ? [movableJob.id] : [],
+            dayStartHour,
+            dayEndHour,
+          });
+
+          const projectedMinutes = movableJob
+            ? capacityCheck.totalMinutes
+            : capacityCheck.totalMinutes + DEMO_ESTIMATED_NEW_JOB_MINUTES;
+
+          if (!capacityCheck.hasCapacity || projectedMinutes > capacityCheck.maxMinutes) {
+            console.log(`🎭 Demo bootstrap capacity reached for ${today}. Stopping additional job seeding.`);
+            break;
+          }
+
+          if (movableJob) {
+            const movedJob = await updateJob({
+              ...movableJob,
+              date: today,
+              order: nextOrder,
+              scheduledTime: undefined
+            });
+            draftJobs.push(movedJob);
+            seededTodayCount += 1;
+            nextOrder += 1;
+          } else {
+            const createdJob = await addJob({
+              customerId: customer.id,
+              date: today,
+              status: 'scheduled',
+              order: nextOrder
+            });
+            draftJobs.push(createdJob);
+            seededTodayCount += 1;
+            nextOrder += 1;
+          }
+        }
+
+        if (customer.nextCutDate !== today) {
+          await updateCustomer({ ...customer, nextCutDate: today });
+        }
+      }
+
+      localStorage.setItem(seedTodayKey, '1');
+      await refreshCustomers();
+      await refreshJobs();
+      console.log(`🎭 Demo bootstrap complete: ensured ${seededTodayCount} scheduled customers for ${today}`);
+    } catch (error) {
+      console.error('Failed to bootstrap demo jobs for today:', error);
+    } finally {
+      demoBootstrapRef.current = false;
+    }
+  };
+
+  const handleResetDemoDay = async () => {
+    if (!DEMO_MODE) return;
+
+    const today = new Date().toLocaleDateString('en-CA');
+    const seedKey = `demoBootstrap:${DEMO_BOOTSTRAP_VERSION}:${today}`;
+
+    localStorage.removeItem(seedKey);
+    demoBootstrapRef.current = false;
+    await bootstrapDemoTodayJobs();
+  };
 
   // Load jobs from Supabase
   useEffect(() => {
@@ -290,6 +421,13 @@ function App() {
     };
     loadJobs();
   }, [user]); // Keep user dependency for both modes
+
+  useEffect(() => {
+    if (!DEMO_MODE) return;
+    if (loading) return;
+    if (customers.length === 0) return;
+    void bootstrapDemoTodayJobs();
+  }, [loading, customers]);
 
   const [messageTemplates, setMessageTemplates] = useState<
     MessageTemplate[]
@@ -596,13 +734,14 @@ function App() {
             {jobs.length > 0 && (
               <Button
                 onClick={() => {
-                  // This will be handled by DailySchedule's optimize handler
+                  if (!ROUTE_OPTIMIZATION_ENABLED) return;
                   const event = new CustomEvent('optimizeRoute');
                   window.dispatchEvent(event);
                 }}
-                disabled={optimizationStatus === 'optimizing'}
+                disabled={optimizationStatus === 'optimizing' || !ROUTE_OPTIMIZATION_ENABLED}
                 size="sm"
-                className="shrink-0 transition-colors bg-blue-600 hover:bg-blue-700 px-3"
+                className="shrink-0 transition-colors bg-blue-600 hover:bg-blue-700 px-3 disabled:cursor-not-allowed disabled:opacity-50"
+                title={ROUTE_OPTIMIZATION_ENABLED ? undefined : 'Route optimization is disabled for now'}
               >
                 {optimizationStatus === 'optimizing' && <Loader2 className="h-4 w-4 mr-2 animate-spin shrink-0" />}
                 {optimizationStatus === 'optimized' && <CheckCircle className="h-4 w-4 mr-2 shrink-0" />}
@@ -610,7 +749,7 @@ function App() {
                 <span className="text-sm">
                   {optimizationStatus === 'optimizing' && 'Optimizing'}
                   {optimizationStatus === 'optimized' && 'Optimized'}
-                  {optimizationStatus === 'idle' && 'Optimize'}
+                  {optimizationStatus === 'idle' && (ROUTE_OPTIMIZATION_ENABLED ? 'Optimize' : 'Optimize Off')}
                 </span>
               </Button>
             )}
@@ -738,6 +877,8 @@ function App() {
             <Settings
               equipment={equipment}
               onUpdateEquipment={updateEquipment}
+              isDemoMode={DEMO_MODE}
+              onResetDemoDay={handleResetDemoDay}
             />
           )}
         </div>
@@ -793,12 +934,14 @@ function App() {
             {jobs.length > 0 && (
               <Button
                 onClick={() => {
+                  if (!ROUTE_OPTIMIZATION_ENABLED) return;
                   const event = new CustomEvent('optimizeRoute');
                   window.dispatchEvent(event);
                 }}
-                disabled={optimizationStatus === 'optimizing'}
+                disabled={optimizationStatus === 'optimizing' || !ROUTE_OPTIMIZATION_ENABLED}
                 size="sm"
-                className="shrink-0 transition-colors bg-blue-600 hover:bg-blue-700"
+                className="shrink-0 transition-colors bg-blue-600 hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                title={ROUTE_OPTIMIZATION_ENABLED ? undefined : 'Route optimization is disabled for now'}
                 style={{ 
                   fontSize: 'max(1.4vh, 10px)',
                   padding: 'max(0.5vh, 3px) max(2vw, 8px)',
@@ -812,7 +955,7 @@ function App() {
                 <span style={{ marginLeft: 'max(0.8vw, 4px)' }}>
                   {optimizationStatus === 'optimizing' && 'Optimizing'}
                   {optimizationStatus === 'optimized' && 'Optimized'}
-                  {optimizationStatus === 'idle' && 'Optimize'}
+                  {optimizationStatus === 'idle' && (ROUTE_OPTIMIZATION_ENABLED ? 'Optimize' : 'Optimize Off')}
                 </span>
               </Button>
             )}

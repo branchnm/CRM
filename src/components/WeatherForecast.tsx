@@ -22,6 +22,10 @@ import {
   CloudSnow,
   CloudDrizzle,
   CloudRainWind,
+  Clock3,
+  Car,
+  GripVertical,
+  MousePointer2,
   Route,
   ChevronLeft,
   ChevronRight,
@@ -46,8 +50,12 @@ import {
 import { 
   DEFAULT_DAY_END_HOUR,
   DEFAULT_DAY_START_HOUR,
+  DEFAULT_JOB_DRIVE_MINUTES,
+  DEFAULT_JOB_WORK_MINUTES,
   getDayCapacity,
-  getEstimatedJobMinutes
+  getUsableDayMinutes,
+  getEstimatedJobMinutes,
+  roundDriveMinutesToFive
 } from '../utils/scheduleCapacity';
 import { toast } from 'sonner';
 
@@ -63,6 +71,7 @@ const checkDemoMode = (): boolean => {
 };
 
 const DEMO_MODE = checkDemoMode();
+const RESCHEDULE_CAPACITY_MARGIN_PERCENT = 92;
 
 const WORK_DAY_START_HOUR = DEFAULT_DAY_START_HOUR; // 5 AM earliest start
 const WORK_DAY_END_HOUR = DEFAULT_DAY_END_HOUR; // 7 PM latest end (19:00 = 7 PM)
@@ -93,7 +102,7 @@ interface WeatherForecastProps {
   jobs?: Job[];
   customers?: Customer[];
   customerGroups?: CustomerGroup[]; // NEW: Array of customer groups
-  onRescheduleJob?: (jobId: string, newDate: string, timeSlot?: number) => void;
+  onRescheduleJob?: (jobId: string, newDate: string, timeSlot?: number) => Promise<void> | void;
   onUpdateJobTimeSlot?: (jobId: string, timeSlot: number) => void;
   onUpdateJobTime?: (jobId: string, estimatedMinutes: number) => void; // NEW: Update estimated time
   onStartTimeChange?: (date: string, startHour: number) => void;
@@ -112,6 +121,38 @@ interface WeatherForecastProps {
   visibleForecastDay?: number; // NEW: Receive day offset from parent for bidirectional sync
   onWeatherLoadingChange?: (isLoading: boolean) => void; // NEW: Notify parent of weather loading state
 }
+
+interface MoveSuggestion {
+  jobId?: string;
+  jobIds?: string[];
+  jobName?: string;
+  jobNames?: string[];
+  jobCount?: number;
+  currentDate: string;
+  suggestedDate: string;
+  reason: string;
+  weatherSeverity: 'heavy' | 'moderate';
+  source?: 'weather' | 'capacity';
+}
+
+interface StartTimeSuggestion {
+  date: string;
+  currentStartTime: number;
+  suggestedStartTime: number;
+  suggestedEndTime?: number;
+  reason: string;
+  jobCount: number;
+  type?: 'delay' | 'start-early';
+  lastGoodHour?: number;
+}
+
+interface WeatherSuggestionState {
+  moveSuggestions: MoveSuggestion[];
+  startTimeSuggestions: StartTimeSuggestion[];
+  overnightRainDays: Set<string>;
+}
+
+const RAINED_OUT_DAYS_STORAGE_KEY = 'weatherRainedOutDays';
 
 export function WeatherForecast({ 
   jobs = [], 
@@ -137,6 +178,7 @@ export function WeatherForecast({
 }: WeatherForecastProps) {
   console.log('🌤️ WeatherForecast render - onVisibleDayChange:', !!onVisibleDayChange, typeof onVisibleDayChange);
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
+  const optimizeAfterRescheduleTimeoutRef = useRef<number | null>(null);
   const [historicalWeatherCache, setHistoricalWeatherCache] = useState<Map<string, any>>(new Map());
   const [loading, setLoading] = useState(false);
   
@@ -179,6 +221,7 @@ export function WeatherForecast({
   const addressInputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const forecastScrollContainerRef = useRef<HTMLDivElement>(null);
+  const forecastViewportRef = useRef<HTMLDivElement>(null);
   const hasScrolledToTodayRef = useRef(false); // Track if we've scrolled to today on initial load
   const hasRestoredPositionRef = useRef(false); // Track if we've restored scroll position on this mount
   const [userGPSLocation, setUserGPSLocation] = useState<{ lat: number; lon: number } | null>(null);
@@ -230,6 +273,33 @@ export function WeatherForecast({
   // Calculate number of visible day cards based on viewport width
   const [visibleCardCount, setVisibleCardCount] = useState(3);
   const [forecastContainerWidth, setForecastContainerWidth] = useState<number>(0);
+  const [forecastViewportHeight, setForecastViewportHeight] = useState<number | null>(null);
+  const [persistedRainedOutDays, setPersistedRainedOutDays] = useState<Set<string>>(() => {
+    try {
+      const stored = localStorage.getItem(RAINED_OUT_DAYS_STORAGE_KEY);
+      if (!stored) return new Set<string>();
+      const parsed = JSON.parse(stored);
+      return Array.isArray(parsed) ? new Set<string>(parsed.filter((item) => typeof item === 'string')) : new Set<string>();
+    } catch {
+      return new Set<string>();
+    }
+  });
+  const resolvedForecastViewportHeight = forecastViewportHeight ?? (
+    typeof window !== 'undefined'
+      ? Math.max(isMobile ? 360 : 320, window.innerHeight - (isMobile ? 104 : 116))
+      : null
+  );
+  const forecastTopInsetPx = isMobile ? 12 : 16;
+  const forecastBottomInsetPx = isMobile ? 14 : 16;
+  const dayCardViewportHeight = resolvedForecastViewportHeight
+    ? Math.max(220, resolvedForecastViewportHeight - forecastTopInsetPx - forecastBottomInsetPx)
+    : null;
+
+  const suggestionTrayMaxHeight = resolvedForecastViewportHeight
+    ? isMobile
+      ? Math.min(Math.max(resolvedForecastViewportHeight * 0.14, 88), 120)
+      : Math.min(Math.max(resolvedForecastViewportHeight * 0.16, 104), 140)
+    : (isMobile ? 96 : 116);
 
   // Scroll to top of page - simple and consistent
   const scrollToTop = useCallback(() => {
@@ -381,6 +451,51 @@ export function WeatherForecast({
     window.addEventListener('resize', calculateVisibleCards);
     return () => window.removeEventListener('resize', calculateVisibleCards);
   }, [isMobile]);
+
+  useEffect(() => {
+    const updateForecastViewportHeight = () => {
+      if (!forecastViewportRef.current) return;
+
+      const rect = forecastViewportRef.current.getBoundingClientRect();
+      const viewportHeight = window.innerHeight;
+      const bottomPadding = isMobile ? 12 : 20;
+      const minimumHeight = isMobile ? 360 : 320;
+      const availableHeight = Math.max(minimumHeight, viewportHeight - rect.top - bottomPadding);
+
+      setForecastViewportHeight(availableHeight);
+    };
+
+    const frame = window.requestAnimationFrame(updateForecastViewportHeight);
+    window.addEventListener('resize', updateForecastViewportHeight);
+    window.addEventListener('orientationchange', updateForecastViewportHeight);
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.removeEventListener('resize', updateForecastViewportHeight);
+      window.removeEventListener('orientationchange', updateForecastViewportHeight);
+    };
+  }, [isMobile, showTutorialBanner]);
+
+  useEffect(() => {
+    localStorage.setItem(RAINED_OUT_DAYS_STORAGE_KEY, JSON.stringify(Array.from(persistedRainedOutDays)));
+  }, [persistedRainedOutDays]);
+
+  useEffect(() => {
+    setPersistedRainedOutDays(prev => {
+      const next = new Set(prev);
+      let changed = false;
+
+      prev.forEach((date) => {
+        const hasScheduledJobs = jobs.some(job => job.date === date && job.status === 'scheduled');
+        if (hasScheduledJobs) {
+          next.delete(date);
+          changed = true;
+        }
+      });
+
+      return changed ? next : prev;
+    });
+  }, [jobs]);
 
   // Custom scroll snap for day cards on mobile
   useEffect(() => {
@@ -922,7 +1037,8 @@ export function WeatherForecast({
     }
   }, [isEditingAddressProp]);
 
-  // Sync jobTimeSlots with jobs order when jobs prop changes (e.g., after optimization)
+  // Sync jobTimeSlots with jobs data when jobs prop changes.
+  // Prefer persisted scheduledTime so drag/drop slot placement survives refreshes.
   useEffect(() => {
     if (!jobs || jobs.length === 0) return;
     console.log('WeatherForecast: Syncing job time slots after jobs update');
@@ -946,8 +1062,22 @@ export function WeatherForecast({
           }
           return 0;
         });
-        sorted.forEach((job, idx) => {
-          if (job) newMap.set(job.id, idx);
+        let fallbackSlot = 0;
+        sorted.forEach((job) => {
+          if (!job) return;
+
+          let slotFromTime: number | null = null;
+          if (job.scheduledTime) {
+            const [hourRaw, minuteRaw] = job.scheduledTime.split(':').map((part: string) => Number.parseInt(part, 10));
+            if (Number.isFinite(hourRaw) && Number.isFinite(minuteRaw)) {
+              const totalMinutes = (hourRaw * 60) + minuteRaw;
+              slotFromTime = Math.max(0, Math.min(55, Math.round((totalMinutes - (5 * 60)) / 15)));
+            }
+          }
+
+          const slotToUse = slotFromTime ?? fallbackSlot;
+          newMap.set(job.id, slotToUse);
+          fallbackSlot += Math.max(1, Math.ceil(getEstimatedJobMinutes(job) / 15));
         });
         console.log(`  ${dateStr}: Sorted ${sorted.length} jobs by order:`, 
           sorted.map(j => ({ name: j.id.substring(0, 8), order: j.order, slot: newMap.get(j.id) }))
@@ -999,8 +1129,13 @@ export function WeatherForecast({
   
   const [dayEndTimes, setDayEndTimes] = useState<Map<string, number>>(() => {
     const saved = localStorage.getItem('dayEndTimes');
-    return saved ? new Map(JSON.parse(saved)) : new Map();
-  }); // date -> end hour (8-18 for 8am-6pm)
+    if (!saved) return new Map();
+
+    const parsed = JSON.parse(saved) as Array<[string, number]>;
+    return new Map(
+      parsed.map(([date, hour]) => [date, hour === 18 ? DEFAULT_DAY_END_HOUR : hour])
+    );
+  }); // date -> end hour (8-19 for 8am-7pm)
   
   // Track the last day start/end times when optimized
   const [lastOptimizedDayTimes, setLastOptimizedDayTimes] = useState<string>('');
@@ -1041,7 +1176,9 @@ export function WeatherForecast({
   const [dragPosition, setDragPosition] = useState<{ x: number; y: number } | null>(null);
   const [dragPreviewSize, setDragPreviewSize] = useState<{ width: number; height: number } | null>(null);
   const dragHoverRef = useRef<{ date: string; slot?: number } | null>(null);
-  const pendingDragRef = useRef<{ jobId: string; x: number; y: number; target: HTMLElement | null } | null>(null);
+  const pendingDragRef = useRef<{ jobId: string; x: number; y: number; offsetX: number; offsetY: number; target: HTMLElement | null } | null>(null);
+  const dragPointerOffsetRef = useRef<{ x: number; y: number }>({ x: 15, y: 15 });
+  const touchDragRef = useRef<{ jobId: string; startX: number; startY: number; started: boolean; target: HTMLElement | null } | null>(null);
 
   const setDragHoverTarget = useCallback((dateStr: string, slotIndex?: number) => {
     const nextTarget = slotIndex !== undefined ? { date: dateStr, slot: slotIndex } : { date: dateStr };
@@ -1063,6 +1200,185 @@ export function WeatherForecast({
     setDragOverDay(null);
     setDragOverSlot(null);
   }, []);
+
+  const getOrderedJobsForDay = useCallback((dateStr: string, excludedJobId?: string) => {
+    return jobs
+      .filter((job) => {
+        const effectiveDate = jobAssignments.get(job.id) ?? job.date;
+        if (effectiveDate !== dateStr) return false;
+        if (job.status !== 'scheduled' && job.status !== 'completed') return false;
+        if (excludedJobId && job.id === excludedJobId) return false;
+        return true;
+      })
+      .sort((a, b) => {
+        const aIncomplete = a.status !== 'completed';
+        const bIncomplete = b.status !== 'completed';
+        if (aIncomplete && !bIncomplete) return -1;
+        if (!aIncomplete && bIncomplete) return 1;
+
+        const aSlot = jobTimeSlots.get(a.id);
+        const bSlot = jobTimeSlots.get(b.id);
+        if (aSlot !== undefined && bSlot !== undefined && aSlot !== bSlot) {
+          return aSlot - bSlot;
+        }
+
+        if (a.scheduledTime && b.scheduledTime && a.scheduledTime !== b.scheduledTime) {
+          return a.scheduledTime.localeCompare(b.scheduledTime);
+        }
+
+        if (a.order && b.order) return a.order - b.order;
+        return 0;
+      });
+  }, [jobs, jobAssignments, jobTimeSlots]);
+
+  const getDaySlotLayout = useCallback((dateStr: string, excludedJobId?: string) => {
+    const dayStartHour = dayStartTimes.get(dateStr) || 5;
+    const slotOffset = Math.max(0, (dayStartHour - 5) * 4);
+    const orderedJobs = getOrderedJobsForDay(dateStr, excludedJobId);
+    const byStartSlot = new Map<number, { job: Job; startSlot: number; slotsNeeded: number }>();
+
+    let currentSlot = slotOffset;
+    orderedJobs.forEach((job) => {
+      const slotsNeeded = Math.max(1, Math.ceil(getEstimatedJobMinutes(job) / 15));
+      if (currentSlot < 56) {
+        byStartSlot.set(currentSlot, { job, startSlot: currentSlot, slotsNeeded });
+      }
+      currentSlot += slotsNeeded;
+    });
+
+    return { byStartSlot, orderedJobs, slotOffset };
+  }, [dayStartTimes, getOrderedJobsForDay]);
+
+  const getInsertionSlotForPointer = useCallback((
+    dateStr: string,
+    slotIndex: number,
+    clientY: number,
+    slotElement: HTMLElement
+  ): number => {
+    if (!draggedJobId) return slotIndex;
+
+    const layout = getDaySlotLayout(dateStr, draggedJobId);
+    const targetSlotInfo = layout.byStartSlot.get(slotIndex);
+    const rect = slotElement.getBoundingClientRect();
+    const isLowerHalf = clientY > rect.top + rect.height * 0.5;
+
+    let insertionSlot = slotIndex;
+    if (isLowerHalf) {
+      insertionSlot = targetSlotInfo
+        ? Math.min(55, targetSlotInfo.startSlot + targetSlotInfo.slotsNeeded)
+        : Math.min(55, slotIndex + 1);
+    }
+
+    // Magnetic snap: when near a valid boundary, lock the indicator to that boundary.
+    const dayContainer = slotElement.closest('.time-slots-container') as HTMLElement | null;
+    if (dayContainer) {
+      const dayRect = dayContainer.getBoundingClientRect();
+      const rawSlot = Math.max(0, Math.min(55, Math.round(((clientY - dayRect.top) / Math.max(dayRect.height, 1)) * 56)));
+      const boundaries = new Set<number>([layout.slotOffset]);
+      layout.byStartSlot.forEach((range) => {
+        boundaries.add(Math.max(0, Math.min(55, range.startSlot)));
+        boundaries.add(Math.max(0, Math.min(55, range.startSlot + range.slotsNeeded)));
+      });
+
+      const nearestBoundary = Array.from(boundaries).reduce((closest, boundary) => {
+        return Math.abs(boundary - rawSlot) < Math.abs(closest - rawSlot) ? boundary : closest;
+      }, insertionSlot);
+
+      const MAGNETIC_SNAP_THRESHOLD_SLOTS = 1;
+      if (Math.abs(nearestBoundary - rawSlot) <= MAGNETIC_SNAP_THRESHOLD_SLOTS) {
+        insertionSlot = nearestBoundary;
+      }
+    }
+
+    return insertionSlot;
+  }, [draggedJobId, getDaySlotLayout]);
+
+  const getInsertionSlotForDayPointer = useCallback((
+    dateStr: string,
+    clientY: number,
+    dayContainer: HTMLElement
+  ): number => {
+    const layout = getDaySlotLayout(dateStr, draggedJobId || undefined);
+    const slotElements = Array.from(dayContainer.querySelectorAll<HTMLElement>('[data-time-slot]'));
+
+    if (slotElements.length > 0) {
+      let insertionSlot = layout.slotOffset;
+
+      for (let i = 0; i < slotElements.length; i++) {
+        const slotElement = slotElements[i];
+        const slotIndex = Number.parseInt(slotElement.getAttribute('data-slot-index') || '-1', 10);
+        if (slotIndex < 0) continue;
+
+        const rect = slotElement.getBoundingClientRect();
+        const halfwayPoint = rect.top + rect.height * 0.5;
+        if (clientY >= halfwayPoint) {
+          insertionSlot = Math.min(55, slotIndex + 1);
+          continue;
+        }
+
+        insertionSlot = slotIndex;
+        break;
+      }
+
+      const boundaries = new Set<number>([layout.slotOffset]);
+      layout.byStartSlot.forEach((range) => {
+        boundaries.add(Math.max(0, Math.min(55, range.startSlot)));
+        boundaries.add(Math.max(0, Math.min(55, range.startSlot + range.slotsNeeded)));
+      });
+
+      const nearestBoundary = Array.from(boundaries).reduce((closest, boundary) => {
+        const dayMidpointDistance = Math.abs(boundary - insertionSlot);
+        const closestDistance = Math.abs(closest - insertionSlot);
+        return dayMidpointDistance < closestDistance ? boundary : closest;
+      }, insertionSlot);
+
+      const MAGNETIC_SNAP_THRESHOLD_SLOTS = 0;
+      if (Math.abs(nearestBoundary - insertionSlot) <= MAGNETIC_SNAP_THRESHOLD_SLOTS) {
+        insertionSlot = nearestBoundary;
+      }
+
+      return insertionSlot;
+    }
+
+    const dayRect = dayContainer.getBoundingClientRect();
+    const rawSlot = Math.max(0, Math.min(55, Math.floor(((clientY - dayRect.top) / Math.max(dayRect.height, 1)) * 56)));
+    return rawSlot;
+  }, [draggedJobId, getDaySlotLayout]);
+
+  const updateDragHoverFromPoint = useCallback((clientX: number, clientY: number) => {
+    if (!draggedJobId) return;
+
+    const element = document.elementFromPoint(clientX, clientY);
+    const slotElement = element?.closest('[data-time-slot]') as HTMLElement | null;
+
+    if (slotElement) {
+      const dayCard = slotElement.closest('[data-day-card]');
+      const dateStr = dayCard?.getAttribute('data-date');
+      const slotIndexStr = slotElement.getAttribute('data-slot-index');
+
+      if (dateStr && slotIndexStr !== null) {
+        const slotIndex = Number.parseInt(slotIndexStr, 10);
+        const insertionSlot = getInsertionSlotForPointer(dateStr, slotIndex, clientY, slotElement);
+        setDragHoverTarget(dateStr, insertionSlot);
+        return;
+      }
+    }
+
+    const dayCard = element?.closest('[data-day-card]');
+    const dateStr = dayCard?.getAttribute('data-date');
+    if (dateStr) {
+      const dayContainer = (dayCard as HTMLElement).querySelector('.time-slots-container') as HTMLElement | null;
+      if (dayContainer) {
+        const insertionSlot = getInsertionSlotForDayPointer(dateStr, clientY, dayContainer);
+        setDragHoverTarget(dateStr, insertionSlot);
+      } else {
+        setDragHoverTarget(dateStr);
+      }
+      return;
+    }
+
+    clearDragHoverTarget();
+  }, [draggedJobId, getInsertionSlotForPointer, getInsertionSlotForDayPointer, setDragHoverTarget, clearDragHoverTarget]);
   const touchStartPos = useRef<{ x: number; y: number } | null>(null);
   const touchStartTime = useRef<number | null>(null);
   const dragDelayTimeout = useRef<number | null>(null);
@@ -1096,18 +1412,16 @@ export function WeatherForecast({
   const getScheduledTimeForJob = (jobId: string, dateStr: string): string => {
     const slot = jobTimeSlots.get(jobId);
     if (slot === undefined) return '';
-    
-    const dayStartHour = dayStartTimes.get(dateStr) || 5;
-    const slotOffset = Math.max(0, dayStartHour - 5);
-    const adjustedSlot = slot + slotOffset;
-    
-    // Calculate hour from slot (slot 0 = 5am)
-    const hour = 5 + adjustedSlot;
-    
-    // Format time
-    if (hour > 12) return `${hour - 12} PM`;
-    if (hour === 12) return '12 PM';
-    return `${hour} AM`;
+
+    // Slot 0 = 5:00 AM, each slot = 15 minutes
+    const totalMinutes = (5 * 60) + (slot * 15);
+    const hour24 = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    const period = hour24 >= 12 ? 'PM' : 'AM';
+    const hour12 = hour24 === 0 ? 12 : hour24 > 12 ? hour24 - 12 : hour24;
+
+    if (minutes === 0) return `${hour12} ${period}`;
+    return `${hour12}:${minutes.toString().padStart(2, '0')} ${period}`;
   };
   
   // Helper function to get weather icon based on description, precipitation, and time of day
@@ -1284,7 +1598,7 @@ export function WeatherForecast({
     return goodWeatherSlots.length >= dailyWeather.hourlyForecasts.length * 0.75;
   };
 
-  const [weatherSuggestions, setWeatherSuggestions] = useState<ReturnType<typeof getWeatherBasedSuggestions>>({
+  const [weatherSuggestions, setWeatherSuggestions] = useState<WeatherSuggestionState>({
     moveSuggestions: [],
     startTimeSuggestions: [],
     overnightRainDays: new Set()
@@ -1296,30 +1610,18 @@ export function WeatherForecast({
     const currentEndTime = dayEndTimes.get(dateStr) ?? WORK_DAY_END_HOUR;
     const pendingSuggestion = weatherSuggestions.startTimeSuggestions.find(s => s.date === dateStr);
 
-    if (!pendingSuggestion) {
-      return {
-        dayStartHour: currentStartTime,
-        dayEndHour: currentEndTime
-      };
-    }
-
-    if (pendingSuggestion.type === 'delay') {
-      return {
-        dayStartHour: Math.max(currentStartTime, pendingSuggestion.suggestedStartTime ?? currentStartTime),
-        dayEndHour: pendingSuggestion.suggestedEndTime ?? currentEndTime
-      };
-    }
-
-    if (pendingSuggestion.type === 'start-early') {
-      return {
-        dayStartHour: Math.min(currentStartTime, pendingSuggestion.suggestedStartTime ?? currentStartTime),
-        dayEndHour: pendingSuggestion.suggestedEndTime ?? currentEndTime
-      };
-    }
+    const startDelayHours = pendingSuggestion?.type === 'delay'
+      ? Math.max(0, (pendingSuggestion.suggestedStartTime ?? currentStartTime) - currentStartTime)
+      : 0;
+    const endEarlyHours = pendingSuggestion?.type === 'start-early'
+      ? Math.max(0, currentEndTime - (pendingSuggestion.suggestedEndTime ?? currentEndTime))
+      : 0;
 
     return {
       dayStartHour: currentStartTime,
-      dayEndHour: currentEndTime
+      dayEndHour: currentEndTime,
+      startDelayHours,
+      endEarlyHours
     };
   }, [dayEndTimes, dayStartTimes, weatherSuggestions.startTimeSuggestions]);
 
@@ -1338,12 +1640,14 @@ export function WeatherForecast({
       .filter(([_, targetDate]) => targetDate !== dateStr)
       .map(([jobId]) => jobId);
 
-    const { dayStartHour, dayEndHour } = getEffectiveWorkWindow(dateStr);
+    const { dayStartHour, dayEndHour, startDelayHours, endEarlyHours } = getEffectiveWorkWindow(dateStr);
 
     const capacity = getDayCapacity(jobs, dateStr, {
       additionalJobIds,
       dayStartHour,
       dayEndHour,
+      startDelayHours,
+      endEarlyHours,
       excludeJobIds: [...assignedJobIds, ...reassignedAwayJobIds]
     });
 
@@ -1355,19 +1659,79 @@ export function WeatherForecast({
     };
   }, [getEffectiveWorkWindow, jobs, jobAssignments]);
 
+  const queueRouteOptimization = useCallback(() => {
+    if (!onOptimizeRoute) return;
+    if (!startingAddress.trim()) return;
+
+    if (optimizeAfterRescheduleTimeoutRef.current !== null) {
+      clearTimeout(optimizeAfterRescheduleTimeoutRef.current);
+    }
+
+    optimizeAfterRescheduleTimeoutRef.current = window.setTimeout(() => {
+      onOptimizeRoute();
+      optimizeAfterRescheduleTimeoutRef.current = null;
+    }, 350);
+  }, [onOptimizeRoute, startingAddress]);
+
+  useEffect(() => {
+    return () => {
+      if (optimizeAfterRescheduleTimeoutRef.current !== null) {
+        clearTimeout(optimizeAfterRescheduleTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const pickBestRescheduleDay = useCallback((
+    jobIds: string[],
+    currentDate: string,
+    candidateDates: string[],
+    preferredDates: Set<string> = new Set()
+  ): string | null => {
+    if (jobIds.length === 0 || candidateDates.length === 0) {
+      return null;
+    }
+
+    const marginLimit = RESCHEDULE_CAPACITY_MARGIN_PERCENT / 100;
+    const uniqueCandidates = Array.from(new Set(candidateDates)).filter(date => date !== currentDate);
+    const currentDateValue = new Date(currentDate + 'T00:00:00').getTime();
+
+    let bestWithinMargin: { date: string; score: number } | null = null;
+    let bestFallback: { date: string; score: number } | null = null;
+
+    for (const candidateDate of uniqueCandidates) {
+      const additionalJobIds = jobIds.filter(jobId => {
+        const existingJob = jobs.find(job => job.id === jobId);
+        return existingJob?.date !== candidateDate;
+      });
+
+      const capacity = checkDayCapacity(candidateDate, additionalJobIds);
+      if (!capacity.hasCapacity || capacity.maxMinutes === undefined || capacity.totalMinutes === undefined || capacity.maxMinutes <= 0) {
+        continue;
+      }
+
+      const utilization = capacity.totalMinutes / capacity.maxMinutes;
+      const scheduledCount = jobs.filter(job => job.date === candidateDate && job.status === 'scheduled').length;
+      const daysAway = Math.abs((new Date(candidateDate + 'T00:00:00').getTime() - currentDateValue) / (1000 * 60 * 60 * 24));
+      const preferredPenalty = preferredDates.size > 0 && !preferredDates.has(candidateDate) ? 0.75 : 0;
+      const score = utilization * 5 + scheduledCount * 0.2 + daysAway * 0.3 + preferredPenalty;
+
+      if (!bestFallback || score < bestFallback.score) {
+        bestFallback = { date: candidateDate, score };
+      }
+
+      if (utilization <= marginLimit) {
+        if (!bestWithinMargin || score < bestWithinMargin.score) {
+          bestWithinMargin = { date: candidateDate, score };
+        }
+      }
+    }
+
+    return bestWithinMargin?.date || bestFallback?.date || null;
+  }, [checkDayCapacity, jobs]);
+
   // Check for days that overflow the work hour limit
   const checkForOverflow = useCallback(() => {
-    const overflowSuggestions: Array<{
-      jobId?: string;
-      jobIds?: string[];
-      jobName?: string;
-      jobNames?: string[];
-      jobCount?: number;
-      currentDate: string;
-      suggestedDate: string;
-      reason: string;
-      weatherSeverity: 'moderate';
-    }> = [];
+    const overflowSuggestions: MoveSuggestion[] = [];
     
     // Get unique dates that have jobs
     const datesWithJobs = new Set(jobs.filter(j => j.status === 'scheduled').map(j => j.date));
@@ -1386,8 +1750,8 @@ export function WeatherForecast({
         
         // Sort jobs by total time (work + drive) to find which jobs to move
         const sortedJobs = [...jobsOnDay].sort((a, b) => {
-          const aTime = (a.totalTime || 30) + (a.driveTime || 0);
-          const bTime = (b.totalTime || 30) + (b.driveTime || 0);
+          const aTime = getEstimatedJobMinutes(a);
+          const bTime = getEstimatedJobMinutes(b);
           return bTime - aTime; // Largest first
         });
         
@@ -1398,42 +1762,24 @@ export function WeatherForecast({
         for (const job of sortedJobs) {
           if (remainingOverflow <= 0) break;
           jobsToMove.push(job);
-          remainingOverflow -= (job.totalTime || 30) + (job.driveTime || 0);
+          remainingOverflow -= getEstimatedJobMinutes(job);
         }
         
         if (jobsToMove.length === 0) return;
         
-        // Find the next available day (within next 7 days)
-        const currentDate = new Date(dateStr);
-        let bestDay: string | null = null;
-        
+        const currentDate = new Date(dateStr + 'T00:00:00');
+        const candidateDates: string[] = [];
         for (let i = 1; i <= 7; i++) {
-          const testDate = new Date(currentDate);
-          testDate.setDate(testDate.getDate() + i);
-          const testDateStr = testDate.toLocaleDateString('en-CA');
-          
-          // Check if this day can accept the jobs
-          const testCapacity = checkDayCapacity(testDateStr, jobsToMove.map(j => j.id));
-          if (testCapacity.hasCapacity) {
-            bestDay = testDateStr;
-            break;
-          }
+          const futureDate = new Date(currentDate);
+          futureDate.setDate(futureDate.getDate() + i);
+          candidateDates.push(futureDate.toLocaleDateString('en-CA'));
+
+          const pastDate = new Date(currentDate);
+          pastDate.setDate(pastDate.getDate() - i);
+          candidateDates.push(pastDate.toLocaleDateString('en-CA'));
         }
-        
-        if (!bestDay) {
-          // Try previous days
-          for (let i = 1; i <= 7; i++) {
-            const testDate = new Date(currentDate);
-            testDate.setDate(testDate.getDate() - i);
-            const testDateStr = testDate.toLocaleDateString('en-CA');
-            
-            const testCapacity = checkDayCapacity(testDateStr, jobsToMove.map(j => j.id));
-            if (testCapacity.hasCapacity) {
-              bestDay = testDateStr;
-              break;
-            }
-          }
-        }
+
+        const bestDay = pickBestRescheduleDay(jobsToMove.map(j => j.id), dateStr, candidateDates);
         
         if (bestDay) {
           const hours = Math.floor(capacityCheck.totalMinutes / 60);
@@ -1451,43 +1797,25 @@ export function WeatherForecast({
             currentDate: dateStr,
             suggestedDate: bestDay,
             reason: `Day overflows by ${Math.ceil(overflowMinutes / 60)}h. Total: ${hours}h ${mins}m exceeds ${maxHours}h ${maxMins}m limit.`,
-            weatherSeverity: 'moderate'
+            weatherSeverity: 'moderate',
+            source: 'capacity'
           });
         }
       }
     });
     
     return overflowSuggestions;
-  }, [jobs, customers, checkDayCapacity, dayStartTimes]);
+  }, [jobs, customers, checkDayCapacity, dayStartTimes, pickBestRescheduleDay]);
 
   // Generate suggestions for moving jobs from bad weather days to good weather days
   const getWeatherBasedSuggestions = useCallback(() => {
     if (!weatherData?.daily || !jobs || jobs.length === 0) {
-      return { moveSuggestions: [], startTimeSuggestions: [] };
+      return { moveSuggestions: [], startTimeSuggestions: [], overnightRainDays: new Set<string>() };
     }
 
-    const moveSuggestions: Array<{
-      jobId?: string;
-      jobIds?: string[];
-      jobName?: string;
-      jobNames?: string[];
-      jobCount?: number;
-      currentDate: string;
-      suggestedDate: string;
-      reason: string;
-      weatherSeverity: 'heavy' | 'moderate';
-    }> = [];
+    const moveSuggestions: MoveSuggestion[] = [];
 
-    const startTimeSuggestions: Array<{
-      date: string;
-      currentStartTime: number;
-      suggestedStartTime: number;
-      suggestedEndTime?: number;
-      reason: string;
-      jobCount: number;
-      type?: 'delay' | 'start-early';
-      lastGoodHour?: number;
-    }> = [];
+    const startTimeSuggestions: StartTimeSuggestion[] = [];
 
     // Analyze each day in the forecast (typically 5-7 days from API)
     const forecast = weatherData.daily;
@@ -1661,32 +1989,21 @@ export function WeatherForecast({
           (f.rainAmount || 0) > 5 || f.description.toLowerCase().includes('thunder')
         );
 
-        // Calculate workload for each good weather day
-        const workloadByDay = new Map<string, number>();
-        goodWeatherDays.forEach(goodDay => {
-          const jobsOnGoodDay = jobs.filter(j => j.date === goodDay && j.status === 'scheduled').length;
-          workloadByDay.set(goodDay, jobsOnGoodDay);
-        });
-
         // Find good weather days after the bad date
         const futureDays = goodWeatherDays.filter(d => d > badDate);
         
         // If no future days, use any good day
         const candidateDays = futureDays.length > 0 ? futureDays : goodWeatherDays;
 
-        // Find the least busy day among candidates
-        let suggestedDate = candidateDays[0];
-        let minWorkload = workloadByDay.get(suggestedDate) || 0;
-
-        candidateDays.forEach(day => {
-          const workload = workloadByDay.get(day) || 0;
-          if (workload < minWorkload) {
-            minWorkload = workload;
-            suggestedDate = day;
-          }
-        });
+        const suggestedDate = pickBestRescheduleDay(
+          jobsOnBadDay.map(j => j.id),
+          badDate,
+          candidateDays,
+          new Set(goodWeatherDays)
+        );
 
         if (suggestedDate) {
+          const weatherSeverity: MoveSuggestion['weatherSeverity'] = hasHeavyRain ? 'heavy' : 'moderate';
           // Create a SINGLE combined suggestion for all jobs on this bad weather day
           const suggestionObj = {
             jobIds: jobsOnBadDay.map(j => j.id), // Array of all job IDs
@@ -1699,7 +2016,8 @@ export function WeatherForecast({
             reason: hasHeavyRain 
               ? 'Heavy rain/thunderstorm expected all day'
               : 'Moderate rain expected throughout the day',
-            weatherSeverity: hasHeavyRain ? 'heavy' : 'moderate',
+            weatherSeverity,
+            source: 'weather' as const,
             jobCount: jobsOnBadDay.length
           };
           
@@ -1709,10 +2027,7 @@ export function WeatherForecast({
             jobCount: jobsOnBadDay.length
           });
           
-          moveSuggestions.push(suggestionObj as any);
-          
-          // Update workload for suggested day
-          workloadByDay.set(suggestedDate, (workloadByDay.get(suggestedDate) || 0) + jobsOnBadDay.length);
+          moveSuggestions.push(suggestionObj);
         }
       }
     });
@@ -1734,13 +2049,14 @@ export function WeatherForecast({
               ? `Morning rain expected. Weather clears around ${weatherInfo.clearsByHour - 1}:00, grass needs time to dry`
               : `Rain clearing. Safe to start around ${weatherInfo.clearsByHour}:00 AM`;
 
-            // Calculate how much time remains after the delayed start
-            const availableMinutes = Math.max(0, (WORK_DAY_END_HOUR - weatherInfo.clearsByHour) * 60);
+            // Calculate how much time remains after the delayed start using the actual day end time
+            const dayEndHour = dayEndTimes.get(dateStr) ?? WORK_DAY_END_HOUR;
+            const availableMinutes = Math.max(0, (dayEndHour - weatherInfo.clearsByHour) * 60);
             let fitMinutes = 0;
             let jobsThatFit = 0;
 
             for (const job of jobsOnDay) {
-              const jobMinutes = (job.totalTime || 30) + (job.driveTime || 0);
+              const jobMinutes = getEstimatedJobMinutes(job);
               if (fitMinutes + jobMinutes > availableMinutes) break;
               fitMinutes += jobMinutes;
               jobsThatFit++;
@@ -1750,29 +2066,22 @@ export function WeatherForecast({
             if (jobsThatFit < jobsOnDay.length) {
               const jobsToMove = jobsOnDay.length - jobsThatFit;
               
-              // Calculate workload for good weather days
-              const workloadByDay = new Map<string, number>();
-              goodWeatherDays.forEach(goodDay => {
-                const jobsOnGoodDay = jobs.filter(j => j.date === goodDay && j.status === 'scheduled').length;
-                workloadByDay.set(goodDay, jobsOnGoodDay);
-              });
-              
               // Find least busy good weather day
               const futureDays = goodWeatherDays.filter(d => d > dateStr);
               const candidateDays = futureDays.length > 0 ? futureDays : goodWeatherDays;
-              
-              let bestDay = candidateDays[0];
-              let minWorkload = workloadByDay.get(bestDay) || 0;
-              candidateDays.forEach(day => {
-                const workload = workloadByDay.get(day) || 0;
-                if (workload < minWorkload) {
-                  minWorkload = workload;
-                  bestDay = day;
-                }
-              });
+              const jobsToMoveArray = jobsOnDay.slice(-jobsToMove);
+              const bestDay = pickBestRescheduleDay(
+                jobsToMoveArray.map(j => j.id),
+                dateStr,
+                candidateDays,
+                new Set(goodWeatherDays)
+              );
+
+              if (!bestDay) {
+                return;
+              }
               
               // Suggest moving the overflow jobs - COMBINE into single suggestion
-              const jobsToMoveArray = jobsOnDay.slice(-jobsToMove);
               
               moveSuggestions.push({
                 jobIds: jobsToMoveArray.map(j => j.id), // Array of all job IDs
@@ -1784,10 +2093,9 @@ export function WeatherForecast({
                 suggestedDate: bestDay,
                 reason: `Not enough time after delaying start to ${weatherInfo.clearsByHour}:00. Only ${jobsThatFit} job${jobsThatFit !== 1 ? 's' : ''} fit in the remaining window.`,
                 weatherSeverity: 'moderate',
+                source: 'weather',
                 jobCount: jobsToMove
-              } as any);
-              
-              workloadByDay.set(bestDay, (workloadByDay.get(bestDay) || 0) + jobsToMove);
+              });
             }
 
             // Only suggest start time adjustment if user hasn't already adjusted it
@@ -1810,13 +2118,13 @@ export function WeatherForecast({
           // Check if user already set a custom end time for this day
           const hasCustomEndTime = dayEndTimes.has(dateStr);
           
-          // Calculate how much time fits before rain starts
-          const availableMinutes = Math.max(0, (lastGoodHour - 6) * 60);
+          // Calculate how much time fits before rain starts using the actual current start time
+          const availableMinutes = Math.max(0, (lastGoodHour - currentStartTime) * 60);
           let fitMinutes = 0;
           let jobsThatFit = 0;
 
           for (const job of jobsOnDay) {
-            const jobMinutes = (job.totalTime || 30) + (job.driveTime || 0);
+            const jobMinutes = getEstimatedJobMinutes(job);
             if (fitMinutes + jobMinutes > availableMinutes) break;
             fitMinutes += jobMinutes;
             jobsThatFit++;
@@ -1826,29 +2134,21 @@ export function WeatherForecast({
           if (jobsThatFit < jobsOnDay.length) {
             const jobsToMove = jobsOnDay.length - jobsThatFit;
             
-            // Calculate workload for good weather days
-            const workloadByDay = new Map<string, number>();
-            goodWeatherDays.forEach(goodDay => {
-              const jobsOnGoodDay = jobs.filter(j => j.date === goodDay && j.status === 'scheduled').length;
-              workloadByDay.set(goodDay, jobsOnGoodDay);
-            });
-            
             // Find least busy good weather day
             const futureDays = goodWeatherDays.filter(d => d > dateStr);
             const candidateDays = futureDays.length > 0 ? futureDays : goodWeatherDays;
-            
-            let bestDay = candidateDays[0];
-            let minWorkload = workloadByDay.get(bestDay) || 0;
-            candidateDays.forEach(day => {
-              const workload = workloadByDay.get(day) || 0;
-              if (workload < minWorkload) {
-                minWorkload = workload;
-                bestDay = day;
-              }
-            });
-            
             // Suggest moving the jobs that won't fit - COMBINE into single suggestion
             const jobsToMoveArray = jobsOnDay.slice(-jobsToMove);
+            const bestDay = pickBestRescheduleDay(
+              jobsToMoveArray.map(j => j.id),
+              dateStr,
+              candidateDays,
+              new Set(goodWeatherDays)
+            );
+
+            if (!bestDay) {
+              return;
+            }
             
             moveSuggestions.push({
               jobIds: jobsToMoveArray.map(j => j.id), // Array of all job IDs
@@ -1860,10 +2160,9 @@ export function WeatherForecast({
               suggestedDate: bestDay,
               reason: `Rain starts at ${lastGoodHour}:00. Only ${jobsThatFit} job${jobsThatFit !== 1 ? 's' : ''} fit before rain.`,
               weatherSeverity: 'moderate',
+              source: 'weather',
               jobCount: jobsToMove
-            } as any);
-            
-            workloadByDay.set(bestDay, (workloadByDay.get(bestDay) || 0) + jobsToMove);
+            });
           }
           
           // Only suggest end time adjustment if user hasn't already set one
@@ -1892,7 +2191,7 @@ export function WeatherForecast({
     });
 
     return { moveSuggestions, startTimeSuggestions, overnightRainDays };
-  }, [weatherData, jobs, customers, dayStartTimes, dayEndTimes]);
+  }, [weatherData, jobs, customers, dayStartTimes, dayEndTimes, pickBestRescheduleDay]);
 
   // Update suggestions when weather or jobs change
   useEffect(() => {
@@ -1918,12 +2217,12 @@ export function WeatherForecast({
   }, [getWeatherBasedSuggestions, jobs, dayStartTimes]);
 
   // Accept individual move suggestion (handles both single job and multiple jobs)
-  const acceptMoveSuggestion = useCallback((suggestion: any, newDate: string) => {
+  const acceptMoveSuggestion = useCallback(async (suggestion: MoveSuggestion, newDate: string) => {
     if (!onRescheduleJob) return;
     
     // Handle both single job (jobId) and multiple jobs (jobIds)
-    const jobIds = suggestion.jobIds || [suggestion.jobId];
-    const additionalJobIds = jobIds.filter((jobId: string) => {
+    const jobIds = (suggestion.jobIds || (suggestion.jobId ? [suggestion.jobId] : [])).filter((jobId): jobId is string => Boolean(jobId));
+    const additionalJobIds = jobIds.filter((jobId) => {
       const job = jobs.find(j => j.id === jobId);
       return job?.date !== newDate;
     });
@@ -1934,9 +2233,23 @@ export function WeatherForecast({
       return;
     }
     
-    jobIds.forEach((jobId: string) => {
-      onRescheduleJob(jobId, newDate);
-    });
+    for (const jobId of jobIds as string[]) {
+      await Promise.resolve(onRescheduleJob(jobId, newDate));
+    }
+
+    const sourceDayScheduledJobIds = jobs
+      .filter(job => job.date === suggestion.currentDate && job.status === 'scheduled')
+      .map(job => job.id);
+    const movedAllJobsForDay = sourceDayScheduledJobIds.length > 0
+      && sourceDayScheduledJobIds.every(jobId => jobIds.includes(jobId));
+
+    if (suggestion.source === 'weather' && movedAllJobsForDay) {
+      setPersistedRainedOutDays(prev => {
+        const next = new Set(prev);
+        next.add(suggestion.currentDate);
+        return next;
+      });
+    }
     
     // Remove this suggestion from the list
     setWeatherSuggestions(prev => {
@@ -1961,13 +2274,19 @@ export function WeatherForecast({
     });
     
     const jobCount = jobIds.length;
-    toast.success(`${jobCount} job${jobCount !== 1 ? 's' : ''} rescheduled to better weather day`);
-  }, [jobs, onRescheduleJob, checkDayCapacity]);
+    const isCapacityMove = suggestion.source === 'capacity';
+    queueRouteOptimization();
+    toast.success(
+      isCapacityMove
+        ? `${jobCount} job${jobCount !== 1 ? 's' : ''} rescheduled to balance day capacity`
+        : `${jobCount} job${jobCount !== 1 ? 's' : ''} rescheduled to better weather day`
+    );
+  }, [jobs, onRescheduleJob, checkDayCapacity, queueRouteOptimization]);
 
   const getJobPriority = useCallback((job: Job) => {
     const customer = customers.find(c => c.id === job.customerId);
     const price = Number(customer?.price || 0);
-    const duration = (job.totalTime || 30) + (job.driveTime || 0);
+    const duration = getEstimatedJobMinutes(job);
     const ratio = duration > 0 ? price / duration : price;
     return { price, duration, ratio };
   }, [customers]);
@@ -2003,12 +2322,14 @@ export function WeatherForecast({
       return [];
     }
 
-    const dayStartHour = dayStartTimes.get(targetDate) || DEFAULT_DAY_START_HOUR;
-    const dayEndHour = dayEndTimes.get(targetDate) || DEFAULT_DAY_END_HOUR;
+    const effectiveWindow = getEffectiveWorkWindow(targetDate);
     const existingMinutes = jobs
       .filter(job => job.date === targetDate && job.status === 'scheduled' && !jobIds.includes(job.id))
-      .reduce((sum, job) => sum + ((job.totalTime || 30) + (job.driveTime || 0)), 0);
-    const availableMinutes = Math.max(0, (dayEndHour - dayStartHour) * 60 - existingMinutes);
+      .reduce((sum, job) => sum + getEstimatedJobMinutes(job), 0);
+    const availableMinutes = Math.max(0, getUsableDayMinutes(effectiveWindow.dayStartHour, effectiveWindow.dayEndHour, {
+      startDelayHours: effectiveWindow.startDelayHours,
+      endEarlyHours: effectiveWindow.endEarlyHours
+    }) - existingMinutes);
 
     if (availableMinutes <= 0) {
       return [];
@@ -2077,8 +2398,11 @@ export function WeatherForecast({
     Array.from(candidateDates).forEach(dateStr => {
       if (dateStr === currentDate) return;
 
-      const { dayStartHour, dayEndHour } = getEffectiveWorkWindow(dateStr);
-      const availableMinutes = Math.max(0, (dayEndHour - dayStartHour) * 60);
+      const { dayStartHour, dayEndHour, startDelayHours, endEarlyHours } = getEffectiveWorkWindow(dateStr);
+      const availableMinutes = getUsableDayMinutes(dayStartHour, dayEndHour, {
+        startDelayHours,
+        endEarlyHours
+      });
 
       if (availableMinutes <= 0) return;
 
@@ -2173,27 +2497,54 @@ export function WeatherForecast({
     const endLabel = newEndTime ? (newEndTime > 12 ? `${newEndTime - 12} PM` : newEndTime === 12 ? '12 PM' : `${newEndTime} AM`) : null;
 
     if (adjustment.movedJobs.length > 0 && adjustment.targetDate) {
+      queueRouteOptimization();
       toast.success(`Schedule adjusted: ${startLabel} - ${endLabel || 'day end'} and ${adjustment.movedJobs.length} job${adjustment.movedJobs.length !== 1 ? 's' : ''} moved to ${adjustment.targetDate}`);
     } else if (endLabel) {
       toast.success(`Schedule adjusted: ${startLabel} - ${endLabel}`);
     } else {
       toast.success(`Start time adjusted to ${startLabel}`);
     }
-  }, [applyDayTimeAdjustment]);
+  }, [applyDayTimeAdjustment, queueRouteOptimization]);
 
   // Accept all move suggestions and move jobs
-  const acceptAllSuggestions = useCallback(() => {
+  const acceptAllSuggestions = useCallback(async () => {
+    const movedJobsByDate = new Map<string, Set<string>>();
+
     // Move jobs to different days
-    weatherSuggestions.moveSuggestions.forEach(suggestion => {
-      if (onRescheduleJob) {
-        // Handle both single job (jobId) and multiple jobs (jobIds)
-        const jobIds = suggestion.jobIds || (suggestion.jobId ? [suggestion.jobId] : []);
-        jobIds.forEach((jobId) => {
-          if (jobId) {
-            onRescheduleJob(jobId, suggestion.suggestedDate);
-          }
-        });
+    for (const suggestion of weatherSuggestions.moveSuggestions) {
+      if (!onRescheduleJob) continue;
+      const jobIds = suggestion.jobIds || (suggestion.jobId ? [suggestion.jobId] : []);
+      const validJobIds = jobIds.filter((jobId): jobId is string => Boolean(jobId));
+
+      if (suggestion.source === 'weather' && validJobIds.length > 0) {
+        const existing = movedJobsByDate.get(suggestion.currentDate) || new Set<string>();
+        validJobIds.forEach(jobId => existing.add(jobId));
+        movedJobsByDate.set(suggestion.currentDate, existing);
       }
+
+      for (const jobId of jobIds) {
+        if (jobId) {
+          await Promise.resolve(onRescheduleJob(jobId, suggestion.suggestedDate));
+        }
+      }
+    }
+
+    setPersistedRainedOutDays(prev => {
+      const next = new Set(prev);
+
+      movedJobsByDate.forEach((movedIds, date) => {
+        const sourceDayScheduledJobIds = jobs
+          .filter(job => job.date === date && job.status === 'scheduled')
+          .map(job => job.id);
+        const movedAllJobsForDay = sourceDayScheduledJobIds.length > 0
+          && sourceDayScheduledJobIds.every(jobId => movedIds.has(jobId));
+
+        if (movedAllJobsForDay) {
+          next.add(date);
+        }
+      });
+
+      return next;
     });
 
     // Adjust start times for partial bad weather days
@@ -2202,9 +2553,10 @@ export function WeatherForecast({
     });
 
     const totalChanges = weatherSuggestions.moveSuggestions.length + weatherSuggestions.startTimeSuggestions.length;
+    queueRouteOptimization();
     toast.success(`Applied ${totalChanges} weather adjustment${totalChanges !== 1 ? 's' : ''}`);
     setShowSuggestions(false);
-  }, [weatherSuggestions, onRescheduleJob, onStartTimeChange]);
+  }, [weatherSuggestions, jobs, onRescheduleJob, onStartTimeChange, queueRouteOptimization]);
 
   // Dismiss suggestions
   const dismissSuggestions = useCallback(() => {
@@ -2867,17 +3219,28 @@ export function WeatherForecast({
     }
 
     e.preventDefault();
+    const rect = target.getBoundingClientRect();
     pendingDragRef.current = {
       jobId,
       x: e.clientX,
       y: e.clientY,
+      offsetX: Math.max(8, e.clientX - rect.left),
+      offsetY: Math.max(8, e.clientY - rect.top),
       target,
     };
   };
 
-  const activateDrag = (jobId: string, clientX: number, clientY: number, target: HTMLElement | null) => {
+  const activateDrag = (
+    jobId: string,
+    clientX: number,
+    clientY: number,
+    target: HTMLElement | null,
+    offsetX = 15,
+    offsetY = 15
+  ) => {
     const rect = target?.getBoundingClientRect();
     setDragPreviewSize({ width: rect?.width ?? 140, height: rect?.height ?? 70 });
+    dragPointerOffsetRef.current = { x: offsetX, y: offsetY };
 
     const job = jobs.find(j => j.id === jobId);
     const customer = customers.find(c => c.id === job?.customerId);
@@ -2903,17 +3266,37 @@ export function WeatherForecast({
 
     setDraggedJobId(jobId);
     setDragPosition({ x: clientX, y: clientY });
+    updateDragHoverFromPoint(clientX, clientY);
   };
 
   const handleDragOver = (e: React.DragEvent, dateStr: string, slotIndex?: number) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
-    setDragHoverTarget(dateStr, slotIndex);
+
+    if (slotIndex === undefined || !draggedJobId) {
+      setDragHoverTarget(dateStr, slotIndex);
+      return;
+    }
+
+    const slotElement = e.currentTarget as HTMLElement;
+    const insertionSlot = getInsertionSlotForPointer(dateStr, slotIndex, e.clientY, slotElement);
+
+    setDragHoverTarget(dateStr, insertionSlot);
   };
 
   const handleDayCardDragOver = (e: React.DragEvent, dateStr: string) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
+
+    if (draggedJobId) {
+      const dayContainer = (e.currentTarget as HTMLElement).querySelector('.time-slots-container') as HTMLElement | null;
+      if (dayContainer) {
+        const insertionSlot = getInsertionSlotForDayPointer(dateStr, e.clientY, dayContainer);
+        setDragHoverTarget(dateStr, insertionSlot);
+        return;
+      }
+    }
+
     setDragHoverTarget(dateStr);
   };
 
@@ -2938,7 +3321,7 @@ export function WeatherForecast({
         const deltaX = e.clientX - pending.x;
         const deltaY = e.clientY - pending.y;
         if (Math.hypot(deltaX, deltaY) > 4) {
-          activateDrag(pending.jobId, e.clientX, e.clientY, pending.target);
+          activateDrag(pending.jobId, e.clientX, e.clientY, pending.target, pending.offsetX, pending.offsetY);
           pendingDragRef.current = null;
         }
         return;
@@ -2950,6 +3333,7 @@ export function WeatherForecast({
       }
       rafId = window.requestAnimationFrame(() => {
         setDragPosition({ x: e.clientX, y: e.clientY });
+        updateDragHoverFromPoint(e.clientX, e.clientY);
       });
     };
 
@@ -2962,21 +3346,9 @@ export function WeatherForecast({
 
       if (!draggedJobId) return;
 
-      const elementUnderMouse = document.elementFromPoint(e.clientX, e.clientY);
-      const slotElement = elementUnderMouse?.closest('[data-time-slot]');
-
-      let targetDate: string | null = null;
-      let targetSlot: number | null = null;
-
-      if (slotElement) {
-        const slotIndex = slotElement.getAttribute('data-slot-index');
-        const dayCard = elementUnderMouse?.closest('[data-day-card]');
-        targetDate = dayCard?.getAttribute('data-date') || null;
-        targetSlot = slotIndex !== null ? parseInt(slotIndex) : null;
-      } else if (dragHoverRef.current) {
-        targetDate = dragHoverRef.current.date;
-        targetSlot = dragHoverRef.current.slot ?? null;
-      }
+      const hoverTarget = dragHoverRef.current;
+      const targetDate = hoverTarget?.date ?? null;
+      const targetSlot = hoverTarget?.slot ?? null;
 
       if (targetDate && targetSlot !== null) {
         handleSlotDrop({
@@ -3001,15 +3373,19 @@ export function WeatherForecast({
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [draggedJobId, clearDragHoverTarget]);
+  }, [draggedJobId, clearDragHoverTarget, activateDrag, updateDragHoverFromPoint]);
 
   const handleSlotDrop = async (e: React.DragEvent, dateStr: string, targetSlot: number) => {
     e.preventDefault();
     e.stopPropagation();
+
+    const resolvedTargetSlot = dragHoverRef.current?.date === dateStr && dragHoverRef.current.slot !== undefined
+      ? dragHoverRef.current.slot
+      : targetSlot;
     
     console.log('📍 SLOT DROP TRIGGERED:', { 
       date: dateStr, 
-      slot: targetSlot, 
+      slot: resolvedTargetSlot,
       draggedJobId, 
       groupJobs: draggedGroupJobs.length,
       hasOnRescheduleJob: !!onRescheduleJob
@@ -3046,20 +3422,51 @@ export function WeatherForecast({
         
         // Check if this is a group drag
         if (draggedGroupJobs.length > 1) {
-          console.log('🔷 Dropping group of', draggedGroupJobs.length, 'jobs at slot', targetSlot);
+          console.log('🔷 Dropping group of', draggedGroupJobs.length, 'jobs at slot', resolvedTargetSlot);
           
           // Move all jobs in the group to consecutive slots starting at targetSlot
           for (let i = 0; i < draggedGroupJobs.length; i++) {
             const groupJobId = draggedGroupJobs[i];
-            const slotForThisJob = targetSlot + i;
+            const slotForThisJob = resolvedTargetSlot + i;
             console.log(`  Moving job ${i + 1}/${draggedGroupJobs.length} to slot ${slotForThisJob}`);
             await onRescheduleJob(groupJobId, dateStr, slotForThisJob);
           }
           
           toast.success(`Moved ${draggedGroupJobs.length} properties`);
-        } else if (job.date !== dateStr || !jobTimeSlots.has(draggedJobId) || jobTimeSlots.get(draggedJobId) !== targetSlot) {
+        } else if (job.date !== dateStr || !jobTimeSlots.has(draggedJobId) || jobTimeSlots.get(draggedJobId) !== resolvedTargetSlot) {
           // Single job move (or time slot change on same day)
-          console.log('📍 Moving single job to', dateStr, 'slot', targetSlot);
+          console.log('📍 Moving single job to', dateStr, 'slot', resolvedTargetSlot);
+
+          if (job.date === dateStr) {
+            // Reorder immediately within the day so users see the insert result right away.
+            const layout = getDaySlotLayout(dateStr, draggedJobId);
+            const reordered = [...layout.orderedJobs];
+            const draggedJob = jobs.find(j => j.id === draggedJobId);
+
+            if (draggedJob) {
+              const placements = Array.from(layout.byStartSlot.values()).sort((a, b) => a.startSlot - b.startSlot);
+              let insertAt = reordered.length;
+
+              for (let i = 0; i < placements.length; i++) {
+                if (resolvedTargetSlot <= placements[i].startSlot) {
+                  insertAt = i;
+                  break;
+                }
+              }
+
+              reordered.splice(insertAt, 0, draggedJob);
+
+              setJobTimeSlots(prev => {
+                const newMap = new Map(prev);
+                let runningSlot = layout.slotOffset;
+                reordered.forEach((dayJob) => {
+                  newMap.set(dayJob.id, runningSlot);
+                  runningSlot += Math.max(1, Math.ceil(getEstimatedJobMinutes(dayJob) / 15));
+                });
+                return newMap;
+              });
+            }
+          }
           
           // Save last action for undo
           setLastAction({
@@ -3067,11 +3474,11 @@ export function WeatherForecast({
             jobId: draggedJobId,
             fromDate: job.date,
             toDate: dateStr,
-            timeSlot: targetSlot
+            timeSlot: resolvedTargetSlot
           });
           
           // Immediately save the change
-          await onRescheduleJob(draggedJobId, dateStr, targetSlot);
+          await onRescheduleJob(draggedJobId, dateStr, resolvedTargetSlot);
           
           // Show undo button
           setShowUndo(true);
@@ -3091,6 +3498,12 @@ export function WeatherForecast({
 
   const handleDrop = async (e: React.DragEvent, dateStr: string) => {
     e.preventDefault();
+
+    const hoverTarget = dragHoverRef.current;
+    if (hoverTarget?.date === dateStr && hoverTarget.slot !== undefined) {
+      await handleSlotDrop(e, dateStr, hoverTarget.slot);
+      return;
+    }
     
     console.log('🎯 DROP ATTEMPT:', {
       targetDate: dateStr,
@@ -3270,6 +3683,14 @@ export function WeatherForecast({
     // Store for touch end handler
     (e.currentTarget as any).dataset.jobId = jobId;
     (e.currentTarget as any).dataset.touchStartTime = startTime;
+
+    touchDragRef.current = {
+      jobId,
+      startX: e.touches[0].clientX,
+      startY: e.touches[0].clientY,
+      started: false,
+      target: e.currentTarget as HTMLElement,
+    };
     
     // Start long-press timer (500ms) - enters selection mode
     longPressTimer.current = window.setTimeout(() => {
@@ -3286,6 +3707,9 @@ export function WeatherForecast({
 
   const handleJobTouchMove = (e: React.TouchEvent) => {
     if (!longPressStartPos.current) return;
+
+    const touch = e.touches[0];
+    if (!touch) return;
     
     const moveX = Math.abs(e.touches[0].clientX - longPressStartPos.current.x);
     const moveY = Math.abs(e.touches[0].clientY - longPressStartPos.current.y);
@@ -3306,6 +3730,23 @@ export function WeatherForecast({
           longPressTimer.current = null;
         }
         (e.currentTarget as any).dataset.hasMoved = 'true';
+      }
+
+      const touchDrag = touchDragRef.current;
+      if (touchDrag && touchDrag.jobId === (e.currentTarget as any).dataset.jobId) {
+        const dragDistance = Math.hypot(touch.clientX - touchDrag.startX, touch.clientY - touchDrag.startY);
+
+        if (!touchDrag.started && dragDistance > 10) {
+          touchDrag.started = true;
+          setTouchDraggedJobId(touchDrag.jobId);
+          activateDrag(touchDrag.jobId, touch.clientX, touch.clientY, touchDrag.target, 20, 20);
+        }
+
+        if (touchDrag.started) {
+          e.preventDefault();
+          setDragPosition({ x: touch.clientX, y: touch.clientY });
+          updateDragHoverFromPoint(touch.clientX, touch.clientY);
+        }
       }
     }
   };
@@ -3329,6 +3770,30 @@ export function WeatherForecast({
     delete target.dataset.hasMoved;
     longPressStartPos.current = null;
     
+    // If in selection mode and this was a quick tap without movement
+    const touchDrag = touchDragRef.current;
+    if (touchDrag?.started) {
+      const hoverTarget = dragHoverRef.current;
+      touchDragRef.current = null;
+      setTouchDraggedJobId(null);
+
+      if (hoverTarget?.date && hoverTarget.slot !== undefined) {
+        handleSlotDrop({
+          preventDefault: () => {},
+          stopPropagation: () => {}
+        } as React.DragEvent, hoverTarget.date, hoverTarget.slot);
+      } else {
+        clearDragHoverTarget();
+        setDraggedJobId(null);
+        setDraggedGroupJobs([]);
+        setDragPosition(null);
+        setDragPreviewSize(null);
+      }
+      return;
+    }
+
+    touchDragRef.current = null;
+
     // If in selection mode and this was a quick tap without movement
     if (isSelectionMode && jobId && !hasMoved && duration < 300) {
       e.preventDefault();
@@ -3794,7 +4259,7 @@ export function WeatherForecast({
               <p className="text-blue-100 text-sm">Enter your address to see weather forecasts</p>
             </div>
             {locationName && (
-              <button 
+              <button
                 onClick={() => {
                   // Cancel editing and revert to previous location
                   if (onCancelEditAddress) {
@@ -4147,9 +4612,13 @@ export function WeatherForecast({
 
       {/* Combined Weather Forecast & Job Planning Card */}
       {weatherData && (
-        <div className="flex items-center justify-center" style={{
-          minHeight: 'calc(100vh - 5vh - 4rem)', // Full viewport minus nav bar (5vh) and container padding
-        }}>
+        <div
+          ref={forecastViewportRef}
+          className="flex items-start justify-center"
+          style={{
+            minHeight: 'auto',
+          }}
+        >
           <div className="space-y-2 w-full">
             {/* Floating Tutorial Banner - Shows once for new users */}
             {showTutorialBanner && jobs.length > 0 && isTouchDevice.current && (
@@ -4248,16 +4717,19 @@ export function WeatherForecast({
                   }
                 }}
                 className={`forecast-grid-container ${
-                  isMobile ? 'overflow-y-auto snap-y snap-mandatory' : 'overflow-x-auto overflow-y-visible scrollbar-hide'
+                  isMobile ? 'overflow-hidden' : 'overflow-x-auto overflow-y-hidden scrollbar-hide'
                 }`}
                 style={{
-                  scrollSnapType: isMobile ? 'y mandatory' : 'x mandatory',
+                  scrollSnapType: isMobile ? 'none' : 'x mandatory',
                   scrollBehavior: isMobile ? 'smooth' : 'smooth',
                   width: isMobile ? '97vw' : `${forecastContainerWidth}px`,
                   maxWidth: isMobile ? '97vw' : `${forecastContainerWidth}px`,
                   margin: isMobile ? '0 auto' : '0 auto', // Center on both mobile and desktop
-                  height: isMobile ? 'calc(100vh - var(--header-height, 0px) - var(--footer-height, 0px))' : undefined,
-                  paddingTop: isMobile ? '0' : '1rem', // Add spacing at top for desktop to prevent overlap
+                  height: resolvedForecastViewportHeight ? `${resolvedForecastViewportHeight}px` : undefined,
+                  paddingTop: `${forecastTopInsetPx}px`, // Keep the day header clear of sticky chrome
+                  scrollPaddingTop: `${forecastTopInsetPx}px`,
+                  scrollPaddingBottom: `${forecastBottomInsetPx}px`,
+                  overflowY: 'hidden',
                 }}
               >
                 {/* Desktop Cut Job Active Banner */}
@@ -4348,15 +4820,18 @@ export function WeatherForecast({
                     .filter(([_, targetDate]) => targetDate === dateStr)
                     .map(([jobId]) => jobs.find(j => j.id === jobId))
                     .filter(Boolean) as Job[];
+                  const assignedJobIds = assignedJobs.map(job => job.id);
                   
                   const totalJobs = scheduledJobsForDay.length + assignedJobs.length;
-                  const { dayStartHour, dayEndHour } = getEffectiveWorkWindow(dateStr);
-                  const totalWorkMinutes = [...scheduledJobsForDay, ...assignedJobs].reduce((sum, job) => sum + (job.totalTime || 30), 0);
-                  const totalDriveMinutes = [...scheduledJobsForDay, ...assignedJobs].reduce((sum, job) => sum + (job.driveTime || 0), 0);
-                  const totalMinutes = totalWorkMinutes + totalDriveMinutes;
-                  const availableMinutes = Math.max(0, (dayEndHour - dayStartHour) * 60);
+                  const { dayStartHour, dayEndHour, startDelayHours, endEarlyHours } = getEffectiveWorkWindow(dateStr);
+                  const totalWorkMinutes = [...scheduledJobsForDay, ...assignedJobs].reduce((sum, job) => sum + (job.totalTime ?? DEFAULT_JOB_WORK_MINUTES), 0);
+                  const totalDriveMinutes = [...scheduledJobsForDay, ...assignedJobs].reduce((sum, job) => sum + roundDriveMinutesToFive(job.driveTime ?? DEFAULT_JOB_DRIVE_MINUTES), 0);
+                  const dayCapacity = checkDayCapacity(dateStr, assignedJobIds);
+                  const totalMinutes = dayCapacity.totalMinutes ?? [...scheduledJobsForDay, ...assignedJobs].reduce((sum, job) => sum + getEstimatedJobMinutes(job), 0);
+                  const availableMinutes = dayCapacity.maxMinutes ?? getUsableDayMinutes(dayStartHour, dayEndHour, { startDelayHours, endEarlyHours });
+                  const remainingMinutes = Math.max(0, availableMinutes - totalMinutes);
                   const isAtCapacity = availableMinutes <= 0 ? totalMinutes > 0 : totalMinutes >= availableMinutes;
-                  const capacityPercentage = availableMinutes <= 0 ? 100 : Math.round((totalMinutes / availableMinutes) * 100);
+                  const capacityPercentage = availableMinutes <= 0 ? 100 : Math.min(100, Math.round((totalMinutes / availableMinutes) * 100));
                   
                   const rainChance = weatherForDay?.precipitationChance || 0;
                   const isBeingDraggedOver = dragOverDay === dateStr;
@@ -4370,7 +4845,15 @@ export function WeatherForecast({
                   })();
                   
                   const hasSuggestions = suggestionsForDay.moveSuggestions.length > 0 || suggestionsForDay.timeSuggestions.length > 0;
-                  
+                  const hasWeatherMoveSuggestions = suggestionsForDay.moveSuggestions.some(s => (s.source ?? 'weather') === 'weather');
+                  const hasWeatherTimeSuggestions = suggestionsForDay.timeSuggestions.some(s => s.type === 'delay' || s.type === 'start-early');
+                  const isPersistedRainedOutDay = persistedRainedOutDays.has(dateStr);
+                  const isWeatherCanceledDay = isPersistedRainedOutDay || (hasWeatherMoveSuggestions && !hasWeatherTimeSuggestions);
+                  const isWeatherClosedDay = isPersistedRainedOutDay || ((hasWeatherMoveSuggestions || hasWeatherTimeSuggestions) && (isAtCapacity || remainingMinutes <= 0));
+                  const combinedSuggestions = [
+                    ...suggestionsForDay.moveSuggestions.map((suggestion) => ({ kind: 'move' as const, suggestion })),
+                    ...suggestionsForDay.timeSuggestions.map((suggestion) => ({ kind: 'time' as const, suggestion })),
+                  ];
                   // Get list of job IDs that will be affected by rain (need to be moved)
                   const affectedJobIds = new Set<string>();
                   suggestionsForDay.moveSuggestions.forEach(suggestion => {
@@ -4396,84 +4879,16 @@ export function WeatherForecast({
                       key={dateStr}
                       data-day-card="true"
                       data-date={dateStr}
-                      className="relative"
+                      className="relative flex flex-col"
                       style={{
-                        scrollSnapAlign: isMobile ? 'end' : 'start',
+                        scrollSnapAlign: 'start',
+                        scrollMarginTop: isMobile ? '0.75rem' : '1rem',
                         width: isMobile ? '97vw' : '280px',
                         minWidth: isMobile ? '97vw' : '280px',
                         maxWidth: isMobile ? '97vw' : '280px',
+                        height: dayCardViewportHeight ? `${dayCardViewportHeight}px` : undefined,
                       }}
                     >
-                      {/* Suggestion Banner for this day - appears above day card */}
-                      {showSuggestions && hasSuggestions && (
-                        <div className={`mb-2 ${isMobile ? 'mx-1' : ''}`}>
-                          {suggestionsForDay.moveSuggestions.map((suggestion, idx) => (
-                            <div key={`move-${idx}`} className="bg-white border-2 border-blue-500 rounded-lg overflow-hidden shadow-md mb-2">
-                              <div className="px-3 py-2">
-                                <div className="flex items-start justify-between gap-2 mb-1.5">
-                                  <div className="flex items-center gap-1.5 flex-1">
-                                    {suggestion.weatherSeverity === 'heavy' ? (
-                                      <span className="text-xs bg-red-500 text-white px-2 py-0.5 rounded font-medium whitespace-nowrap">
-                                        Heavy Rain
-                                      </span>
-                                    ) : (
-                                      <span className="text-xs bg-blue-500 text-white px-2 py-0.5 rounded font-medium whitespace-nowrap">
-                                        Rain
-                                      </span>
-                                    )}
-                                    <span className="text-xs text-gray-600 font-medium">
-                                      {suggestion.jobCount || 1} job{(suggestion.jobCount || 1) !== 1 ? 's' : ''}
-                                    </span>
-                                  </div>
-                                  <Button
-                                    onClick={() => acceptMoveSuggestion(suggestion, suggestion.suggestedDate)}
-                                    size="sm"
-                                    className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-2 py-0.5 h-6"
-                                  >
-                                    Move to {(() => {
-                                      const [year, month, day] = suggestion.suggestedDate.split('-').map(Number);
-                                      const date = new Date(year, month - 1, day);
-                                      return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-                                    })()}
-                                  </Button>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                          
-                          {suggestionsForDay.timeSuggestions.map((suggestion, idx) => (
-                            <div key={`time-${idx}`} className="bg-white border-2 border-blue-500 rounded-lg overflow-hidden shadow-md mb-2">
-                              <div className="px-3 py-2">
-                                <div className="flex items-start justify-between gap-2 mb-1.5">
-                                  <div className="flex items-center gap-1.5 flex-1">
-                                    <span className="text-xs bg-blue-500 text-white px-2 py-0.5 rounded font-medium whitespace-nowrap">
-                                      {suggestion.type === 'delay' ? 'Delay' : 'End Early'}
-                                    </span>
-                                    <span className="text-xs text-gray-600 font-medium">
-                                      {(() => {
-                                        const formatTime = (hour: number) => {
-                                          const period = hour < 12 ? 'AM' : 'PM';
-                                          const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
-                                          return `${displayHour}:00 ${period}`;
-                                        };
-                                        return `${formatTime(suggestion.currentStartTime)} → ${formatTime(suggestion.suggestedStartTime)}`;
-                                      })()}
-                                    </span>
-                                  </div>
-                                  <Button
-                                    onClick={() => acceptStartTimeSuggestion(suggestion.date, suggestion.suggestedStartTime, suggestion.suggestedEndTime)}
-                                    size="sm"
-                                    className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-2 py-0.5 h-6"
-                                  >
-                                    Apply
-                                  </Button>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      
                       {/* Day Card */}
                       <div
                         onDragOver={(e) => {
@@ -4495,10 +4910,10 @@ export function WeatherForecast({
                         onDragLeave={handleDragLeave}
                         onDrop={(e) => handleDrop(e, dateStr)}
                         className={`forecast-day-card relative ${
-                          isMobile ? 'mb-6 h-[78vh] overflow-hidden flex flex-col snap-end' : 'h-[81.6vh] shrink-0 flex flex-col rounded-lg'
+                          isMobile ? 'overflow-hidden flex flex-col snap-end flex-1 min-h-0 rounded-lg' : 'overflow-hidden flex flex-col flex-1 min-h-0 rounded-lg'
                         } shadow-lg overflow-hidden ${
-                          isBeingDraggedOver ? (isAtCapacity ? 'ring-4 ring-red-500' : 'ring-4 ring-blue-500') : ''
-                        }`}
+                          isBeingDraggedOver ? 'ring-4 ring-blue-500' : ''
+                        } ${isWeatherClosedDay ? 'ring-2 ring-blue-600 shadow-blue-200' : isAtCapacity ? 'ring-2 ring-blue-500 shadow-blue-100' : ''}`}
                         style={{
                           scrollSnapStop: isMobile ? 'always' : 'always',
                           background: weatherForDay?.hourlyForecasts && weatherForDay.hourlyForecasts.length > 0
@@ -4554,16 +4969,21 @@ export function WeatherForecast({
                               // Clear/Sunny - BRIGHT YELLOW
                               return 'rgb(254, 243, 199)'; // yellow-200
                             })(),
-                        border: '2px solid rgb(209, 213, 219)' // gray-300 neutral border, slightly thicker
+                        border: isWeatherClosedDay
+                          ? '2px solid rgb(37, 99, 235)'
+                          : (isAtCapacity ? '2px solid rgb(59, 130, 246)' : '2px solid rgb(209, 213, 219)')
                       }}
                     >
+                      {(isWeatherClosedDay || isAtCapacity) && (
+                        <div className={`absolute inset-x-0 top-0 h-1.5 ${isWeatherClosedDay ? 'bg-blue-600' : 'bg-blue-500'}`} />
+                      )}
                       {/* Day Header - Improved with work/drive time stats */}
-                      <div className={`bg-white border-b border-gray-200 ${isMobile ? 'px-2 py-[0.6vh] flex-shrink-0' : 'px-[0.44vh] py-[0.53vh]'}`}>
+                      <div className={`bg-white border-b border-gray-200 ${isMobile ? 'px-2 py-[0.42vh] flex-shrink-0' : 'px-[0.44vh] py-[0.53vh]'}`}>
                         {/* Day and Date on same line with rain badge - CENTERED */}
-                        <div className={`flex items-center justify-center ${isMobile ? 'mb-[0.2vh]' : 'mb-[0.27vh]'}`}>
-                          <div className="flex items-center gap-[0.44vh]">
-                            <span className={`font-bold text-gray-900 ${isMobile ? 'text-[1.5vh]' : 'text-[1.95vh]'}`}>{dayName}</span>
-                            <span className={`text-gray-500 ${isMobile ? 'text-[1.25vh]' : 'text-[1.59vh]'}`}>{dayDate}</span>
+                        <div className={`flex items-center justify-center ${isMobile ? 'mb-[0.08vh]' : 'mb-[0.27vh]'}`}>
+                          <div className="flex items-center gap-[0.32vh]">
+                            <span className={`font-bold text-gray-900 ${isMobile ? 'text-[1.28vh]' : 'text-[1.95vh]'}`}>{dayName}</span>
+                            <span className={`text-gray-500 ${isMobile ? 'text-[1.05vh]' : 'text-[1.59vh]'}`}>{dayDate}</span>
                           </div>
                           
                           {/* Rain Chance Badge */}
@@ -4576,23 +4996,21 @@ export function WeatherForecast({
                         </div>
                         
                         {/* Work Stats Row - Centered - Always show job count with capacity indicator */}
-                        <div className={`flex items-center justify-center gap-[0.53vh] ${isMobile ? 'text-[1vh]' : 'text-[1.24vh]'}`}>
+                        <div className={`flex items-center justify-center gap-[0.36vh] ${isMobile ? 'text-[0.92vh]' : 'text-[1.24vh]'}`}>
                           <div className="flex items-center gap-[0.27vh] text-gray-700">
-                            <span className={`font-bold ${isAtCapacity ? 'text-red-600' : capacityPercentage >= 80 ? 'text-orange-600' : 'text-blue-600'} ${isMobile ? 'text-[1.3vh]' : 'text-[1.59vh]'}`}>
+                            <span className={`font-bold ${isAtCapacity ? 'text-blue-600' : capacityPercentage >= 80 ? 'text-orange-600' : 'text-blue-600'} ${isMobile ? 'text-[1.12vh]' : 'text-[1.59vh]'}`}>
                               {totalJobs}
                             </span>
-                            <span className={`text-gray-600 font-medium ${isMobile ? 'text-[1vh]' : 'text-[1.24vh]'}`}>
+                            <span className={`text-gray-600 font-medium ${isMobile ? 'text-[0.92vh]' : 'text-[1.24vh]'}`}>
                               job{totalJobs !== 1 ? 's' : ''}
                             </span>
                             {capacityPercentage >= 80 && (
-                              <Badge variant={isAtCapacity ? "destructive" : "default"} className="ml-1 text-[0.9vh] px-1 py-0">
-                                {isAtCapacity ? 'FULL' : `${capacityPercentage}%`}
+                              <Badge variant="default" className={`ml-1 text-[0.9vh] px-1 py-0 ${isWeatherClosedDay || isAtCapacity ? 'bg-blue-600 text-white' : ''}`}>
+                                {isWeatherClosedDay ? 'RAINED OUT' : isAtCapacity ? 'FULL' : `${capacityPercentage}%`}
                               </Badge>
                             )}
                           </div>
                           {totalJobs > 0 && (() => {
-                            const totalWorkMinutes = [...scheduledJobsForDay, ...assignedJobs].reduce((sum, job) => sum + (job.totalTime || 30), 0);
-                            const totalDriveMinutes = [...scheduledJobsForDay, ...assignedJobs].reduce((sum, job) => sum + (job.driveTime || 0), 0);
                             const workHours = Math.floor(totalWorkMinutes / 60);
                             const workMins = totalWorkMinutes % 60;
                             const driveHours = Math.floor(totalDriveMinutes / 60);
@@ -4604,8 +5022,8 @@ export function WeatherForecast({
                                   <>
                                     <div className="h-[0.53vh] w-[0.13vh] bg-gray-300"></div>
                                     <div className="flex items-center gap-[0.27vh] text-gray-700">
-                                      <span className={`${isMobile ? 'text-[1.43vh]' : 'text-[1.33vh]'}`}>⏱</span>
-                                      <span className={`font-semibold ${isMobile ? 'text-[1.26vh]' : 'text-[1.24vh]'}`}>
+                                      <span className={`font-semibold ${isMobile ? 'text-[0.98vh]' : 'text-[1.15vh]'}`}>Work:</span>
+                                      <span className={`font-semibold ${isMobile ? 'text-[1.02vh]' : 'text-[1.24vh]'}`}>
                                         {workHours > 0 && `${workHours}h `}{workMins > 0 && `${workMins}m`}
                                         {!workHours && !workMins && '30m'}
                                       </span>
@@ -4616,8 +5034,8 @@ export function WeatherForecast({
                                   <>
                                     <div className="h-[0.53vh] w-[0.13vh] bg-gray-300"></div>
                                     <div className="flex items-center gap-[0.27vh] text-gray-700">
-                                      <span className={`${isMobile ? 'text-[1.43vh]' : 'text-[1.33vh]'}`}>🚗</span>
-                                      <span className={`font-semibold ${isMobile ? 'text-[1.26vh]' : 'text-[1.24vh]'}`}>
+                                      <span className={`font-semibold ${isMobile ? 'text-[0.98vh]' : 'text-[1.15vh]'}`}>Drive:</span>
+                                      <span className={`font-semibold ${isMobile ? 'text-[1.02vh]' : 'text-[1.24vh]'}`}>
                                         {driveHours > 0 && `${driveHours}h `}{driveMins}m
                                       </span>
                                     </div>
@@ -4626,14 +5044,21 @@ export function WeatherForecast({
                               </>
                             );
                           })()}
+                          <div className="h-[0.53vh] w-[0.13vh] bg-gray-300"></div>
+                          <div className="flex items-center gap-[0.27vh] text-gray-700">
+                            <span className={`font-semibold ${isMobile ? 'text-[0.98vh]' : 'text-[1.15vh]'}`}>Left:</span>
+                            <span className={`font-semibold ${isMobile ? 'text-[1.02vh]' : 'text-[1.24vh]'}`}>
+                              {remainingMinutes}m left
+                            </span>
+                          </div>
                         </div>
                       </div>
 
-                      {/* Main Content: Day Schedule (left) + Night Weather (right) */}
-                      <div className={`grid grid-cols-[1fr_auto] gap-0 overflow-hidden flex-1 ${
+                      {/* Main Content: Day Schedule */}
+                      <div className={`grid grid-cols-1 gap-0 overflow-hidden flex-1 ${
                         isMobile ? '' : ''
                       }`}>
-                        {/* Left: Job Count & Jobs List with day weather icons (5am-6pm) */}
+                        {/* Day schedule with weather icons (5am-6pm) */}
                         <div className={`bg-gray-50/50 relative border-r border-gray-200 overflow-hidden ${
                           isMobile ? 'px-1 pb-0 pt-0 flex flex-col' : 'px-[0.44vh] py-0 flex flex-col'
                         }`}>
@@ -4657,10 +5082,10 @@ export function WeatherForecast({
                               }
                               
                               return (
-                                <div className={`${isMobile ? 'mb-[2vh]' : 'mb-[0.80vh]'}`}>
+                                <div className={`${isMobile ? 'mb-[1vh]' : 'mb-[0.80vh]'}`}>
                                   {/* Draggable start time handle - ALWAYS visible at top */}
                                   <div
-                                    className={`relative cursor-ns-resize transition-all group ${isMobile ? 'py-[0.42vh]' : 'py-[0.53vh]'}`}
+                                    className={`relative cursor-ns-resize transition-all group ${isMobile ? 'py-[0.24vh]' : 'py-[0.53vh]'}`}
                                     draggable
                                     onDragStart={(e) => {
                                       e.dataTransfer.effectAllowed = 'move';
@@ -4774,7 +5199,7 @@ export function WeatherForecast({
                             {(() => {
                               // Get start time for this day (default to 5am)
                               const dayStartHour = dayStartTimes.get(dateStr) || 5;
-                              const dayEndHour = dayEndTimes.get(dateStr) || 18;
+                              const dayEndHour = dayEndTimes.get(dateStr) || DEFAULT_DAY_END_HOUR;
                               
                               // 15-minute interval slots from 5am to 7pm (14 hours = 56 slots)
                               // But only show labels every 4 slots (hourly)
@@ -4792,52 +5217,77 @@ export function WeatherForecast({
                                 const bIncomplete = b.status !== 'completed';
                                 if (aIncomplete && !bIncomplete) return -1;
                                 if (!aIncomplete && bIncomplete) return 1;
+
+                                const aSlot = jobTimeSlots.get(a.id);
+                                const bSlot = jobTimeSlots.get(b.id);
+                                if (aSlot !== undefined && bSlot !== undefined && aSlot !== bSlot) {
+                                  return aSlot - bSlot;
+                                }
                                 
-                                if (a.order && b.order) return a.order - b.order;
                                 if (a.scheduledTime && b.scheduledTime) {
                                   return a.scheduledTime.localeCompare(b.scheduledTime);
                                 }
+                                if (a.order && b.order) return a.order - b.order;
                                 return 0;
                               });
                               
                               // Calculate offset based on start time (multiply by 4 for 15-min slots per hour)
                               const slotOffset = Math.max(0, (dayStartHour - 5) * 4);
+                              const draggedJobPreview = draggedJobId ? jobs.find(job => job.id === draggedJobId) : null;
+                              const draggedJobPreviewCustomer = draggedJobPreview ? customers.find(customer => customer.id === draggedJobPreview.customerId) : null;
+                              const draggedJobPreviewMinutes = draggedJobPreview ? getEstimatedJobMinutes(draggedJobPreview) : 0;
                               
                               const isDraggingOverThisDay = dragOverSlot?.date === dateStr && draggedJobId;
                               const dragTargetSlot = isDraggingOverThisDay ? dragOverSlot.slot : -1;
+                              const isDraggedPreviewCopy = isDraggingOverThisDay && dragTargetSlot >= 0;
                               
-                              // Map jobs to their 15-minute time slots
-                              // Each job occupies multiple consecutive slots based on duration
                               const jobsBySlot: { [key: number]: typeof allJobs[0] } = {};
                               const jobSlotRanges = new Map<string, { startSlot: number; slotsNeeded: number }>();
-                              
-                              let currentSlot = slotOffset; // Start jobs at the offset position based on day start time
-                              
-                              allJobs.forEach((job) => {
-                                if (job.id === draggedJobId) return;
-                                
-                                // Calculate how many 15-min slots this job needs
-                                const jobDuration = getEstimatedJobMinutes(job);
-                                const slotsNeeded = Math.ceil(jobDuration / 15); // 15 minutes per slot
-                                
-                                // Store the range for this job
-                                jobSlotRanges.set(job.id, { startSlot: currentSlot, slotsNeeded });
-                                
-                                // Place job in first slot of its range
-                                if (currentSlot < 56) {
-                                  jobsBySlot[currentSlot] = job;
-                                }
-                                
-                                // Move to next available slot
-                                currentSlot += slotsNeeded;
-                              });
-                              
-                              // If dragging over this day, place the dragged job at the target slot
-                              if (isDraggingOverThisDay) {
+
+                              const mapJobsToSlots = (jobsToPlace: typeof allJobs) => {
+                                let currentSlot = slotOffset;
+                                jobsToPlace.forEach((job) => {
+                                  const jobDuration = getEstimatedJobMinutes(job);
+                                  const slotsNeeded = Math.max(1, Math.ceil(jobDuration / 15));
+                                  jobSlotRanges.set(job.id, { startSlot: currentSlot, slotsNeeded });
+                                  if (currentSlot < 56) {
+                                    jobsBySlot[currentSlot] = job;
+                                  }
+                                  currentSlot += slotsNeeded;
+                                });
+                              };
+
+                              if (isDraggingOverThisDay && draggedJobId) {
                                 const draggedJob = jobs.find(j => j.id === draggedJobId);
+                                const baseJobs = allJobs.filter(job => job.id !== draggedJobId);
+
                                 if (draggedJob) {
-                                  jobsBySlot[dragTargetSlot] = draggedJob;
+                                  const baseRanges = new Map<string, { startSlot: number; slotsNeeded: number }>();
+                                  let scanSlot = slotOffset;
+                                  baseJobs.forEach((job) => {
+                                    const slotsNeeded = Math.max(1, Math.ceil(getEstimatedJobMinutes(job) / 15));
+                                    baseRanges.set(job.id, { startSlot: scanSlot, slotsNeeded });
+                                    scanSlot += slotsNeeded;
+                                  });
+
+                                  let insertAt = baseJobs.length;
+                                  for (let i = 0; i < baseJobs.length; i++) {
+                                    const range = baseRanges.get(baseJobs[i].id);
+                                    const start = range?.startSlot ?? slotOffset;
+                                    if (dragTargetSlot <= start) {
+                                      insertAt = i;
+                                      break;
+                                    }
+                                  }
+
+                                  const previewJobs = [...baseJobs];
+                                  previewJobs.splice(insertAt, 0, draggedJob);
+                                  mapJobsToSlots(previewJobs);
+                                } else {
+                                  mapJobsToSlots(baseJobs);
                                 }
+                              } else {
+                                mapJobsToSlots(allJobs.filter(job => job.id !== draggedJobId));
                               }
                               
                               // Calculate job spans based on duration
@@ -4919,19 +5369,20 @@ export function WeatherForecast({
                                 <div className={`relative flex flex-col time-slots-container overflow-hidden ${
                                   isMobile ? 'flex-1' : 'flex-1 justify-between'
                                 }`} data-date={dateStr} style={{ 
+                                  ['--slot-row-height' as string]: 'calc(100% / 56)',
                                   display: 'grid', 
                                   gridTemplateColumns: isMobile ? '3vh 1fr' : '4.5vh 1fr', 
-                                  gridTemplateRows: 'repeat(56, calc(70vh / 56))', 
+                                  gridTemplateRows: 'repeat(56, minmax(0, 1fr))', 
                                   gap: 0, 
-                                  height: isMobile ? 'auto' : '70vh',
-                                  minHeight: isMobile ? '0' : '70vh',
-                                  flex: isMobile ? '1 1 auto' : 'initial',
+                                  height: '100%',
+                                  minHeight: 0,
+                                  flex: '1 1 auto',
                                   alignContent: 'start'
                                 }}>
                                 {/* Blocked time overlays */}
                                 {(() => {
                                   const currentStartTime = dayStartTimes.get(dateStr) || 5;
-                                  const currentEndTime = dayEndTimes.get(dateStr) || 18;
+                                  const currentEndTime = dayEndTimes.get(dateStr) || DEFAULT_DAY_END_HOUR;
                                   
                                   const totalSlots = 14; // 5am to 6pm = 14 hours
                                   
@@ -4944,8 +5395,19 @@ export function WeatherForecast({
                                   
                                   return (
                                     <>
+                                      {/* Full-day weather cancellation overlay */}
+                                      {isWeatherCanceledDay && (
+                                        <div
+                                          className="absolute inset-0 bg-blue-50/65 pointer-events-none z-20"
+                                          style={{
+                                            gridColumn: '1 / -1',
+                                            backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(59, 130, 246, 0.28) 4px, rgba(59, 130, 246, 0.28) 8px)'
+                                          }}
+                                        />
+                                      )}
+
                                       {/* Blocked time overlay (before start time) - Blue rain pattern */}
-                                      {currentStartTime > 5 && (
+                                      {!isWeatherCanceledDay && currentStartTime > 5 && (
                                         <div 
                                           className="absolute top-0 left-0 right-0 bg-blue-50/60 pointer-events-none z-20"
                                           style={{ 
@@ -4957,7 +5419,7 @@ export function WeatherForecast({
                                       )}
                                       
                                       {/* Blocked time overlay (after end time) - Blue rain pattern (same as start) */}
-                                      {currentEndTime < 18 && (
+                                      {!isWeatherCanceledDay && currentEndTime < 18 && (
                                         <div 
                                           className="absolute left-0 right-0 bg-blue-50/60 pointer-events-none z-20"
                                           style={{ 
@@ -5139,7 +5601,7 @@ export function WeatherForecast({
                                     (groupSpan && groupSpan.jobs.some(j => j.id === draggedJobId)) ||
                                     (jobSpan && jobSpan.job.id === draggedJobId);
                                   
-                                  const showDropIndicator = isDropTarget && !containsDraggedJob && slot.isHourMark; // Only show on hour marks
+                                  const showDropIndicator = isDropTarget && !containsDraggedJob;
                                   
                                   // Check if this slot is occupied by a duration span from a previous slot
                                   const isOccupiedByDuration = slotsOccupiedByDuration.has(slot.slotIndex);
@@ -5150,10 +5612,8 @@ export function WeatherForecast({
                                       className={`relative flex items-start ${
                                         isMobile ? 'px-[0.3vh]' : 'px-[0.3vh]'
                                       } ${
-                                        showDropIndicator 
-                                          ? 'bg-green-50 border-l-2 border-green-500' 
-                                          : draggedJobId && !containsDraggedJob && !isOccupiedByDuration
-                                          ? 'hover:bg-blue-50/30'
+                                        showDropIndicator
+                                          ? 'bg-blue-50/50'
                                           : ''
                                       }`}
                                       style={{
@@ -5164,9 +5624,28 @@ export function WeatherForecast({
                                       }}
                                       data-time-slot="true"
                                       data-slot-index={slot.slotIndex}
-                                      onDragOver={(e) => !isOccupiedByDuration && handleDragOver(e, dateStr, slot.slotIndex)}
-                                      onDrop={(e) => !isOccupiedByDuration && handleSlotDrop(e, dateStr, slot.slotIndex)}
+                                      onDragOver={(e) => handleDragOver(e, dateStr, slot.slotIndex)}
+                                      onDrop={(e) => handleSlotDrop(e, dateStr, slot.slotIndex)}
                                     >
+                                      {showDropIndicator && draggedJobPreview && (
+                                        <div className="absolute inset-x-0 top-0 z-30 pointer-events-none px-[0.3vh] py-[0.2vh]">
+                                          <div className="rounded-lg border border-blue-400/60 bg-white/70 backdrop-blur-md shadow-[0_8px_20px_rgba(59,130,246,0.14)] opacity-80 px-[0.8vh] py-[0.55vh]">
+                                            <div className="flex items-center gap-[0.5vh] min-w-0">
+                                              <span className="inline-flex h-[1.6vh] w-[1.6vh] items-center justify-center rounded-full bg-blue-100 text-blue-700 text-[0.95vh] font-bold shrink-0">
+                                                ↕
+                                              </span>
+                                              <div className="min-w-0 flex-1">
+                                                <div className="truncate text-[1.02vh] font-semibold text-slate-800">
+                                                  {draggedJobPreviewCustomer?.name || 'Move job'}
+                                                </div>
+                                                <div className="truncate text-[0.92vh] text-slate-500">
+                                                  Drop here • {draggedJobPreviewMinutes} min
+                                                </div>
+                                              </div>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      )}
                                       {/* Group card overlay - positioned absolutely to span multiple slots */}
                                       {groupSpan && (
                                         <div 
@@ -5206,6 +5685,9 @@ export function WeatherForecast({
                                                 role="button"
                                                 tabIndex={isCompleted ? -1 : 0}
                                                 onMouseDown={(e) => !isCompleted && handleDragStart(e, groupSpan.firstJobId)}
+                                                onTouchStart={isTouchDevice.current && !isCompleted ? (e) => handleJobTouchStart(e, groupSpan.firstJobId) : undefined}
+                                                onTouchMove={isTouchDevice.current && !isCompleted ? handleJobTouchMove : undefined}
+                                                onTouchEnd={isTouchDevice.current && !isCompleted ? handleJobTouchEnd : undefined}
                                                 onMouseUp={() => {
                                                   if (pendingDragRef.current) {
                                                     pendingDragRef.current = null;
@@ -5226,7 +5708,7 @@ export function WeatherForecast({
                                                   userSelect: 'none',
                                                   WebkitUserSelect: 'none',
                                                   WebkitTouchCallout: 'none',
-                                                  opacity: isDraggedItem ? 0 : 1,
+                                                  opacity: isDraggedItem && !isDraggedPreviewCopy ? 0 : 1,
                                                 }}
                                               >
                                                 {/* Colored bar at top */}
@@ -5280,7 +5762,10 @@ export function WeatherForecast({
                                           const isAssigned = assignedJobs.some(j => j.id === jobInSlot.id);
                                           const isDraggedItem = jobInSlot.id === draggedJobId;
                                           const isCompleted = jobInSlot.status === 'completed';
-                                          const scheduledTime = getScheduledTimeForJob(jobInSlot.id, dateStr);
+                                          const workMinutes = jobInSlot.totalTime ?? DEFAULT_JOB_WORK_MINUTES;
+                                          const driveFromPreviousMinutes = roundDriveMinutesToFive(jobInSlot.driveTime ?? DEFAULT_JOB_DRIVE_MINUTES);
+                                          const estimatedJobMinutes = getEstimatedJobMinutes(jobInSlot);
+                                          const isShortDurationCard = estimatedJobMinutes <= 30 || (spanInfo?.slotsNeeded ?? 1) <= 2;
                                           
                                           const isCutItem = jobInSlot.id === cutJobId;
                                           const isSelected = selectedJobIds.has(jobInSlot.id);
@@ -5311,268 +5796,94 @@ export function WeatherForecast({
                                           }
                                           
                                           const jobCardContent = spansMultipleSlots && spanInfo && rowIndents.length > 0 ? (
-                                            // Multi-slot card with row-by-row sections  
-                                            <div className="w-full relative" style={{ 
-                                              height: isMobile ? 'auto' : `calc(${spanInfo.slotsNeeded} * (70vh / 56) - 0.2vh)`,
-                                              marginBottom: '0'
-                                            }}>
-                                              {/* Background shape sections */}
-                                              <div className="relative flex flex-col" style={{ 
-                                                height: '100%'
-                                              }}>
+                                            <div className="w-full relative" style={{ height: isMobile ? 'auto' : `calc(${spanInfo.slotsNeeded} * 100%)`, marginBottom: '0' }}>
+                                              <div className="relative flex flex-col" style={{ height: '100%' }}>
                                                 {rowIndents.map((needsIndent, rowIndex) => {
                                                   const isFirstRow = rowIndex === 0;
                                                   const isLastRow = rowIndex === rowIndents.length - 1;
                                                   const prevRowIndent = rowIndex > 0 ? rowIndents[rowIndex - 1] : null;
                                                   const nextRowIndent = rowIndex < rowIndents.length - 1 ? rowIndents[rowIndex + 1] : null;
-                                                  
-                                                  // Determine which corners should be rounded
-                                                  // Left side should NOT be rounded when indented (next to weather icon)
-                                                  // Only round right-side corners and left corners when full-width
                                                   const roundTopLeft = isFirstRow && !needsIndent;
                                                   const roundTopRight = isFirstRow;
                                                   const roundBottomLeft = isLastRow && !needsIndent;
                                                   const roundBottomRight = isLastRow;
-                                                  
                                                   const borderRadius = `${roundTopLeft ? '3vh' : '0'} ${roundTopRight ? '3vh' : '0'} ${roundBottomRight ? '3vh' : '0'} ${roundBottomLeft ? '3vh' : '0'}`;
-                                                  
-                                                  const borderColor = isCompleted
-                                                    ? 'rgb(107, 114, 128)' // gray-500 (medium gray)
-                                                    : isSelected
-                                                    ? 'rgb(21, 128, 61)' // green-700
-                                                    : isCutItem
-                                                    ? 'rgb(202, 138, 4)' // yellow-600
-                                                    : isAssigned
-                                                    ? 'rgb(107, 114, 128)' // gray-500 (medium gray)
-                                                    : isAffectedByRain
-                                                    ? 'rgb(59, 130, 246)' // blue-500
-                                                    : 'rgb(107, 114, 128)'; // gray-500 (medium gray)
-                                                  
-                                                  const borderWidth = 1; // Consistent border width
-                                                  
-                                                  // Check if this is a transition section
+                                                  const borderColor = isCompleted ? 'rgb(107, 114, 128)' : isSelected ? 'rgb(21, 128, 61)' : isCutItem ? 'rgb(202, 138, 4)' : isAssigned ? 'rgb(107, 114, 128)' : isAffectedByRain ? 'rgb(59, 130, 246)' : 'rgb(107, 114, 128)';
                                                   const isWidthChangingFromPrev = prevRowIndent !== null && prevRowIndent !== needsIndent;
                                                   const isWidthChangingToNext = nextRowIndent !== null && nextRowIndent !== needsIndent;
-                                                  
-                                                  // Each row gets equal height from parent
-                                                  const rowHeight = `calc(((${spanInfo.slotsNeeded} * (70vh / 56)) - 0.2vh) / ${spanInfo.slotsNeeded})`;
-                                                  
+                                                  const rowHeight = `calc(100% / ${spanInfo.slotsNeeded})`;
+
                                                   return (
-                                                    <div key={rowIndex} className="relative" style={{
-                                                      height: rowHeight,
-                                                      flex: 'none'
-                                                    }}>
-                                                      {/* Background */}
+                                                    <div key={rowIndex} className="relative" style={{ height: rowHeight, flex: 'none' }}>
                                                       <div
-                                                        className={`text-xs select-none h-full ${
-                                                          isCompleted
-                                                            ? 'bg-gray-200/80'
-                                                            : isSelected
-                                                            ? 'bg-green-100'
-                                                            : isCutItem
-                                                            ? 'bg-yellow-100'
-                                                            : isAssigned
-                                                            ? 'bg-gray-100'
-                                                            : isAffectedByRain
-                                                            ? 'bg-blue-50'
-                                                            : 'bg-white'
-                                                        }`}
-                                                        style={{
-                                                          marginLeft: needsIndent ? (isMobile ? '0' : '0') : (isMobile ? '-3vh' : '-4.5vh'),
-                                                          width: needsIndent ? '100%' : (isMobile ? 'calc(100% + 3vh)' : 'calc(100% + 4.5vh)'),
-                                                          borderRadius: isFirstRow && isLastRow ? '3vh' : borderRadius,
-                                                          opacity: isDraggedItem ? 0 : 1,
-                                                        }}
+                                                        className={`text-xs select-none h-full ${isCompleted ? 'bg-slate-100' : isSelected ? 'bg-emerald-50' : isCutItem ? 'bg-amber-50' : isAssigned ? 'bg-slate-100' : isAffectedByRain ? 'bg-blue-50' : 'bg-white/95'}`}
+                                                        style={{ marginLeft: needsIndent ? '0' : (isMobile ? '-3vh' : '-4.5vh'), width: needsIndent ? '100%' : (isMobile ? 'calc(100% + 3vh)' : 'calc(100% + 4.5vh)'), borderRadius: isFirstRow && isLastRow ? '3vh' : borderRadius, opacity: isDraggedItem && !isDraggedPreviewCopy ? 0 : 1 }}
                                                       />
-                                                      {/* Borders - only exterior edges */}
-                                                      {/* Top border */}
-                                                      {isFirstRow && (
-                                                        <div
-                                                          className="absolute pointer-events-none"
-                                                          style={{
-                                                            top: 0,
-                                                            left: needsIndent ? '0' : (isMobile ? '-3vh' : '-4.5vh'),
-                                                            width: needsIndent ? '100%' : (isMobile ? 'calc(100% + 3vh)' : 'calc(100% + 4.5vh)'),
-                                                            height: '1.5px',
-                                                            background: borderColor,
-                                                            zIndex: 999,
-                                                          }}
-                                                        />
-                                                      )}
-                                                      {/* Partial top border when going from indented to full */}
-                                                      {!isFirstRow && isWidthChangingFromPrev && !needsIndent && prevRowIndent && (
-                                                        <div
-                                                          className="absolute pointer-events-none"
-                                                          style={{
-                                                            top: '0',
-                                                            left: isMobile ? '-3vh' : '-4.5vh',
-                                                            width: isMobile ? '3vh' : '4.5vh',
-                                                            height: '1.5px',
-                                                            background: borderColor,
-                                                            zIndex: 999,
-                                                          }}
-                                                        />
-                                                      )}
-                                                      {/* Bottom border */}
-                                                      {isLastRow && (
-                                                        <div
-                                                          className="absolute pointer-events-none"
-                                                          style={{
-                                                            bottom: 0,
-                                                            left: needsIndent ? '0' : (isMobile ? '-3vh' : '-4.5vh'),
-                                                            width: needsIndent ? '100%' : (isMobile ? 'calc(100% + 3vh)' : 'calc(100% + 4.5vh)'),
-                                                            height: '1.5px',
-                                                            background: borderColor,
-                                                            zIndex: 999,
-                                                          }}
-                                                        />
-                                                      )}
-                                                      {/* Partial bottom border when going from indented to full */}
-                                                      {!isLastRow && isWidthChangingToNext && !needsIndent && nextRowIndent && (
-                                                        <div
-                                                          className="absolute pointer-events-none"
-                                                          style={{
-                                                            bottom: '0',
-                                                            left: isMobile ? '-3vh' : '-4.5vh',
-                                                            width: isMobile ? '3vh' : '4.5vh',
-                                                            height: '1.5px',
-                                                            background: borderColor,
-                                                            zIndex: 999,
-                                                          }}
-                                                        />
-                                                      )}
-                                                      {/* Left border - only the outer-most edge */}
-                                                      <div
-                                                        className="absolute pointer-events-none"
-                                                        style={{
-                                                          top: 0,
-                                                          bottom: 0,
-                                                          left: needsIndent ? '0' : (isMobile ? '-3vh' : '-4.5vh'),
-                                                          width: '1.5px',
-                                                          background: borderColor,
-                                                          zIndex: 999,
-                                                        }}
-                                                      />
-                                                      {/* Right border - always on the right edge */}
-                                                      <div
-                                                        className="absolute right-0 pointer-events-none"
-                                                        style={{
-                                                          top: 0,
-                                                          bottom: 0,
-                                                          width: '1.5px',
-                                                          background: borderColor,
-                                                          zIndex: 999,
-                                                        }}
-                                                      />
+                                                      {isFirstRow && <div className="absolute pointer-events-none" style={{ top: 0, left: needsIndent ? '0' : (isMobile ? '-3vh' : '-4.5vh'), width: needsIndent ? '100%' : (isMobile ? 'calc(100% + 3vh)' : 'calc(100% + 4.5vh)'), height: '1.5px', background: borderColor, zIndex: 999 }} />}
+                                                      {!isFirstRow && isWidthChangingFromPrev && !needsIndent && prevRowIndent && <div className="absolute pointer-events-none" style={{ top: '0', left: isMobile ? '-3vh' : '-4.5vh', width: isMobile ? '3vh' : '4.5vh', height: '1.5px', background: borderColor, zIndex: 999 }} />}
+                                                      {isLastRow && <div className="absolute pointer-events-none" style={{ bottom: 0, left: needsIndent ? '0' : (isMobile ? '-3vh' : '-4.5vh'), width: needsIndent ? '100%' : (isMobile ? 'calc(100% + 3vh)' : 'calc(100% + 4.5vh)'), height: '1.5px', background: borderColor, zIndex: 999 }} />}
+                                                      {!isLastRow && isWidthChangingToNext && !needsIndent && nextRowIndent && <div className="absolute pointer-events-none" style={{ bottom: '0', left: isMobile ? '-3vh' : '-4.5vh', width: isMobile ? '3vh' : '4.5vh', height: '1.5px', background: borderColor, zIndex: 999 }} />}
+                                                      <div className="absolute pointer-events-none" style={{ top: 0, bottom: 0, left: needsIndent ? '0' : (isMobile ? '-3vh' : '-4.5vh'), width: '1.5px', background: borderColor, zIndex: 999 }} />
+                                                      <div className="absolute right-0 pointer-events-none" style={{ top: 0, bottom: 0, width: '1.5px', background: borderColor, zIndex: 999 }} />
                                                     </div>
                                                   );
                                                 })}
                                               </div>
-                                              
-                                              {/* Overlay content on top of all rows */}
-                                              <div 
+
+                                              <div
                                                 role="button"
                                                 tabIndex={isCompleted ? -1 : 0}
                                                 onMouseDown={(e) => !isCompleted && handleDragStart(e, jobInSlot.id)}
-                                                onMouseUp={() => {
-                                                  if (pendingDragRef.current) {
-                                                    pendingDragRef.current = null;
-                                                  }
-                                                }}
-                                                onDoubleClick={(e) => {
-                                                  const input = document.getElementById(`job-time-${jobInSlot.id}`) as HTMLInputElement;
-                                                  if (input) {
-                                                    e.stopPropagation();
-                                                    input.focus();
-                                                    input.select();
-                                                  }
-                                                }}
-                                                className={`absolute top-0 left-0 right-0 flex flex-wrap justify-center ${isMobile ? 'items-start' : 'items-center'} ${!isCompleted ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'}`}
-                                                style={{ 
-                                                  paddingLeft: isMobile ? '0.4vh' : '0.3vh',
-                                                  paddingRight: isMobile ? '0.4vh' : '0.3vh',
-                                                  paddingTop: isMobile ? '0.25vh' : '0.2vh',
-                                                  paddingBottom: isMobile ? '0.25vh' : '0.2vh',
-                                                  maxHeight: spanInfo ? `calc(${spanInfo.slotsNeeded} * (70vh / 56) - 0.2vh)` : 'auto',
-                                                  gap: isMobile ? '0.25vh' : '0.2vh',
-                                                  overflow: 'hidden',
-                                                  // Only round right corners always, left corners only when NOT indented (full width)
-                                                  borderRadius: spansMultipleSlots 
-                                                    ? `${rowIndents[0] ? '0' : '3vh'} 3vh 3vh ${rowIndents[rowIndents.length - 1] ? '0' : '3vh'}`
-                                                    : startsAtWeatherIcon ? '0 3vh 3vh 0' : '3vh',
-                                                  zIndex: 20
-                                                }}
+                                                onTouchStart={isTouchDevice.current && !isCompleted ? (e) => handleJobTouchStart(e, jobInSlot.id) : undefined}
+                                                onTouchMove={isTouchDevice.current && !isCompleted ? handleJobTouchMove : undefined}
+                                                onTouchEnd={isTouchDevice.current && !isCompleted ? handleJobTouchEnd : undefined}
+                                                onMouseUp={() => { if (pendingDragRef.current) pendingDragRef.current = null; }}
+                                                className={`absolute top-0 left-0 right-0 bottom-0 flex items-center ${isMobile ? 'gap-1.5' : 'gap-2'} ${!isCompleted ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'}`}
+                                                style={{ height: '100%', minHeight: '100%', paddingLeft: isMobile ? '6px' : '8px', paddingRight: isMobile ? '6px' : '8px', paddingTop: isMobile ? '4px' : '5px', paddingBottom: isMobile ? '4px' : '5px', maxHeight: spanInfo ? '100%' : 'auto', overflow: 'hidden', borderRadius: spansMultipleSlots ? `${rowIndents[0] ? '0' : '3vh'} 3vh 3vh ${rowIndents[rowIndents.length - 1] ? '0' : '3vh'}` : startsAtWeatherIcon ? '0 3vh 3vh 0' : '3vh', zIndex: 20 }}
                                               >
-                                                <div className={`font-semibold whitespace-nowrap ${isMobile ? 'text-[1.4vh]' : 'text-[1.2vh]'} leading-tight ${isCompleted ? 'text-gray-500' : 'text-gray-800'}`}>
+                                                <div className="min-w-0 flex-1 truncate font-semibold leading-tight tracking-tight text-slate-900" style={{ fontSize: isMobile ? '0.75rem' : '0.8rem' }}>
                                                   {customer?.name}
                                                 </div>
-                                                {!isDraggedItem && !isAssigned && !isCutItem && (
-                                                  <>
-                                                    <button
-                                                      onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        unassignJob(jobInSlot.id);
-                                                      }}
-                                                      className="shrink-0 text-red-500 hover:text-red-700 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                      style={{ fontSize: isMobile ? '1.6vh' : '1.4vh', pointerEvents: 'auto' }}
-                                                      aria-label="Delete job"
-                                                      onDragStart={(e) => e.preventDefault()}
-                                                    >
-                                                      ×
-                                                    </button>
-                                                    <div className={`whitespace-nowrap font-medium ${isMobile ? 'text-[1.3vh]' : 'text-[1.1vh]'} leading-tight ${isCompleted ? 'text-gray-500' : 'text-blue-700'}`}>
-                                                      {scheduledTime && <span className="font-medium">{scheduledTime} • </span>}
-                                                      ${customer?.price} • 
-                                                      <input
-                                                        id={`job-time-${jobInSlot.id}`}
-                                                        type="number"
-                                                        value={jobInSlot.totalTime || 60}
-                                                        onChange={(e) => {
-                                                          const newTime = parseInt(e.target.value) || 60;
-                                                          if (onUpdateJobTime && newTime >= 15 && newTime <= 300) {
-                                                            onUpdateJobTime(jobInSlot.id, newTime);
-                                                          }
-                                                        }}
-                                                        onBlur={(e) => {
-                                                          const value = parseInt(e.target.value);
-                                                          if (!value || value < 15) {
-                                                            if (onUpdateJobTime) onUpdateJobTime(jobInSlot.id, 15);
-                                                          } else if (value > 300) {
-                                                            if (onUpdateJobTime) onUpdateJobTime(jobInSlot.id, 300);
-                                                          }
-                                                        }}
-                                                        onClick={(e) => e.stopPropagation()}
-                                                        onFocus={(e) => e.currentTarget.select()}
-                                                        onMouseDown={(e) => e.stopPropagation()}
-                                                        onTouchStart={(e) => {
-                                                          e.stopPropagation();
-                                                          e.preventDefault();
-                                                        }}
-                                                        onTouchEnd={(e) => {
-                                                          e.stopPropagation();
-                                                          e.preventDefault();
-                                                          e.currentTarget.focus();
-                                                        }}
-                                                        onDragStart={(e) => e.preventDefault()}
-                                                        className="w-10 bg-transparent border-b border-dashed border-gray-400 hover:border-blue-500 focus:outline-none focus:border-blue-600 text-center cursor-text"
-                                                        min="15"
-                                                        max="300"
-                                                        step="15"
-                                                        style={{ pointerEvents: 'auto' }}
-                                                      /> min
-                                                    </div>
-                                                  </>
-                                                )}
-                                                {(isDraggedItem || isAssigned || isCutItem) && (
-                                                  <div className={`whitespace-nowrap font-medium ${isMobile ? 'text-[1.3vh]' : 'text-[1.1vh]'} leading-tight ${isCompleted ? 'text-gray-500' : 'text-blue-700'}`}>
-                                                    {scheduledTime && <span className="font-semibold">{scheduledTime} • </span>}
-                                                    ${customer?.price} • {jobInSlot.totalTime || 60} min
-                                                  </div>
-                                                )}
+                                                <div className={`shrink-0 inline-flex h-[22px] w-[4.3rem] items-center justify-center gap-1 rounded-full border px-1 text-[0.68rem] font-semibold leading-none ${isCompleted ? 'border-slate-300 bg-slate-100 text-slate-600' : 'border-blue-300 bg-blue-50 text-blue-700'}`}>
+                                                  <Clock3 className="h-3 w-3" aria-hidden="true" />
+                                                  <input
+                                                    id={`job-time-${jobInSlot.id}`}
+                                                    type="number"
+                                                    value={workMinutes}
+                                                    onChange={(e) => {
+                                                      const newTime = parseInt(e.target.value) || 30;
+                                                      if (onUpdateJobTime && newTime >= 30 && newTime <= 300) {
+                                                        onUpdateJobTime(jobInSlot.id, newTime);
+                                                      }
+                                                    }}
+                                                    onBlur={(e) => {
+                                                      const value = parseInt(e.target.value);
+                                                      if (!value || value < 30) {
+                                                        if (onUpdateJobTime) onUpdateJobTime(jobInSlot.id, 30);
+                                                      } else if (value > 300) {
+                                                        if (onUpdateJobTime) onUpdateJobTime(jobInSlot.id, 300);
+                                                      }
+                                                    }}
+                                                    onClick={(e) => e.stopPropagation()}
+                                                    onFocus={(e) => e.currentTarget.select()}
+                                                    onMouseDown={(e) => e.stopPropagation()}
+                                                    onTouchStart={(e) => e.stopPropagation()}
+                                                    onDragStart={(e) => e.preventDefault()}
+                                                    className="w-8 border-0 bg-transparent px-0 py-0 text-center font-semibold tabular-nums text-[0.68rem] leading-none text-slate-700 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none focus:outline-none"
+                                                    min="30"
+                                                    max="300"
+                                                    step="15"
+                                                    style={{ pointerEvents: 'auto' }}
+                                                  />
+                                                  <span>m</span>
+                                                </div>
+                                                <div className={`shrink-0 inline-flex h-[22px] w-[4.3rem] items-center justify-center gap-1 rounded-full border px-1 text-[0.68rem] font-semibold leading-none ${isCompleted ? 'border-slate-300 bg-slate-100 text-slate-600' : 'border-emerald-300 bg-emerald-50 text-emerald-700'}`}>
+                                                  <Car className="h-3 w-3" aria-hidden="true" />
+                                                  <span>{driveFromPreviousMinutes}m</span>
+                                                </div>
                                               </div>
                                             </div>
                                           ) : (
-                                            // Single-slot card (original)
                                             <div
                                               role="button"
                                               tabIndex={isCompleted ? -1 : 0}
@@ -5580,16 +5891,6 @@ export function WeatherForecast({
                                               onMouseUp={() => {
                                                 if (pendingDragRef.current) {
                                                   pendingDragRef.current = null;
-                                                }
-                                              }}
-                                              onDoubleClick={(e) => {
-                                                // On double-click, focus the time input
-                                                const input = document.getElementById(`job-time-${jobInSlot.id}`) as HTMLInputElement;
-                                                if (input) {
-                                                  console.log('👆 DOUBLE CLICK - focusing input');
-                                                  e.stopPropagation();
-                                                  input.focus();
-                                                  input.select();
                                                 }
                                               }}
                                               onClick={isTouchDevice.current && !isCompleted ? (e) => {
@@ -5604,19 +5905,19 @@ export function WeatherForecast({
                                               onTouchMove={isTouchDevice.current && !isCompleted ? handleJobTouchMove : undefined}
                                               onTouchEnd={isTouchDevice.current && !isCompleted ? handleJobTouchEnd : undefined}
                                               className={`rounded text-xs group flex items-start select-none w-full ${
-                                                isMobile ? 'px-[0.4vh] py-[0.25vh]' : 'px-[0.3vh] py-[0.2vh]'
+                                                isMobile ? 'px-1.5 py-1.5' : 'px-2 py-1.5'
                                               } ${
                                                 isCompleted
-                                                  ? 'bg-gray-200/80 border border-gray-400 cursor-default'
+                                                  ? 'bg-slate-100 border border-slate-300 cursor-default'
                                                   : isSelected
-                                                  ? 'bg-green-100 border-2 border-green-600 shadow-lg'
+                                                  ? 'bg-emerald-50 border-2 border-emerald-500 shadow-md'
                                                   : isCutItem
-                                                  ? 'bg-yellow-100 border-2 border-yellow-500 shadow-lg'
+                                                  ? 'bg-amber-50 border-2 border-amber-500 shadow-md'
                                                   : isAssigned
-                                                  ? 'bg-gray-100 border-2 border-gray-400 animate-pulse cursor-grabbing'
+                                                  ? 'bg-slate-100 border-2 border-slate-400 animate-pulse cursor-grabbing'
                                                   : isAffectedByRain
-                                                  ? 'bg-blue-50 border-2 border-blue-300 cursor-grab hover:cursor-grabbing'
-                                                  : 'bg-white border border-gray-300 cursor-grab hover:cursor-grabbing active:cursor-grabbing active:bg-blue-50 active:border-blue-400'
+                                                  ? 'bg-blue-50 border border-blue-300 shadow-sm cursor-grab hover:cursor-grabbing'
+                                                    : 'bg-white/95 border border-slate-200 shadow-[0_1px_4px_rgba(15,23,42,0.10)] cursor-grab hover:cursor-grabbing hover:shadow-[0_4px_10px_rgba(15,23,42,0.14)] active:cursor-grabbing active:bg-blue-50 active:border-blue-400'
                                               }`}
                                               style={{
                                                 marginLeft: startsAtWeatherIcon ? (isMobile ? '3.5vh' : '5vh') : '0',
@@ -5624,114 +5925,72 @@ export function WeatherForecast({
                                                 userSelect: 'none',
                                                 WebkitUserSelect: 'none',
                                                 WebkitTouchCallout: 'none',
-                                                height: isMobile ? 'auto' : `calc(${spanInfo ? spanInfo.slotsNeeded : 1} * (70vh / 56) - 0.2vh)`,
+                                                height: '100%',
                                                 minHeight: '0',
                                                 marginBottom: '0',
                                                 alignSelf: 'flex-start',
                                                 pointerEvents: 'auto',
-                                                opacity: isDraggedItem ? 0 : 1,
-                                                overflow: isMobile ? 'hidden' : 'visible',
+                                                opacity: isDraggedItem && !isDraggedPreviewCopy ? 0 : 1,
+                                                overflow: 'hidden',
                                                 ...(isAffectedByRain && !isCompleted && !isSelected && !isCutItem && !isDraggedItem && !isAssigned ? {
                                                   backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 6px, rgba(59, 130, 246, 0.08) 6px, rgba(59, 130, 246, 0.08) 12px)'
                                                 } : {})
                                               }}
                                             >
-                                              <div className={`flex flex-wrap justify-center w-full ${isMobile ? 'gap-[0.25vh] items-start' : 'gap-[0.2vh] items-center'}`} onDragStart={(e) => e.preventDefault()}>
-                                                <div className={`font-semibold whitespace-nowrap leading-tight ${
-                                                  isMobile ? 'text-[1.4vh]' : 'text-[1.2vh]'
-                                                } ${isCompleted ? 'text-gray-500' : 'text-gray-800'}`}>
+                                              <div className="flex w-full items-center gap-1.5 min-w-0" onDragStart={(e) => e.preventDefault()}>
+                                                <div className={`min-w-0 flex-1 truncate font-semibold leading-tight tracking-tight ${isMobile ? 'text-[0.75rem]' : 'text-[0.8rem]'} ${isCompleted ? 'text-slate-500' : 'text-slate-900'}`}>
                                                   {customer?.name}
-                                                  {isSelected && (
-                                                    <span className={`ml-[0.25vh] text-green-600 font-semibold ${isMobile ? 'text-[1.2vh]' : 'text-[1.0vh]'}`}>✓ Selected</span>
-                                                  )}
-                                                  {isCutItem && isTouchDevice.current && !isSelected && (
-                                                    <span className={`ml-[0.25vh] text-yellow-600 font-semibold ${isMobile ? 'text-[1.2vh]' : 'text-[1.0vh]'}`}>✂️ Cut</span>
-                                                  )}
-                                                  {isCompleted && (
-                                                    <span className={`ml-[0.25vh] text-gray-600 font-bold ${isMobile ? 'text-[1.3vh]' : 'text-[1.1vh]'}`}>✓</span>
-                                                  )}
                                                 </div>
-                                                {!isDraggedItem && isAssigned && (
-                                                  <div className={`text-blue-600 font-semibold italic whitespace-nowrap leading-tight ${isMobile ? 'text-[1.3vh]' : 'text-[1.1vh]'}`}>
-                                                    Moving here...
-                                                  </div>
-                                                )}
-                                                {!isDraggedItem && !isAssigned && !isCutItem && (
-                                                  <div className={`whitespace-nowrap font-medium leading-tight ${
-                                                    isMobile ? 'text-[1.3vh]' : 'text-[1.1vh]'
-                                                  } ${isCompleted ? 'text-gray-500' : 'text-blue-700'}`}>
-                                                      {scheduledTime && <span className="font-semibold">{scheduledTime} • </span>}
-                                                      ${customer?.price} • 
-                                                      <input
-                                                        id={`job-time-${jobInSlot.id}`}
-                                                        name={`job-time-${jobInSlot.id}`}
-                                                        type="number"
-                                                        value={jobInSlot.totalTime || 60}
-                                                        onChange={(e) => {
-                                                          const newTime = parseInt(e.target.value) || 60;
-                                                          if (onUpdateJobTime && newTime >= 15 && newTime <= 300) {
-                                                            onUpdateJobTime(jobInSlot.id, newTime);
-                                                          }
-                                                        }}
-                                                        onBlur={(e) => {
-                                                          // Ensure value is valid on blur
-                                                          const value = parseInt(e.target.value);
-                                                          if (!value || value < 15) {
-                                                            if (onUpdateJobTime) onUpdateJobTime(jobInSlot.id, 15);
-                                                          } else if (value > 300) {
-                                                            if (onUpdateJobTime) onUpdateJobTime(jobInSlot.id, 300);
-                                                          }
-                                                        }}
-                                                        onKeyDown={(e) => {
-                                                          if (e.key === 'Enter') {
-                                                            e.currentTarget.blur();
-                                                          }
-                                                          e.stopPropagation();
-                                                        }}
-                                                        onClick={(e) => {
-                                                          console.log('🔢 INPUT CLICKED');
-                                                          e.stopPropagation();
-                                                          e.currentTarget.select();
-                                                        }}
-                                                        onFocus={(e) => {
-                                                          console.log('🎯 INPUT FOCUSED');
-                                                          e.currentTarget.select();
-                                                        }}
-                                                        onMouseDown={(e) => {
-                                                          console.log('🖱️ INPUT MOUSEDOWN - stopping propagation');
-                                                          e.stopPropagation();
-                                                        }}
-                                                        onTouchStart={(e) => {
-                                                          e.stopPropagation();
-                                                        }}
-                                                        onTouchEnd={(e) => {
-                                                          e.stopPropagation();
-                                                        }}
-                                                        onDragStart={(e) => e.preventDefault()}
-                                                        draggable={false}
-                                                        className="w-10 bg-transparent border-b border-dashed border-gray-400 hover:border-blue-500 focus:outline-none focus:border-blue-600 text-center cursor-text"
-                                                        min="15"
-                                                        max="300"
-                                                        step="15"
-                                                      /> min
-                                                    </div>
-                                                  )}
-                                                </div>
-                                                {!isDraggedItem && !isAssigned && !isCutItem && (
-                                                  <button
+                                                <div className={`shrink-0 inline-flex h-[22px] w-[4.3rem] items-center justify-center gap-1 rounded-full border px-1 text-[0.68rem] font-semibold leading-none ${isCompleted ? 'border-slate-300 bg-slate-100 text-slate-600' : 'border-blue-300 bg-blue-50 text-blue-700'}`}>
+                                                  <Clock3 className="h-3 w-3" aria-hidden="true" />
+                                                  <input
+                                                    id={`job-time-${jobInSlot.id}`}
+                                                    name={`job-time-${jobInSlot.id}`}
+                                                    type="number"
+                                                    value={workMinutes}
+                                                    onChange={(e) => {
+                                                      const newTime = parseInt(e.target.value) || 30;
+                                                      if (onUpdateJobTime && newTime >= 30 && newTime <= 300) {
+                                                        onUpdateJobTime(jobInSlot.id, newTime);
+                                                      }
+                                                    }}
+                                                    onBlur={(e) => {
+                                                      const value = parseInt(e.target.value);
+                                                      if (!value || value < 30) {
+                                                        if (onUpdateJobTime) onUpdateJobTime(jobInSlot.id, 30);
+                                                      } else if (value > 300) {
+                                                        if (onUpdateJobTime) onUpdateJobTime(jobInSlot.id, 300);
+                                                      }
+                                                    }}
+                                                    onKeyDown={(e) => {
+                                                      if (e.key === 'Enter') {
+                                                        e.currentTarget.blur();
+                                                      }
+                                                      e.stopPropagation();
+                                                    }}
                                                     onClick={(e) => {
                                                       e.stopPropagation();
-                                                      unassignJob(jobInSlot.id);
+                                                      e.currentTarget.select();
                                                     }}
-                                                    className="shrink-0 text-red-500 hover:text-red-700 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                    style={{ fontSize: isMobile ? '1.3vh' : '1.2vh', pointerEvents: 'auto' }}
-                                                    aria-label="Delete job"
+                                                    onFocus={(e) => e.currentTarget.select()}
+                                                    onMouseDown={(e) => e.stopPropagation()}
+                                                    onTouchStart={(e) => e.stopPropagation()}
+                                                    onTouchEnd={(e) => e.stopPropagation()}
                                                     onDragStart={(e) => e.preventDefault()}
-                                                  >
-                                                    ×
-                                                  </button>
-                                                )}
+                                                    draggable={false}
+                                                    className="w-8 border-0 bg-transparent px-0 py-0 text-center font-semibold tabular-nums text-[0.68rem] leading-none text-slate-700 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none focus:outline-none"
+                                                    min="30"
+                                                    max="300"
+                                                    step="15"
+                                                  />
+                                                  <span>m</span>
+                                                </div>
+                                                <div className={`shrink-0 inline-flex h-[22px] w-[4.3rem] items-center justify-center gap-1 rounded-full border px-1 text-[0.68rem] font-semibold leading-none ${isCompleted ? 'border-slate-300 bg-slate-100 text-slate-600' : 'border-emerald-300 bg-emerald-50 text-emerald-700'}`}>
+                                                  <Car className="h-3 w-3" aria-hidden="true" />
+                                                  <span>{driveFromPreviousMinutes}m</span>
+                                                </div>
                                               </div>
+                                            </div>
                                           );
                                           
                                           
@@ -5766,7 +6025,7 @@ export function WeatherForecast({
                             );
                           })()}                          {/* Draggable END Time Bar - At very bottom after all time slots */}
                           {(() => {
-                            const currentEndTime = dayEndTimes.get(dateStr) || 18;
+                            const currentEndTime = dayEndTimes.get(dateStr) || DEFAULT_DAY_END_HOUR;
                             
                             // Determine reason for early end
                             let endReason = "Adjust end time";
@@ -5791,7 +6050,7 @@ export function WeatherForecast({
                             }
                             
                             return (
-                              <div className={`${isMobile ? 'mt-[0.16vh]' : 'mt-[0.27vh]'}`}>
+                              <div className={`${isMobile ? 'mt-[0.42vh]' : 'mt-[0.44vh]'}`}>
                                 {/* Draggable end time handle - ALWAYS visible at bottom */}
                                 <div
                                   className={`relative cursor-ns-resize transition-all group ${isMobile ? 'py-[0.42vh]' : 'py-[0.53vh]'}`}
@@ -5902,71 +6161,69 @@ export function WeatherForecast({
                           })()}
                         </div>
                       </div>
-
-                      {/* Right: Night Weather (8pm, 11pm, 2am) aligned with day rows */}
-                      <div className={`bg-slate-800 px-[0.14vh] py-[0.28vh] w-12 h-full ${isMobile ? 'flex flex-col' : ''}`}>
-                        {/* Spacer to align with the day header + 5AM row */}
-                        <div className={`${isMobile ? 'h-auto shrink-0' : 'h-[6.93vh]'}`}></div>
-                        
-                        {/* Night weather icons aligned with specific day time slots */}
-                        {weatherForDay && (() => {
-                          // Create array with 15 slots (14 day slots + spacing) - 1 hidden at start, 3 visible, 11 hidden
-                          // This aligns 3 night icons with 5 day weather icon positions
-                          const nightSlots = Array.from({ length: 15 }, (_, i) => {
-                            // Slot 0: hidden spacer (aligns with 5am)
-                            // Slot 1-2: hidden (aligns with 6am-7am)
-                            // Slot 3: 8 PM (aligns with 8am slot)
-                            // Slot 4-5: hidden (aligns with 9am-10am)
-                            // Slot 6: 11 PM (aligns with 11am slot)
-                            // Slot 7-8: hidden (aligns with 12pm-1pm)
-                            // Slot 9: 2 AM (aligns with 2pm slot)
-                            // Slot 10-14: hidden (aligns with 3pm-6pm + end bar)
-                            if (i === 3) return { show: true, label: '8 PM' };
-                            if (i === 6) return { show: true, label: '11 PM' };
-                            if (i === 9) return { show: true, label: '2 AM' };
-                            return { show: false };
-                          });
-                          
-                          const forecastIdx = 3; // Use evening/night forecast
-                          const forecast = weatherForDay.hourlyForecasts && weatherForDay.hourlyForecasts[forecastIdx]
-                            ? weatherForDay.hourlyForecasts[forecastIdx]
-                            : { description: weatherForDay.description, precipitation: rainChance, rainAmount: 0, hour24: 23 };
-                          
-                          const effectivePrecipitation = Math.max(forecast.precipitation, rainChance);
-                          // Use hour24: 21 (9 PM) for nighttime icons
-                          const { Icon: NightIcon, color: nightColor } = getWeatherIcon(
-                            forecast.description, 
-                            effectivePrecipitation,
-                            forecast.rainAmount,
-                            21  // 9 PM for nighttime display
-                          );
-                          
-                          return (
-                            <div className={`${isMobile ? 'space-y-0 flex-1 flex flex-col justify-between gap-y-[0.42vh]' : 'flex-1 flex flex-col justify-between'}`}>
-                              {nightSlots.map((slot, idx) => (
-                                <div key={idx} className={`flex items-center justify-center ${
-                                  //Night weather slot - matches day slot height exactly
-                                  isMobile ? 'px-[.42vh] py-[.26vh] max-h-[2.37vh]' : 'h-[4.44vh] px-[0.44vh]'
-
-                                }`}>
-                                  {slot.show && (
-                                    <div className="flex flex-col items-center gap-[0.17vh]">
-                                      <NightIcon className={`${isMobile ? 'w-[2.53vh] h-[2.53vh]' : 'w-[2.84vh] h-[2.84vh]'} ${nightColor} stroke-[1.5]`} />
-                                      <span className={`text-slate-300 font-medium whitespace-nowrap ${
-                                        isMobile ? 'text-[1.02vh]' : 'text-[0.98vh]'
-                                      }`}>
-                                        {slot.label}
-                                      </span>
-                                    </div>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          );
-                        })()}
-                      </div>
                     </div>
                   </div>
+
+                  {showSuggestions && hasSuggestions && combinedSuggestions.length > 0 && (
+                    <div
+                      className={`${isMobile ? 'mx-2' : 'mx-3'} absolute left-0 right-0 bottom-3 z-30 pointer-events-none`}
+                    >
+                      <div className="flex flex-col items-start gap-1.5">
+                        {combinedSuggestions.map((activeSuggestion, index) => (
+                          <div key={`${activeSuggestion.kind}-${index}`} className="flex flex-col items-start gap-1">
+                            <span
+                              className={`rounded-full px-2 py-1 text-[0.62rem] font-semibold tracking-wide text-white shadow-sm ${
+                                activeSuggestion.kind === 'move'
+                                  ? activeSuggestion.suggestion.source === 'capacity'
+                                    ? 'bg-amber-500'
+                                    : activeSuggestion.suggestion.weatherSeverity === 'heavy'
+                                    ? 'bg-red-500'
+                                    : 'bg-blue-500'
+                                  : 'bg-blue-500'
+                              }`}
+                            >
+                              {activeSuggestion.kind === 'move'
+                                ? activeSuggestion.suggestion.source === 'capacity'
+                                  ? 'Capacity'
+                                  : activeSuggestion.suggestion.weatherSeverity === 'heavy'
+                                  ? 'Heavy Rain'
+                                  : 'Rain'
+                                : activeSuggestion.suggestion.type === 'delay'
+                                ? 'Delay'
+                                : 'End Early'}
+                            </span>
+
+                            {activeSuggestion.kind === 'move' ? (
+                              <button
+                                type="button"
+                                onClick={() => acceptMoveSuggestion(activeSuggestion.suggestion, activeSuggestion.suggestion.suggestedDate)}
+                                className="pointer-events-auto rounded-full bg-white border border-blue-200 px-2.5 py-1 text-[0.66rem] font-semibold text-blue-700 shadow-sm hover:bg-blue-50"
+                              >
+                                Move {activeSuggestion.suggestion.jobCount || 1} to {(() => {
+                                  const [year, month, day] = activeSuggestion.suggestion.suggestedDate.split('-').map(Number);
+                                  const date = new Date(year, month - 1, day);
+                                  return date.toLocaleDateString('en-US', { weekday: 'short' });
+                                })()}
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => acceptStartTimeSuggestion(activeSuggestion.suggestion.date, activeSuggestion.suggestion.suggestedStartTime, activeSuggestion.suggestion.suggestedEndTime)}
+                                className="pointer-events-auto rounded-full bg-white border border-blue-200 px-2.5 py-1 text-[0.66rem] font-semibold text-blue-700 shadow-sm hover:bg-blue-50"
+                              >
+                                Shift to {(() => {
+                                  const hour = activeSuggestion.suggestion.suggestedStartTime;
+                                  const period = hour < 12 ? 'AM' : 'PM';
+                                  const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+                                  return `${displayHour}${period}`;
+                                })()} ({activeSuggestion.suggestion.jobCount} jobs)
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   {/* Close wrapper div for day card + suggestions */}
                 </div>
                   );
@@ -6030,22 +6287,16 @@ export function WeatherForecast({
       {/* Drag preview - mini version of actual job card */}
       {draggedJobId && dragPosition && (() => {
         const draggedJob = jobs.find(j => j.id === draggedJobId);
-        if (!draggedJob) {
-          console.log('❌ Drag preview: draggedJob not found');
-          return null;
-        }
+        if (!draggedJob) return null;
         
         const customer = customers.find(c => c.id === draggedJob.customerId);
-        if (!customer) {
-          console.log('❌ Drag preview: customer not found');
-          return null;
-        }
-        
-        console.log('✅ Rendering drag preview', { customerName: customer.name, position: dragPosition });
+        if (!customer) return null;
         
         const isCompleted = draggedJob.status === 'completed';
         const isGroupDrag = customer.groupId && draggedGroupJobs.length > 1;
-        const group = isGroupDrag ? customerGroups.find(g => g.id === customer.groupId) : null;
+        const previewText = isGroupDrag
+          ? `${draggedGroupJobs.length} jobs`
+          : `${getEstimatedJobMinutes(draggedJob)}m`;
         
         return (
           <div
@@ -6053,48 +6304,22 @@ export function WeatherForecast({
             style={{
               left: 0,
               top: 0,
-              transform: `translate3d(${dragPosition.x + 15}px, ${dragPosition.y + 15}px, 0)`,
+              transform: `translate3d(${dragPosition.x - dragPointerOffsetRef.current.x}px, ${dragPosition.y - dragPointerOffsetRef.current.y}px, 0)`,
               zIndex: 999999,
               willChange: 'transform',
-              filter: 'drop-shadow(0 10px 20px rgba(59, 130, 246, 0.35))',
+              filter: 'drop-shadow(0 6px 14px rgba(37, 99, 235, 0.28))',
             }}
           >
-            {isGroupDrag && group ? (
-              <div
-                className="text-xs overflow-hidden flex flex-col select-none shadow-2xl bg-white"
-                style={{
-                  border: '2px solid rgb(107, 114, 128)',
-                  borderRadius: '3vh',
-                  padding: '8px',
-                  minWidth: dragPreviewSize?.width ? Math.max(dragPreviewSize.width, 140) : 140,
-                  minHeight: dragPreviewSize?.height ? Math.max(dragPreviewSize.height, 70) : 70,
-                  width: dragPreviewSize?.width ? dragPreviewSize.width : undefined,
-                  height: dragPreviewSize?.height ? dragPreviewSize.height : undefined,
-                  opacity: 0.95,
-                }}
-              >
-                <div className="w-full h-[4px] rounded-sm -mx-2 -mt-2 mb-2" style={{ width: 'calc(100% + 16px)', backgroundColor: group.color || '#2563eb' }} />
-                <div className="font-semibold text-gray-900 text-sm truncate">{group.name}</div>
-                <div className="text-gray-600 text-xs mt-1">{draggedGroupJobs.length} properties • {group.workTimeMinutes} min</div>
-              </div>
-            ) : (
-              <div
-                className={`text-xs overflow-hidden flex flex-col select-none shadow-2xl ${isCompleted ? 'bg-gray-200/80' : 'bg-white'}`}
-                style={{
-                  border: '2px solid rgb(107, 114, 128)',
-                  borderRadius: '3vh',
-                  padding: '6px 8px',
-                  minWidth: dragPreviewSize?.width ? Math.max(dragPreviewSize.width, 140) : 140,
-                  minHeight: dragPreviewSize?.height ? Math.max(dragPreviewSize.height, 70) : 70,
-                  width: dragPreviewSize?.width ? dragPreviewSize.width : undefined,
-                  height: dragPreviewSize?.height ? dragPreviewSize.height : undefined,
-                  opacity: 0.95,
-                }}
-              >
-                <div className="font-semibold text-gray-900 text-sm truncate">{customer.name}</div>
-                <div className="text-gray-600 text-xs mt-1">${customer.price} • {getEstimatedJobMinutes(draggedJob)} min</div>
-              </div>
-            )}
+            <div
+              className={`select-none flex items-center gap-1.5 rounded-full px-2 py-1 border text-[10px] font-semibold shadow-lg ${
+                isCompleted
+                  ? 'bg-slate-200/95 border-slate-400 text-slate-700'
+                  : 'bg-blue-600/95 border-blue-500 text-white'
+              }`}
+            >
+              <MousePointer2 className="w-3 h-3" />
+              <span className="leading-none whitespace-nowrap">{previewText}</span>
+            </div>
           </div>
         );
       })()}

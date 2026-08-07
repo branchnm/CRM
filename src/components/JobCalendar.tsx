@@ -12,7 +12,7 @@ import { Label } from './ui/label';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { getDayCapacity, DEFAULT_DAY_START_HOUR, DEFAULT_DAY_END_HOUR, getStoredDayStartHour, getStoredDayEndHour } from '../utils/scheduleCapacity';
+import { getDayCapacity, DEFAULT_DAY_START_HOUR, DEFAULT_DAY_END_HOUR, getStoredDayStartHour, getStoredDayEndHour, getUsableDayMinutes } from '../utils/scheduleCapacity';
 
 interface JobCalendarProps {
   jobs: Job[];
@@ -136,7 +136,11 @@ export function JobCalendar({ jobs, customers, onUpdateJobs, onRefreshCustomers,
 
   const getDayWindow = (dateStr: string) => ({
     dayStartHour: getStoredDayStartHour(dateStr, DEFAULT_DAY_START_HOUR),
-    dayEndHour: getStoredDayEndHour(dateStr, DEFAULT_DAY_END_HOUR)
+    dayEndHour: getStoredDayEndHour(dateStr, DEFAULT_DAY_END_HOUR),
+    usableMinutes: getUsableDayMinutes(
+      getStoredDayStartHour(dateStr, DEFAULT_DAY_START_HOUR),
+      getStoredDayEndHour(dateStr, DEFAULT_DAY_END_HOUR)
+    )
   });
 
   const handleDragStart = (e: React.DragEvent, job: Job) => {
