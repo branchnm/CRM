@@ -2,6 +2,12 @@ import type { Job } from '../App';
 
 export const DEFAULT_DAY_START_HOUR = 5;
 export const DEFAULT_DAY_END_HOUR = 19;
+export const DEFAULT_JOB_WORK_MINUTES = 60;
+export const DEFAULT_JOB_DRIVE_MINUTES = 10;
+
+export function roundDriveMinutesToFive(driveMinutes: number): number {
+  return Math.max(0, Math.ceil(driveMinutes / 5) * 5);
+}
 
 export interface DayCapacityResult {
   hasCapacity: boolean;
@@ -18,6 +24,27 @@ export interface DayCapacityOptions {
   excludeJobIds?: string[];
   dayStartHour?: number;
   dayEndHour?: number;
+  startDelayHours?: number;
+  endEarlyHours?: number;
+}
+
+export function getEstimatedJobMinutes(job: Pick<Job, 'totalTime' | 'driveTime'>): number {
+  const workMinutes = job.totalTime ?? DEFAULT_JOB_WORK_MINUTES;
+  const driveMinutes = roundDriveMinutesToFive(job.driveTime ?? DEFAULT_JOB_DRIVE_MINUTES);
+  return workMinutes + driveMinutes;
+}
+
+export function getUsableDayMinutes(
+  dayStartHour: number,
+  dayEndHour: number,
+  options: Pick<DayCapacityOptions, 'startDelayHours' | 'endEarlyHours'> = {}
+): number {
+  const { startDelayHours = 0, endEarlyHours = 0 } = options;
+  const usableStartHour = dayStartHour + startDelayHours;
+  const usableEndHour = Math.max(dayStartHour, dayEndHour - endEarlyHours);
+  const usableMinutes = Math.max(0, (usableEndHour - usableStartHour) * 60);
+
+  return usableMinutes;
 }
 
 function readStoredHourMap(storageKey: string): Map<string, number> {
@@ -50,7 +77,9 @@ export function getDayCapacity(
     additionalJobIds = [],
     excludeJobIds = [],
     dayStartHour = DEFAULT_DAY_START_HOUR,
-    dayEndHour = DEFAULT_DAY_END_HOUR
+    dayEndHour = DEFAULT_DAY_END_HOUR,
+    startDelayHours = 0,
+    endEarlyHours = 0
   } = options;
 
   const excludeSet = new Set(excludeJobIds);
@@ -66,11 +95,8 @@ export function getDayCapacity(
     .filter((job): job is Job => job !== undefined && !excludeSet.has(job.id));
 
   const allJobs = [...jobsOnDay, ...additionalJobs];
-  const totalMinutes = allJobs.reduce(
-    (sum, job) => sum + (job.totalTime || 30) + (job.driveTime || 0),
-    0
-  );
-  const availableMinutes = Math.max(0, (dayEndHour - dayStartHour) * 60);
+  const totalMinutes = allJobs.reduce((sum, job) => sum + getEstimatedJobMinutes(job), 0);
+  const availableMinutes = getUsableDayMinutes(dayStartHour, dayEndHour, { startDelayHours, endEarlyHours });
 
   if (totalMinutes > availableMinutes) {
     const hours = Math.floor(totalMinutes / 60);

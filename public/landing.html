@@ -80,6 +80,40 @@
             padding: 100px 0 60px 0;
             text-align: center;
         }
+        .hero-update-bar {
+            max-width: 980px;
+            margin: 2rem auto 0;
+            padding: 1rem 1.25rem;
+            border-radius: 1rem;
+            background: rgba(255,255,255,0.14);
+            border: 1px solid rgba(255,255,255,0.24);
+            backdrop-filter: blur(12px);
+            box-shadow: 0 14px 30px rgba(15, 23, 42, 0.16);
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 0.75rem;
+            text-align: left;
+        }
+        .hero-update-item {
+            padding: 0.85rem 0.95rem;
+            border-radius: 0.85rem;
+            background: rgba(15, 23, 42, 0.16);
+        }
+        .hero-update-label {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 800;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.78);
+            margin-bottom: 0.35rem;
+        }
+        .hero-update-item strong {
+            display: block;
+            font-size: 1rem;
+            line-height: 1.45;
+            font-weight: 700;
+        }
         .hero h1 {
             font-size: 3.5rem;
             font-weight: 900;
@@ -370,6 +404,12 @@
             display: flex;
             align-items: center;
             gap: 6px;
+        }
+        .job-size-note {
+            margin-top: 0.35rem;
+            color: #2563eb;
+            font-size: 0.83rem;
+            font-weight: 700;
         }
         .job-weather-indicator {
             width: 44px;
@@ -1420,6 +1460,10 @@
             .hero p {
                 font-size: 1.2rem;
             }
+            .hero-update-bar {
+                grid-template-columns: 1fr;
+                width: 100%;
+            }
             .cta-buttons {
                 flex-direction: column;
             }
@@ -1485,6 +1529,9 @@
             }
             .job-time {
                 font-size: 0.8rem;
+            }
+            .job-size-note {
+                font-size: 0.78rem;
             }
             .job-weather-indicator {
                 width: 40px;
@@ -1558,6 +1605,12 @@
             .hero p {
                 font-size: 1rem;
             }
+            .hero-update-bar {
+                padding: 0.85rem;
+            }
+            .hero-update-item {
+                padding: 0.8rem;
+            }
             .app-demo-container {
                 margin: 1.5rem auto;
                 width: 98%;
@@ -1614,6 +1667,9 @@
             }
             .job-time {
                 font-size: 0.7rem;
+            }
+            .job-size-note {
+                font-size: 0.72rem;
             }
             .job-weather-indicator {
                 width: 36px;
@@ -1700,11 +1756,25 @@
             <p class="hero-subtitle">
                 <span class="hero-phrase">Discover how smart scheduling</span>
                 <span class="hero-phrase"> and weather-aware features</span>
-                <span class="hero-phrase"> make outdoor service management effortless</span>
+                <span class="hero-phrase"> make outdoor service management route-aware and effortless</span>
             </p>
             <div class="hero-buttons">
                 <a href="#demo-features" class="btn btn-secondary">See How It Works</a>
                 <a href="/app" class="btn btn-primary">Sign Up / Login</a>
+            </div>
+            <div class="hero-update-bar">
+                <div class="hero-update-item">
+                    <span class="hero-update-label">Scheduling</span>
+                    <strong>Job blocks now include drive time plus work time.</strong>
+                </div>
+                <div class="hero-update-item">
+                    <span class="hero-update-label">Drive Time</span>
+                    <strong>Travel is rounded up in 5-minute steps for cleaner day planning.</strong>
+                </div>
+                <div class="hero-update-item">
+                    <span class="hero-update-label">Example</span>
+                    <strong>A 30-minute mow with a 30-minute drive reserves a full 1-hour slot.</strong>
+                </div>
             </div>
         </div>
     </section>
@@ -1761,6 +1831,7 @@
                                 <div class="job-info">
                                     <div class="job-customer">Johnson Residence</div>
                                     <div class="job-time">⏰ 9:00 AM - <span class="job-day">Today</span></div>
+                                    <div class="job-size-note">30m service + 15m drive = 45m block</div>
                                 </div>
                                 <div class="job-weather-indicator good">☀️</div>
                             </div>
@@ -1768,6 +1839,7 @@
                                 <div class="job-info">
                                     <div class="job-customer">Smith Property</div>
                                     <div class="job-time">⏰ 11:00 AM - <span class="job-day">Today</span></div>
+                                    <div class="job-size-note">45m service + 20m drive = 65m block</div>
                                 </div>
                                 <div class="job-weather-indicator good">☀️</div>
                             </div>
@@ -1775,6 +1847,7 @@
                                 <div class="job-info">
                                     <div class="job-customer">Brown Lawn Care</div>
                                     <div class="job-time">⏰ 2:00 PM - <span class="job-day">Today</span></div>
+                                    <div class="job-size-note">30m service + 30m drive = 1h block</div>
                                 </div>
                                 <div class="job-weather-indicator good">☀️</div>
                             </div>
@@ -1888,7 +1961,7 @@
                         <div class="feature-icon" style="margin: 0;">🗺️</div>
                         <h3 style="margin: 0; color: #667eea;">Route Optimization</h3>
                     </div>
-                    <p style="color: #64748b; margin-bottom: 1rem;">One click optimizes your entire route, saving time and fuel costs.</p>
+                    <p style="color: #64748b; margin-bottom: 1rem;">One click optimizes your entire route, and schedule blocks account for travel plus service time so the day stays realistic.</p>
                     <div style="background: #f8fafc; border-radius: 12px; padding: 1.25rem;">
                         <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
                             <div style="flex: 1; text-align: center;">
@@ -1897,14 +1970,14 @@
                             </div>
                             <div style="flex: 1; text-align: center;">
                                 <div style="font-size: 1.5rem; font-weight: 700; color: #1e293b;">3.5h</div>
-                                <div style="font-size: 0.75rem; color: #64748b;">Time</div>
+                                <div style="font-size: 0.75rem; color: #64748b;">Drive Time</div>
                             </div>
                             <div style="flex: 1; text-align: center;">
-                                <div style="font-size: 1.5rem; font-weight: 700; color: #1e293b;">5</div>
-                                <div style="font-size: 0.75rem; color: #64748b;">Stops</div>
+                                <div style="font-size: 1.5rem; font-weight: 700; color: #1e293b;">8.0h</div>
+                                <div style="font-size: 0.75rem; color: #64748b;">Total Day</div>
                             </div>
                         </div>
-                        <button style="width: 100%; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; padding: 0.75rem; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 0.9rem; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);">View Route</button>
+                        <button style="width: 100%; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; padding: 0.75rem; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 0.9rem; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);">View Route & Schedule</button>
                     </div>
                 </div>
 
@@ -1971,25 +2044,86 @@
                 const jobsHeader = document.querySelector('.jobs-header');
                 const smsCustomers = document.querySelectorAll('.sms-customer');
                 const smsTitle = smsNotification.querySelector('.sms-title');
+                const alertMessage = weatherAlert.querySelector('.alert-message');
+                const alertSuggestion = weatherAlert.querySelector('.alert-suggestion');
+
+                const demoStates = {
+                    today: {
+                        header: "Today's Schedule",
+                        day: 'Today',
+                        iconClass: 'good',
+                        icon: '☀️',
+                        alertMessage: '3 jobs scheduled during heavy rain. Reschedule to avoid delays?',
+                        alertSuggestion: '💡 Monday has clear weather and availability',
+                        jobs: [
+                            { time: '⏰ 9:00 AM - ', note: '30m service + 15m drive = 45m block' },
+                            { time: '⏰ 11:00 AM - ', note: '45m service + 20m drive = 65m block' },
+                            { time: '⏰ 2:00 PM - ', note: '30m service + 30m drive = 1h block' }
+                        ]
+                    },
+                    sunday: {
+                        header: "Sunday's Schedule",
+                        day: 'Sunday',
+                        iconClass: 'bad',
+                        icon: '🌧️',
+                        alertMessage: '3 jobs are booked into a rainy route. Move them before crews lose an hour in delays.',
+                        alertSuggestion: '💡 Monday keeps the same work but trims travel into cleaner 5-minute planning blocks',
+                        jobs: [
+                            { time: '⏰ 9:00 AM - ', note: '30m service + 35m rain-adjusted drive = 65m block' },
+                            { time: '⏰ 11:00 AM - ', note: '45m service + 25m drive = 70m block' },
+                            { time: '⏰ 2:00 PM - ', note: '30m service + 30m drive = 1h block' }
+                        ]
+                    },
+                    monday: {
+                        header: "Monday's Optimized Schedule",
+                        day: 'Monday',
+                        iconClass: 'good',
+                        icon: '☀️',
+                        alertMessage: 'Customers were notified and the route was rebuilt for a cleaner day.',
+                        alertSuggestion: '💡 Rounded drive times and service durations now fit inside the available work window',
+                        jobs: [
+                            { time: '⏰ 8:30 AM - ', note: '30m service + 10m drive = 40m block' },
+                            { time: '⏰ 10:00 AM - ', note: '45m service + 15m drive = 1h block' },
+                            { time: '⏰ 12:00 PM - ', note: '30m service + 15m drive = 45m block' }
+                        ]
+                    }
+                };
+
+                function applyDemoState(stateKey) {
+                    const state = demoStates[stateKey];
+                    jobsHeader.textContent = state.header;
+                    if (alertMessage) alertMessage.textContent = state.alertMessage;
+                    if (alertSuggestion) alertSuggestion.textContent = state.alertSuggestion;
+
+                    jobs.forEach((job, index) => {
+                        const indicator = job.querySelector('.job-weather-indicator');
+                        const daySpan = job.querySelector('.job-day');
+                        const timeRow = job.querySelector('.job-time');
+                        const note = job.querySelector('.job-size-note');
+                        const jobState = state.jobs[index];
+
+                        if (indicator) {
+                            indicator.className = `job-weather-indicator ${state.iconClass}`;
+                            indicator.textContent = state.icon;
+                        }
+
+                        if (daySpan) daySpan.textContent = state.day;
+                        if (timeRow && jobState) timeRow.innerHTML = `${jobState.time}<span class="job-day">${state.day}</span>`;
+                        if (note && jobState) note.textContent = jobState.note;
+                    });
+                }
 
                 // Reset all
                 steps.forEach(s => s.classList.remove('active'));
                 weatherAlert.classList.remove('show');
                 smsNotification.classList.remove('show');
                 smsCustomers.forEach(c => c.classList.remove('sent'));
-                jobsHeader.textContent = "Today's Schedule";
+                applyDemoState('today');
                 
                 jobs.forEach((job, i) => {
                     job.style.opacity = '1';
                     job.style.transform = 'translateX(0)';
                     job.classList.remove('moving');
-                    const indicator = job.querySelector('.job-weather-indicator');
-                    const daySpan = job.querySelector('.job-day');
-                    if (indicator) {
-                        indicator.className = 'job-weather-indicator good';
-                        indicator.textContent = '☀️';
-                    }
-                    if (daySpan) daySpan.textContent = 'Today';
                 });
                 
                 gradients.forEach(g => {
@@ -2045,17 +2179,7 @@
                         forecastCards[2].style.transform = 'scale(1.08)';
                         forecastCards[2].style.boxShadow = '0 8px 20px rgba(59, 130, 246, 0.4)';
                         
-                        // Update header and jobs to Sunday
-                        jobsHeader.textContent = "Sunday's Schedule";
-                        jobs.forEach(job => {
-                            const indicator = job.querySelector('.job-weather-indicator');
-                            const daySpan = job.querySelector('.job-day');
-                            if (indicator) {
-                                indicator.className = 'job-weather-indicator bad';
-                                indicator.textContent = '🌧️';
-                            }
-                            if (daySpan) daySpan.textContent = 'Sunday';
-                        });
+                        applyDemoState('sunday');
                     }, 300);
                     
                     // Show weather alert
@@ -2113,6 +2237,25 @@
                             smsNotification.querySelector('.sms-icon').textContent = '✓';
                         }, smsCustomers.length * 500 + 300);
                     }, 800);
+
+                    setTimeout(() => {
+                        forecastCards[2].classList.remove('active');
+                        forecastCards[2].style.transform = 'scale(1)';
+                        forecastCards[2].style.boxShadow = '';
+                        forecastCards[3].classList.add('active');
+                        forecastCards[3].style.transition = 'all 0.5s ease';
+                        forecastCards[3].style.transform = 'scale(1.08)';
+                        forecastCards[3].style.boxShadow = '0 8px 20px rgba(148, 163, 184, 0.35)';
+                        applyDemoState('monday');
+
+                        jobs.forEach((job, i) => {
+                            setTimeout(() => {
+                                job.classList.remove('moving');
+                                job.style.transform = 'translateX(0)';
+                                job.style.opacity = '1';
+                            }, i * 160);
+                        });
+                    }, 2100);
                 }, stepDuration * 2);
 
                 // Step 4: Reset and loop (12-14s)

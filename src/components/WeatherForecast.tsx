@@ -46,7 +46,8 @@ import {
 import { 
   DEFAULT_DAY_END_HOUR,
   DEFAULT_DAY_START_HOUR,
-  getDayCapacity 
+  getDayCapacity,
+  getEstimatedJobMinutes
 } from '../utils/scheduleCapacity';
 import { toast } from 'sonner';
 
@@ -4816,7 +4817,7 @@ export function WeatherForecast({
                                 if (job.id === draggedJobId) return;
                                 
                                 // Calculate how many 15-min slots this job needs
-                                const jobDuration = job.totalTime || 60; // Default to 60 minutes
+                                const jobDuration = getEstimatedJobMinutes(job);
                                 const slotsNeeded = Math.ceil(jobDuration / 15); // 15 minutes per slot
                                 
                                 // Store the range for this job
@@ -6091,7 +6092,7 @@ export function WeatherForecast({
                 }}
               >
                 <div className="font-semibold text-gray-900 text-sm truncate">{customer.name}</div>
-                <div className="text-gray-600 text-xs mt-1">${customer.price} • {draggedJob.totalTime || 60} min</div>
+                <div className="text-gray-600 text-xs mt-1">${customer.price} • {getEstimatedJobMinutes(draggedJob)} min</div>
               </div>
             )}
           </div>
