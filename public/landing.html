@@ -214,6 +214,9 @@
             background: #f8fafc;
             scroll-margin-top: -40px;
         }
+        .demo-features .container {
+            max-width: 1500px;
+        }
         .demo-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
@@ -255,9 +258,9 @@
 
         /* Animated App Demo */
         .app-demo-container {
-            max-width: 1100px;
+            max-width: 1460px;
             margin: 1.5rem auto 3rem auto;
-            width: 90%;
+            width: 100%;
             overflow: hidden;
         }
         .app-demo-screen {
@@ -273,6 +276,397 @@
             max-width: 100%;
             display: flex;
             flex-direction: column;
+        }
+        .live-demo-shell {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 1.25rem;
+            gap: 1rem;
+            background:
+                radial-gradient(circle at top left, rgba(59, 130, 246, 0.10), transparent 30%),
+                linear-gradient(180deg, #f8fbff 0%, #fffdf7 100%);
+        }
+        .live-demo-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            padding: 0.4rem 0.2rem;
+        }
+        .live-demo-toolbar-brand {
+            font-size: 1rem;
+            font-weight: 900;
+            letter-spacing: 0.08em;
+            color: #2563eb;
+        }
+        .live-demo-toolbar-brand span {
+            margin-left: 0.45rem;
+            padding: 0.18rem 0.38rem;
+            border-radius: 999px;
+            font-size: 0.58rem;
+            letter-spacing: 0.04em;
+            color: #7c3aed;
+            background: rgba(124, 58, 237, 0.12);
+            vertical-align: middle;
+        }
+        .live-demo-toolbar-actions {
+            display: flex;
+            gap: 0.55rem;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+        .live-demo-toolbar-btn {
+            padding: 0.45rem 0.85rem;
+            border-radius: 0.8rem;
+            border: 1px solid #dbeafe;
+            background: white;
+            color: #334155;
+            font-size: 0.78rem;
+            font-weight: 700;
+            box-shadow: 0 2px 6px rgba(15, 23, 42, 0.06);
+        }
+        .live-demo-toolbar-btn.muted {
+            background: linear-gradient(180deg, #7da6ff 0%, #5b8ef7 100%);
+            color: white;
+            border-color: transparent;
+            opacity: 0.78;
+        }
+        .live-demo-suggestion-row {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 0.8rem;
+        }
+        .live-demo-pill {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.65rem;
+            padding: 0.55rem 0.75rem;
+            border-radius: 1rem;
+            border: 2px solid #3b82f6;
+            background: rgba(255,255,255,0.94);
+            box-shadow: 0 10px 20px rgba(37, 99, 235, 0.08);
+            min-height: 54px;
+        }
+        .live-demo-pill-tag {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 0.6rem;
+            padding: 0.38rem 0.6rem;
+            font-size: 0.82rem;
+            font-weight: 800;
+            color: white;
+            white-space: nowrap;
+        }
+        .live-demo-pill-tag.red {
+            background: #ef4444;
+        }
+        .live-demo-pill-tag.blue {
+            background: #2563eb;
+        }
+        .live-demo-pill-copy {
+            flex: 1;
+            min-width: 0;
+            color: #334155;
+            font-size: 0.82rem;
+            font-weight: 700;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .live-demo-pill-copy.small {
+            font-size: 0.84rem;
+            font-weight: 600;
+            color: #475569;
+        }
+        .live-demo-pill-action {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.42rem 0.8rem;
+            border-radius: 0.75rem;
+            background: #2563eb;
+            color: white;
+            font-size: 0.84rem;
+            font-weight: 800;
+            white-space: nowrap;
+        }
+        .live-demo-board-wrap {
+            position: relative;
+        }
+        .live-demo-board {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 1rem;
+            align-items: stretch;
+        }
+        .live-demo-nav {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 2.8rem;
+            height: 2.8rem;
+            border-radius: 999px;
+            border: none;
+            background: linear-gradient(180deg, #2d6dff 0%, #2563eb 100%);
+            color: white;
+            font-size: 1.35rem;
+            box-shadow: 0 14px 22px rgba(37, 99, 235, 0.22);
+            z-index: 2;
+        }
+        .live-demo-nav.left {
+            left: -1.4rem;
+        }
+        .live-demo-nav.right {
+            right: -1.4rem;
+        }
+        .live-demo-day {
+            background: rgba(255,255,255,0.94);
+            border: 1px solid rgba(148, 163, 184, 0.28);
+            border-radius: 1.35rem;
+            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+            padding: 0.8rem 0.8rem 0.7rem;
+            transition: transform 0.35s ease, box-shadow 0.35s ease, border-color 0.35s ease;
+        }
+        .live-demo-day.is-active {
+            transform: translateY(-4px);
+            border-color: rgba(37, 99, 235, 0.45);
+            box-shadow: 0 20px 34px rgba(37, 99, 235, 0.16);
+        }
+        .live-demo-day-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 0.5rem;
+            margin-bottom: 0.2rem;
+        }
+        .live-demo-day-title {
+            display: flex;
+            align-items: baseline;
+            gap: 0.3rem;
+            flex-wrap: wrap;
+        }
+        .live-demo-day-name {
+            font-size: 1rem;
+            font-weight: 900;
+            color: #0f172a;
+        }
+        .live-demo-day-date {
+            font-size: 0.9rem;
+            color: #64748b;
+        }
+        .live-demo-day-badge {
+            padding: 0.18rem 0.5rem;
+            border-radius: 999px;
+            font-size: 0.72rem;
+            font-weight: 800;
+            color: #1d4ed8;
+            background: rgba(59, 130, 246, 0.12);
+        }
+        .live-demo-day-meta {
+            display: flex;
+            align-items: center;
+            gap: 0.55rem;
+            margin-bottom: 0.55rem;
+            color: #334155;
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
+        .live-demo-day-meta .alert {
+            color: #dc2626;
+        }
+        .live-demo-day-meta .full {
+            padding: 0.06rem 0.35rem;
+            border-radius: 999px;
+            background: #ef4444;
+            color: white;
+            font-size: 0.64rem;
+            letter-spacing: 0.03em;
+        }
+        .live-demo-day-track,
+        .live-demo-day-bottom {
+            position: relative;
+            height: 0.4rem;
+            border-radius: 999px;
+            background: linear-gradient(90deg, #2563eb, #3b82f6);
+            margin-bottom: 0.6rem;
+        }
+        .live-demo-day-bottom {
+            margin-bottom: 0;
+            margin-top: 0.6rem;
+        }
+        .live-demo-day-track::after,
+        .live-demo-day-bottom::after {
+            content: '';
+            position: absolute;
+            left: 52%;
+            top: 50%;
+            width: 0.58rem;
+            height: 0.58rem;
+            border-radius: 999px;
+            background: white;
+            border: 2px solid #2563eb;
+            transform: translate(-50%, -50%);
+        }
+        .live-demo-day-body {
+            position: relative;
+            height: 385px;
+            border-radius: 0.95rem;
+            overflow: hidden;
+            background: linear-gradient(180deg, #eef2f7 0%, #dce6f5 100%);
+            border: 1px solid rgba(148, 163, 184, 0.22);
+        }
+        .live-demo-day-body.rainy {
+            background: linear-gradient(180deg, #dbe8ff 0%, #8aa3e0 100%);
+        }
+        .live-demo-day-body.sunny {
+            background: linear-gradient(180deg, #f4f5f7 0%, #eceef2 100%);
+        }
+        .live-demo-job-column {
+            position: absolute;
+            inset: 0 2.95rem 0 1.95rem;
+        }
+        .live-demo-time-rail,
+        .live-demo-night-rail {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 1.95rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 1.05rem 0.28rem 1rem;
+            color: #64748b;
+            font-size: 0.68rem;
+            font-weight: 700;
+        }
+        .live-demo-time-rail {
+            left: 0;
+        }
+        .live-demo-night-rail {
+            right: 0;
+            width: 2.95rem;
+            background: #22314a;
+            color: white;
+            text-align: center;
+        }
+        .live-demo-rail-mark {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.18rem;
+            opacity: 0.9;
+        }
+        .live-demo-rail-mark .icon {
+            font-size: 1.45rem;
+            line-height: 1;
+        }
+        .live-demo-job-card {
+            position: absolute;
+            left: 0.35rem;
+            right: 0.25rem;
+            min-height: 3rem;
+            padding: 0.45rem 0.5rem;
+            border: 2px solid #4a86ff;
+            background: rgba(255,255,255,0.92);
+            box-shadow: 0 4px 10px rgba(37, 99, 235, 0.08);
+        }
+        .live-demo-job-card h4 {
+            font-size: 0.76rem;
+            font-weight: 800;
+            color: #0f172a;
+            text-align: center;
+            margin-bottom: 0.28rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .live-demo-job-card p {
+            font-size: 0.68rem;
+            color: #1d4ed8;
+            text-align: center;
+            line-height: 1.2;
+        }
+        .live-demo-route {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.7rem;
+            padding-top: 0.25rem;
+        }
+        .live-demo-route-title {
+            position: relative;
+            padding: 0 2rem;
+            font-size: 1rem;
+            font-weight: 900;
+            letter-spacing: 0.03em;
+            color: #1e3a8a;
+            text-transform: uppercase;
+        }
+        .live-demo-route-title::before,
+        .live-demo-route-title::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            width: 96px;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.6), transparent);
+        }
+        .live-demo-route-title::before {
+            right: 100%;
+            margin-right: 0.7rem;
+        }
+        .live-demo-route-title::after {
+            left: 100%;
+            margin-left: 0.7rem;
+        }
+        .live-demo-route-btn {
+            padding: 0.7rem 1.15rem;
+            border-radius: 0.9rem;
+            background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+            font-size: 0.84rem;
+            font-weight: 800;
+            box-shadow: 0 10px 20px rgba(37, 99, 235, 0.18);
+        }
+        .live-demo-capacity-card {
+            background: rgba(255,255,255,0.96);
+            border: 1px solid rgba(148, 163, 184, 0.22);
+            border-radius: 1.1rem;
+            padding: 1rem 1.1rem;
+            box-shadow: 0 12px 24px rgba(15, 23, 42, 0.06);
+        }
+        .live-demo-capacity-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            margin-bottom: 0.55rem;
+            color: #334155;
+            font-size: 0.84rem;
+            font-weight: 700;
+        }
+        .live-demo-capacity-bar {
+            height: 0.42rem;
+            border-radius: 999px;
+            background: #dbeafe;
+            overflow: hidden;
+        }
+        .live-demo-capacity-bar span {
+            display: block;
+            height: 100%;
+            width: 15%;
+            border-radius: 999px;
+            background: linear-gradient(90deg, #2563eb, #7aa7ff);
+            transition: width 0.4s ease;
+        }
+        .live-demo-capacity-foot {
+            margin-top: 0.45rem;
+            color: #64748b;
+            font-size: 0.72rem;
+            font-weight: 600;
         }
 
         /* Simple Weather Forecast Bar */
@@ -1483,6 +1877,26 @@
                 min-height: 450px;
                 border: 4px solid #1e293b;
             }
+            .live-demo-shell {
+                padding: 1rem 0.9rem;
+                gap: 0.85rem;
+            }
+            .live-demo-suggestion-row {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+            .live-demo-board {
+                grid-template-columns: repeat(2, minmax(230px, 1fr));
+            }
+            .live-demo-nav {
+                display: none;
+            }
+            .live-demo-day-body {
+                height: 330px;
+            }
+            .live-demo-route-title::before,
+            .live-demo-route-title::after {
+                width: 52px;
+            }
             .day-cards-container {
                 padding: 20px 12px;
             }
@@ -1618,9 +2032,61 @@
             .app-demo-screen {
                 border: 3px solid #1e293b;
                 border-radius: 12px;
-                height: 65vh;
-                max-height: 500px;
+                height: auto;
+                max-height: none;
                 min-height: 400px;
+            }
+            .live-demo-shell {
+                padding: 0.8rem;
+            }
+            .live-demo-toolbar {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+            .live-demo-toolbar-actions {
+                justify-content: flex-start;
+            }
+            .live-demo-suggestion-row {
+                grid-template-columns: 1fr;
+            }
+            .live-demo-pill {
+                min-height: 0;
+                padding: 0.6rem 0.7rem;
+            }
+            .live-demo-board {
+                grid-template-columns: 1fr;
+                overflow-x: auto;
+            }
+            .live-demo-day {
+                min-width: 0;
+            }
+            .live-demo-day-body {
+                height: 300px;
+            }
+            .live-demo-job-column {
+                inset: 0 2.85rem 0 1.9rem;
+            }
+            .live-demo-time-rail {
+                width: 1.85rem;
+                font-size: 0.58rem;
+            }
+            .live-demo-night-rail {
+                width: 2.75rem;
+                font-size: 0.58rem;
+            }
+            .live-demo-job-card h4 {
+                font-size: 0.7rem;
+            }
+            .live-demo-job-card p {
+                font-size: 0.62rem;
+            }
+            .live-demo-route-title {
+                font-size: 0.82rem;
+                padding: 0 0.8rem;
+            }
+            .live-demo-route-title::before,
+            .live-demo-route-title::after {
+                display: none;
             }
             .demo-forecast-bar {
                 padding: 12px 8px;
@@ -1789,118 +2255,189 @@
             <!-- Animated App Demo -->
             <div class="app-demo-container">
                 <div class="app-demo-screen">
-                    <!-- Simple Weather Forecast -->
-                    <div class="demo-forecast-bar">
-                        <div class="forecast-day-card active">
-                            <div class="day-name">Today</div>
-                            <div class="day-icon">☀️</div>
-                            <div class="day-temp">76°</div>
-                            <div class="forecast-gradient sunny"></div>
-                        </div>
-                        <div class="forecast-day-card">
-                            <div class="day-name">Saturday</div>
-                            <div class="day-icon">⛅</div>
-                            <div class="day-temp">74°</div>
-                            <div class="forecast-gradient cloudy"></div>
-                        </div>
-                        <div class="forecast-day-card" data-rainy="true">
-                            <div class="day-name">Sunday</div>
-                            <div class="day-icon">🌧️</div>
-                            <div class="day-temp">68°</div>
-                            <div class="forecast-gradient rainy"></div>
-                        </div>
-                        <div class="forecast-day-card">
-                            <div class="day-name">Monday</div>
-                            <div class="day-icon">⛅</div>
-                            <div class="day-temp">71°</div>
-                            <div class="forecast-gradient cloudy"></div>
-                        </div>
-                        <div class="forecast-day-card">
-                            <div class="day-name">Tuesday</div>
-                            <div class="day-icon">☀️</div>
-                            <div class="day-temp">75°</div>
-                            <div class="forecast-gradient sunny"></div>
-                        </div>
-                    </div>
-
-                    <!-- Jobs List -->
-                    <div class="day-cards-container">
-                        <h3 class="jobs-header">Today's Schedule</h3>
-                        <div class="jobs-list">
-                            <div class="demo-job" data-job="1">
-                                <div class="job-info">
-                                    <div class="job-customer">Johnson Residence</div>
-                                    <div class="job-time">⏰ 9:00 AM - <span class="job-day">Today</span></div>
-                                    <div class="job-size-note">30m service + 15m drive = 45m block</div>
-                                </div>
-                                <div class="job-weather-indicator good">☀️</div>
-                            </div>
-                            <div class="demo-job" data-job="2">
-                                <div class="job-info">
-                                    <div class="job-customer">Smith Property</div>
-                                    <div class="job-time">⏰ 11:00 AM - <span class="job-day">Today</span></div>
-                                    <div class="job-size-note">45m service + 20m drive = 65m block</div>
-                                </div>
-                                <div class="job-weather-indicator good">☀️</div>
-                            </div>
-                            <div class="demo-job" data-job="3">
-                                <div class="job-info">
-                                    <div class="job-customer">Brown Lawn Care</div>
-                                    <div class="job-time">⏰ 2:00 PM - <span class="job-day">Today</span></div>
-                                    <div class="job-size-note">30m service + 30m drive = 1h block</div>
-                                </div>
-                                <div class="job-weather-indicator good">☀️</div>
+                    <div class="live-demo-shell" data-demo-state="storm">
+                        <div class="live-demo-toolbar">
+                            <div class="live-demo-toolbar-brand">JOB FLOW <span>DEMO</span></div>
+                            <div class="live-demo-toolbar-actions">
+                                <span class="live-demo-toolbar-btn">Today</span>
+                                <span class="live-demo-toolbar-btn muted">Optimize Off</span>
                             </div>
                         </div>
 
-                        <!-- Weather Alert Popup -->
-                        <div class="weather-alert-popup">
-                            <div class="alert-header">
-                                <div class="alert-icon">⚠️</div>
-                                <div class="alert-title">Heavy Rain Sunday</div>
+                        <div class="live-demo-suggestion-row">
+                            <div class="live-demo-pill" data-pill="0">
+                                <span class="live-demo-pill-tag red">Heavy Rain</span>
+                                <span class="live-demo-pill-copy">7 jobs</span>
+                                <span class="live-demo-pill-action">Tue, Aug 11</span>
                             </div>
-                            <div class="alert-message">
-                                3 jobs scheduled during heavy rain. Reschedule to avoid delays?
+                            <div class="live-demo-pill" data-pill="1">
+                                <span class="live-demo-pill-tag blue">Delay</span>
+                                <span class="live-demo-pill-copy">5:00 AM → 3:00 PM</span>
+                                <span class="live-demo-pill-action">Apply</span>
                             </div>
-                            <div class="alert-suggestion">
-                                💡 Monday has clear weather and availability
+                            <div class="live-demo-pill" data-pill="2">
+                                <span class="live-demo-pill-tag blue">End Early</span>
+                                <span class="live-demo-pill-copy">5:00 AM → 6:00 AM</span>
+                                <span class="live-demo-pill-action">Apply</span>
+                            </div>
+                            <div class="live-demo-pill" data-pill="3">
+                                <span class="live-demo-pill-tag blue">Route</span>
+                                <span class="live-demo-pill-copy small">Travel + work synced</span>
+                                <span class="live-demo-pill-action">Review</span>
                             </div>
                         </div>
 
-                        <!-- SMS Notification Popup -->
-                        <div class="sms-notification-popup">
-                            <div class="sms-icon">📱</div>
-                            <div class="sms-title">Sending Messages...</div>
-                            <div class="sms-customer-list">
-                                <div class="sms-customer" data-customer="1">
-                                    <span>✓</span>
-                                    <span>Johnson Residence</span>
+                        <div class="live-demo-board-wrap">
+                            <button class="live-demo-nav left" aria-hidden="true">‹</button>
+                            <div class="live-demo-board">
+                                <div class="live-demo-day is-active" data-day="today">
+                                    <div class="live-demo-day-header">
+                                        <div class="live-demo-day-title"><span class="live-demo-day-name">Today</span><span class="live-demo-day-date">Aug 7</span></div>
+                                        <span class="live-demo-day-badge">95%</span>
+                                    </div>
+                                    <div class="live-demo-day-meta"><span>7 jobs</span><span>⏱ 3h 30m</span></div>
+                                    <div class="live-demo-day-track"></div>
+                                    <div class="live-demo-day-body rainy">
+                                        <div class="live-demo-time-rail">
+                                            <div class="live-demo-rail-mark"><span class="icon">🌧️</span><span>5 AM</span></div>
+                                            <div class="live-demo-rail-mark"><span class="icon">🌧️</span><span>8 AM</span></div>
+                                            <div class="live-demo-rail-mark"><span class="icon">🌧️</span><span>11 AM</span></div>
+                                            <div class="live-demo-rail-mark"><span class="icon">🌧️</span><span>2 PM</span></div>
+                                        </div>
+                                        <div class="live-demo-job-column">
+                                            <div class="live-demo-job-card" style="top: 18px;"><h4>Smith Estate</h4><p>5 AM • $95 • 60 min</p></div>
+                                            <div class="live-demo-job-card" style="top: 72px;"><h4>Davis Property</h4><p>6 AM • $48 • 60 min</p></div>
+                                            <div class="live-demo-job-card" style="top: 126px;"><h4>Johnson House</h4><p>7 AM • $45 • 60 min</p></div>
+                                            <div class="live-demo-job-card" style="top: 180px;"><h4>Brown Residence</h4><p>8 AM • $40 • 60 min</p></div>
+                                            <div class="live-demo-job-card" style="top: 234px;"><h4>Martinez Property</h4><p>9 AM • $35 • 60 min</p></div>
+                                            <div class="live-demo-job-card" style="top: 288px;"><h4>Williams Home</h4><p>10 AM • $55 • 60 min</p></div>
+                                        </div>
+                                        <div class="live-demo-night-rail">
+                                            <div class="live-demo-rail-mark"><span class="icon">🌙</span><span>8 PM</span></div>
+                                            <div class="live-demo-rail-mark"><span class="icon">🌧️</span><span>11 PM</span></div>
+                                            <div class="live-demo-rail-mark"><span class="icon">🌧️</span><span>2 AM</span></div>
+                                        </div>
+                                    </div>
+                                    <div class="live-demo-day-bottom"></div>
                                 </div>
-                                <div class="sms-customer" data-customer="2">
-                                    <span>✓</span>
-                                    <span>Smith Property</span>
+
+                                <div class="live-demo-day" data-day="sat">
+                                    <div class="live-demo-day-header">
+                                        <div class="live-demo-day-title"><span class="live-demo-day-name">Sat</span><span class="live-demo-day-date">Aug 8</span></div>
+                                        <span class="live-demo-day-badge">70%</span>
+                                    </div>
+                                    <div class="live-demo-day-meta"><span class="alert">6 jobs</span><span class="full">FULL</span><span>⏱ 4h</span></div>
+                                    <div class="live-demo-day-track"></div>
+                                    <div class="live-demo-day-body rainy">
+                                        <div class="live-demo-time-rail">
+                                            <div class="live-demo-rail-mark"><span class="icon">🌧️</span><span>5 AM</span></div>
+                                            <div class="live-demo-rail-mark"><span class="icon">🌧️</span><span>8 AM</span></div>
+                                            <div class="live-demo-rail-mark"><span class="icon">☁️</span><span>11 AM</span></div>
+                                            <div class="live-demo-rail-mark"><span class="icon">☁️</span><span>2 PM</span></div>
+                                        </div>
+                                        <div class="live-demo-job-column">
+                                            <div class="live-demo-job-card" style="top: 18px;"><h4>Garcia Home</h4><p>5 AM • $42 • 90 min</p></div>
+                                            <div class="live-demo-job-card" style="top: 94px;"><h4>Roberts Home</h4><p>6 AM • $47 • 60 min</p></div>
+                                            <div class="live-demo-job-card" style="top: 148px;"><h4>Anderson Property</h4><p>7 AM • $50 • 60 min</p></div>
+                                            <div class="live-demo-job-card" style="top: 202px;"><h4>Wilson Estate</h4><p>8 AM • $75 • 60 min</p></div>
+                                            <div class="live-demo-job-card" style="top: 256px;"><h4>Thompson Property</h4><p>9 AM • $43 • 60 min</p></div>
+                                        </div>
+                                        <div class="live-demo-night-rail">
+                                            <div class="live-demo-rail-mark"><span class="icon">🌙</span><span>8 PM</span></div>
+                                            <div class="live-demo-rail-mark"><span class="icon">🌙</span><span>11 PM</span></div>
+                                            <div class="live-demo-rail-mark"><span class="icon">🌙</span><span>2 AM</span></div>
+                                        </div>
+                                    </div>
+                                    <div class="live-demo-day-bottom"></div>
                                 </div>
-                                <div class="sms-customer" data-customer="3">
-                                    <span>✓</span>
-                                    <span>Brown Lawn Care</span>
+
+                                <div class="live-demo-day" data-day="sun">
+                                    <div class="live-demo-day-header">
+                                        <div class="live-demo-day-title"><span class="live-demo-day-name">Sun</span><span class="live-demo-day-date">Aug 9</span></div>
+                                        <span class="live-demo-day-badge">20%</span>
+                                    </div>
+                                    <div class="live-demo-day-meta"><span>5 jobs</span><span>⏱ 2h 30m</span></div>
+                                    <div class="live-demo-day-track"></div>
+                                    <div class="live-demo-day-body sunny">
+                                        <div class="live-demo-time-rail">
+                                            <div class="live-demo-rail-mark"><span class="icon">🌤️</span><span>5 AM</span></div>
+                                            <div class="live-demo-rail-mark"><span class="icon">☀️</span><span>8 AM</span></div>
+                                            <div class="live-demo-rail-mark"><span class="icon">☁️</span><span>11 AM</span></div>
+                                            <div class="live-demo-rail-mark"><span class="icon">☁️</span><span>2 PM</span></div>
+                                        </div>
+                                        <div class="live-demo-job-column">
+                                            <div class="live-demo-job-card" style="top: 18px;"><h4>Martin Residence</h4><p>5 AM • $38 • 60 min</p></div>
+                                            <div class="live-demo-job-card" style="top: 72px;"><h4>Clark Property</h4><p>6 AM • $58 • 60 min</p></div>
+                                            <div class="live-demo-job-card" style="top: 126px;"><h4>White Home</h4><p>7 AM • $48 • 60 min</p></div>
+                                            <div class="live-demo-job-card" style="top: 180px;"><h4>Harris Estate</h4><p>8 AM • $90 • 60 min</p></div>
+                                            <div class="live-demo-job-card" style="top: 234px;"><h4>Lee Property</h4><p>9 AM • $52 • 60 min</p></div>
+                                        </div>
+                                        <div class="live-demo-night-rail">
+                                            <div class="live-demo-rail-mark"><span class="icon">🌙</span><span>8 PM</span></div>
+                                            <div class="live-demo-rail-mark"><span class="icon">🌙</span><span>11 PM</span></div>
+                                            <div class="live-demo-rail-mark"><span class="icon">🌙</span><span>2 AM</span></div>
+                                        </div>
+                                    </div>
+                                    <div class="live-demo-day-bottom"></div>
+                                </div>
+
+                                <div class="live-demo-day" data-day="mon">
+                                    <div class="live-demo-day-header">
+                                        <div class="live-demo-day-title"><span class="live-demo-day-name">Mon</span><span class="live-demo-day-date">Aug 10</span></div>
+                                        <span class="live-demo-day-badge">75%</span>
+                                    </div>
+                                    <div class="live-demo-day-meta"><span>2 jobs</span><span>⏱ 1h</span></div>
+                                    <div class="live-demo-day-track"></div>
+                                    <div class="live-demo-day-body rainy">
+                                        <div class="live-demo-time-rail">
+                                            <div class="live-demo-rail-mark"><span class="icon">☁️</span><span>5 AM</span></div>
+                                            <div class="live-demo-rail-mark"><span class="icon">☁️</span><span>8 AM</span></div>
+                                            <div class="live-demo-rail-mark"><span class="icon">☁️</span><span>11 AM</span></div>
+                                            <div class="live-demo-rail-mark"><span class="icon">🌧️</span><span>2 PM</span></div>
+                                        </div>
+                                        <div class="live-demo-job-column">
+                                            <div class="live-demo-job-card" style="top: 18px;"><h4>Young Residence</h4><p>5 AM • $41 • 60 min</p></div>
+                                            <div class="live-demo-job-card" style="top: 72px;"><h4>King Home</h4><p>6 AM • $68 • 60 min</p></div>
+                                        </div>
+                                        <div class="live-demo-night-rail">
+                                            <div class="live-demo-rail-mark"><span class="icon">🌧️</span><span>8 PM</span></div>
+                                            <div class="live-demo-rail-mark"><span class="icon">🌧️</span><span>11 PM</span></div>
+                                            <div class="live-demo-rail-mark"><span class="icon">🌧️</span><span>2 AM</span></div>
+                                        </div>
+                                    </div>
+                                    <div class="live-demo-day-bottom"></div>
                                 </div>
                             </div>
+                            <button class="live-demo-nav right" aria-hidden="true">›</button>
                         </div>
-                    </div>
 
-                    <!-- Animation Steps Indicator -->
-                    <div class="demo-steps">
-                        <div class="demo-step active" data-step="1">
-                            <div class="step-number">1</div>
-                            <div class="step-label">Weather forecast</div>
+                        <div class="live-demo-route">
+                            <div class="live-demo-route-title" data-route-title>TUE, JUL 28'S JOBS</div>
+                            <div class="live-demo-route-btn" data-route-action>Navigate Full Route (2 stops)</div>
                         </div>
-                        <div class="demo-step" data-step="2">
-                            <div class="step-number">2</div>
-                            <div class="step-label">Reschedule jobs</div>
+
+                        <div class="live-demo-capacity-card">
+                            <div class="live-demo-capacity-head">
+                                <span data-capacity-label>Day Capacity: 2h 10m / 14h 0m</span>
+                                <span data-capacity-used>15% used</span>
+                            </div>
+                            <div class="live-demo-capacity-bar"><span data-capacity-fill></span></div>
+                            <div class="live-demo-capacity-foot" data-capacity-foot>Work window: 5:00 AM - 7:00 PM with route-aware job sizing.</div>
                         </div>
-                        <div class="demo-step" data-step="3">
-                            <div class="step-number">3</div>
-                            <div class="step-label">Notify customers</div>
+
+                        <div class="demo-steps">
+                            <div class="demo-step active" data-step="1">
+                                <div class="step-number">1</div>
+                                <div class="step-label">Weather</div>
+                            </div>
+                            <div class="demo-step" data-step="2">
+                                <div class="step-number">2</div>
+                                <div class="step-label">Capacity</div>
+                            </div>
+                            <div class="demo-step" data-step="3">
+                                <div class="step-number">3</div>
+                                <div class="step-label">Route</div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -2029,251 +2566,124 @@
     </footer>
 
     <script>
-        // Simple Animated Demo Script
+        // Landing page forecast board demo
         (function() {
-            let currentStep = 0;
-            const stepDuration = 4000; // 4 seconds per step
+            let hasStarted = false;
+            const stepDuration = 3200;
 
             function runDemoAnimation() {
                 const steps = document.querySelectorAll('.demo-step');
-                const weatherAlert = document.querySelector('.weather-alert-popup');
-                const smsNotification = document.querySelector('.sms-notification-popup');
-                const jobs = document.querySelectorAll('.demo-job');
-                const gradients = document.querySelectorAll('.forecast-gradient');
-                const forecastCards = document.querySelectorAll('.forecast-day-card');
-                const jobsHeader = document.querySelector('.jobs-header');
-                const smsCustomers = document.querySelectorAll('.sms-customer');
-                const smsTitle = smsNotification.querySelector('.sms-title');
-                const alertMessage = weatherAlert.querySelector('.alert-message');
-                const alertSuggestion = weatherAlert.querySelector('.alert-suggestion');
+                const board = document.querySelector('.live-demo-shell');
+                const routeTitle = document.querySelector('[data-route-title]');
+                const routeAction = document.querySelector('[data-route-action]');
+                const capacityLabel = document.querySelector('[data-capacity-label]');
+                const capacityUsed = document.querySelector('[data-capacity-used]');
+                const capacityFill = document.querySelector('[data-capacity-fill]');
+                const capacityFoot = document.querySelector('[data-capacity-foot]');
+                const dayCards = document.querySelectorAll('.live-demo-day');
+                const pills = document.querySelectorAll('.live-demo-pill');
 
-                const demoStates = {
-                    today: {
-                        header: "Today's Schedule",
-                        day: 'Today',
-                        iconClass: 'good',
-                        icon: '☀️',
-                        alertMessage: '3 jobs scheduled during heavy rain. Reschedule to avoid delays?',
-                        alertSuggestion: '💡 Monday has clear weather and availability',
-                        jobs: [
-                            { time: '⏰ 9:00 AM - ', note: '30m service + 15m drive = 45m block' },
-                            { time: '⏰ 11:00 AM - ', note: '45m service + 20m drive = 65m block' },
-                            { time: '⏰ 2:00 PM - ', note: '30m service + 30m drive = 1h block' }
+                const states = [
+                    {
+                        key: 'storm',
+                        activeDay: 'today',
+                        routeTitle: "TUE, JUL 28'S JOBS",
+                        routeAction: 'Navigate Full Route (2 stops)',
+                        capacityLabel: 'Day Capacity: 2h 10m / 14h 0m',
+                        capacityUsed: '15% used',
+                        capacityWidth: '15%',
+                        capacityFoot: 'Work window: 5:00 AM - 7:00 PM with route-aware job sizing.',
+                        pills: [
+                            ['Heavy Rain', '7 jobs', 'Tue, Aug 11', 'red'],
+                            ['Delay', '5:00 AM → 3:00 PM', 'Apply', 'blue'],
+                            ['End Early', '5:00 AM → 6:00 AM', 'Apply', 'blue'],
+                            ['Route', 'Travel + work synced', 'Review', 'blue']
                         ]
                     },
-                    sunday: {
-                        header: "Sunday's Schedule",
-                        day: 'Sunday',
-                        iconClass: 'bad',
-                        icon: '🌧️',
-                        alertMessage: '3 jobs are booked into a rainy route. Move them before crews lose an hour in delays.',
-                        alertSuggestion: '💡 Monday keeps the same work but trims travel into cleaner 5-minute planning blocks',
-                        jobs: [
-                            { time: '⏰ 9:00 AM - ', note: '30m service + 35m rain-adjusted drive = 65m block' },
-                            { time: '⏰ 11:00 AM - ', note: '45m service + 25m drive = 70m block' },
-                            { time: '⏰ 2:00 PM - ', note: '30m service + 30m drive = 1h block' }
+                    {
+                        key: 'delay',
+                        activeDay: 'sat',
+                        routeTitle: "SAT, AUG 8'S JOBS",
+                        routeAction: 'Delay Start to 8:00 AM',
+                        capacityLabel: 'Day Capacity: 4h 0m / 14h 0m',
+                        capacityUsed: '29% used',
+                        capacityWidth: '29%',
+                        capacityFoot: 'Morning rain compresses the route, so the app suggests a later start.',
+                        pills: [
+                            ['Rain Window', '6 jobs flagged', 'Saturday', 'red'],
+                            ['Delay', 'Start when grass dries', '8:00 AM', 'blue'],
+                            ['Capacity', '4h planned inside 14h day', 'Fits', 'blue'],
+                            ['Route', 'Crew timing is still realistic', 'Keep Route', 'blue']
                         ]
                     },
-                    monday: {
-                        header: "Monday's Optimized Schedule",
-                        day: 'Monday',
-                        iconClass: 'good',
-                        icon: '☀️',
-                        alertMessage: 'Customers were notified and the route was rebuilt for a cleaner day.',
-                        alertSuggestion: '💡 Rounded drive times and service durations now fit inside the available work window',
-                        jobs: [
-                            { time: '⏰ 8:30 AM - ', note: '30m service + 10m drive = 40m block' },
-                            { time: '⏰ 10:00 AM - ', note: '45m service + 15m drive = 1h block' },
-                            { time: '⏰ 12:00 PM - ', note: '30m service + 15m drive = 45m block' }
+                    {
+                        key: 'optimized',
+                        activeDay: 'sun',
+                        routeTitle: "SUN, AUG 9'S JOBS",
+                        routeAction: 'Navigate Full Route (5 stops)',
+                        capacityLabel: 'Day Capacity: 2h 30m / 14h 0m',
+                        capacityUsed: '18% used',
+                        capacityWidth: '18%',
+                        capacityFoot: 'Rounded drive times and job durations are reflected in the route plan.',
+                        pills: [
+                            ['Clear Window', 'Best mowing day', 'Move jobs here', 'blue'],
+                            ['Drive Time', 'Rounded to 5-minute blocks', 'Enabled', 'blue'],
+                            ['Route', '5 stops organized tightly', 'Navigate', 'blue'],
+                            ['Schedule', 'Real slot usage', 'Synced', 'blue']
                         ]
                     }
-                };
+                ];
 
-                function applyDemoState(stateKey) {
-                    const state = demoStates[stateKey];
-                    jobsHeader.textContent = state.header;
-                    if (alertMessage) alertMessage.textContent = state.alertMessage;
-                    if (alertSuggestion) alertSuggestion.textContent = state.alertSuggestion;
+                function applyState(index) {
+                    const state = states[index];
+                    if (!state || !board) return;
 
-                    jobs.forEach((job, index) => {
-                        const indicator = job.querySelector('.job-weather-indicator');
-                        const daySpan = job.querySelector('.job-day');
-                        const timeRow = job.querySelector('.job-time');
-                        const note = job.querySelector('.job-size-note');
-                        const jobState = state.jobs[index];
+                    board.dataset.demoState = state.key;
+                    if (routeTitle) routeTitle.textContent = state.routeTitle;
+                    if (routeAction) routeAction.textContent = state.routeAction;
+                    if (capacityLabel) capacityLabel.textContent = state.capacityLabel;
+                    if (capacityUsed) capacityUsed.textContent = state.capacityUsed;
+                    if (capacityFill) capacityFill.style.width = state.capacityWidth;
+                    if (capacityFoot) capacityFoot.textContent = state.capacityFoot;
 
-                        if (indicator) {
-                            indicator.className = `job-weather-indicator ${state.iconClass}`;
-                            indicator.textContent = state.icon;
+                    steps.forEach((step, stepIndex) => {
+                        step.classList.toggle('active', stepIndex === index);
+                    });
+
+                    dayCards.forEach((card) => {
+                        card.classList.toggle('is-active', card.getAttribute('data-day') === state.activeDay);
+                    });
+
+                    pills.forEach((pill, pillIndex) => {
+                        const pillState = state.pills[pillIndex];
+                        if (!pillState) return;
+                        const [tag, copy, action, tone] = pillState;
+                        const tagEl = pill.querySelector('.live-demo-pill-tag');
+                        const copyEl = pill.querySelector('.live-demo-pill-copy');
+                        const actionEl = pill.querySelector('.live-demo-pill-action');
+                        if (tagEl) {
+                            tagEl.textContent = tag;
+                            tagEl.className = `live-demo-pill-tag ${tone}`;
                         }
-
-                        if (daySpan) daySpan.textContent = state.day;
-                        if (timeRow && jobState) timeRow.innerHTML = `${jobState.time}<span class="job-day">${state.day}</span>`;
-                        if (note && jobState) note.textContent = jobState.note;
+                        if (copyEl) copyEl.textContent = copy;
+                        if (actionEl) actionEl.textContent = action;
                     });
                 }
 
-                // Reset all
-                steps.forEach(s => s.classList.remove('active'));
-                weatherAlert.classList.remove('show');
-                smsNotification.classList.remove('show');
-                smsCustomers.forEach(c => c.classList.remove('sent'));
-                applyDemoState('today');
-                
-                jobs.forEach((job, i) => {
-                    job.style.opacity = '1';
-                    job.style.transform = 'translateX(0)';
-                    job.classList.remove('moving');
-                });
-                
-                gradients.forEach(g => {
-                    g.style.transform = 'scaleX(1)';
-                    g.style.height = '8px';
-                });
-                
-                forecastCards.forEach((card, i) => {
-                    card.classList.remove('active');
-                    card.style.transform = 'scale(1)';
-                    card.style.boxShadow = '';
-                });
-                forecastCards[0].classList.add('active');
-
-                // Step 1: Show sunny forecast and gradients (0-4s)
-                setTimeout(() => {
-                    steps[0].classList.add('active');
-                    
-                    // Pulse each gradient bar to show weather visualization
-                    gradients.forEach((gradient, i) => {
-                        setTimeout(() => {
-                            gradient.style.transition = 'all 0.6s ease-out';
-                            gradient.style.transform = 'scaleX(1.05)';
-                            gradient.style.height = '12px';
-                            setTimeout(() => {
-                                gradient.style.transform = 'scaleX(1)';
-                                gradient.style.height = '8px';
-                            }, 600);
-                        }, i * 250);
-                    });
-
-                    // Highlight Today (sunny)
-                    setTimeout(() => {
-                        forecastCards[0].style.transition = 'all 0.5s ease';
-                        forecastCards[0].style.transform = 'scale(1.08)';
-                        forecastCards[0].style.boxShadow = '0 8px 20px rgba(251, 191, 36, 0.4)';
-                    }, 1800);
-                }, 100);
-
-                // Step 2: Switch to Sunday rainy day and show alert (4-8s)
-                setTimeout(() => {
-                    steps[0].classList.remove('active');
-                    steps[1].classList.add('active');
-                    
-                    // Switch active day from Today to Sunday
-                    forecastCards[0].classList.remove('active');
-                    forecastCards[0].style.transform = 'scale(1)';
-                    forecastCards[0].style.boxShadow = '';
-                    
-                    setTimeout(() => {
-                        forecastCards[2].classList.add('active');
-                        forecastCards[2].style.transition = 'all 0.5s ease';
-                        forecastCards[2].style.transform = 'scale(1.08)';
-                        forecastCards[2].style.boxShadow = '0 8px 20px rgba(59, 130, 246, 0.4)';
-                        
-                        applyDemoState('sunday');
-                    }, 300);
-                    
-                    // Show weather alert
-                    setTimeout(() => {
-                        weatherAlert.classList.add('show');
-                    }, 800);
-
-                    // Pulse weather indicators on jobs
-                    setTimeout(() => {
-                        jobs.forEach((job, i) => {
-                            setTimeout(() => {
-                                const indicator = job.querySelector('.job-weather-indicator');
-                                if (indicator) {
-                                    indicator.style.transition = 'all 0.3s ease';
-                                    indicator.style.transform = 'scale(1.15)';
-                                    setTimeout(() => {
-                                        indicator.style.transform = 'scale(1)';
-                                    }, 300);
-                                }
-                            }, i * 200);
-                        });
-                    }, 1400);
+                let stepIndex = 0;
+                applyState(stepIndex);
+                setInterval(() => {
+                    stepIndex = (stepIndex + 1) % states.length;
+                    applyState(stepIndex);
                 }, stepDuration);
-
-                // Step 3: Reschedule jobs and animate SMS sending (8-12s)
-                setTimeout(() => {
-                    steps[1].classList.remove('active');
-                    steps[2].classList.add('active');
-                    weatherAlert.classList.remove('show');
-                    
-                    // Move jobs off screen (being rescheduled)
-                    jobs.forEach((job, i) => {
-                        setTimeout(() => {
-                            job.classList.add('moving');
-                            job.style.transform = 'translateX(-100px)';
-                            job.style.opacity = '0';
-                        }, i * 200);
-                    });
-
-                    // Show SMS notification popup with more visible animation
-                    setTimeout(() => {
-                        smsNotification.classList.add('show');
-                        smsTitle.textContent = 'Sending Messages...';
-                        
-                        // Animate each customer message being sent
-                        smsCustomers.forEach((customer, i) => {
-                            setTimeout(() => {
-                                customer.classList.add('sent');
-                            }, i * 500);
-                        });
-                        
-                        // Update title when all sent
-                        setTimeout(() => {
-                            smsTitle.textContent = 'All Customers Notified ✓';
-                            smsNotification.querySelector('.sms-icon').textContent = '✓';
-                        }, smsCustomers.length * 500 + 300);
-                    }, 800);
-
-                    setTimeout(() => {
-                        forecastCards[2].classList.remove('active');
-                        forecastCards[2].style.transform = 'scale(1)';
-                        forecastCards[2].style.boxShadow = '';
-                        forecastCards[3].classList.add('active');
-                        forecastCards[3].style.transition = 'all 0.5s ease';
-                        forecastCards[3].style.transform = 'scale(1.08)';
-                        forecastCards[3].style.boxShadow = '0 8px 20px rgba(148, 163, 184, 0.35)';
-                        applyDemoState('monday');
-
-                        jobs.forEach((job, i) => {
-                            setTimeout(() => {
-                                job.classList.remove('moving');
-                                job.style.transform = 'translateX(0)';
-                                job.style.opacity = '1';
-                            }, i * 160);
-                        });
-                    }, 2100);
-                }, stepDuration * 2);
-
-                // Step 4: Reset and loop (12-14s)
-                setTimeout(() => {
-                    steps[2].classList.remove('active');
-                    smsNotification.classList.remove('show');
-                    
-                    // Restart animation after brief pause
-                    setTimeout(runDemoAnimation, 2000);
-                }, stepDuration * 3);
             }
 
             // Start animation when demo comes into viewport
             const observer = new IntersectionObserver((entries) => {
                 entries.forEach(entry => {
-                    if (entry.isIntersecting && currentStep === 0) {
+                    if (entry.isIntersecting && !hasStarted) {
                         runDemoAnimation();
-                        currentStep = 1; // Prevent multiple simultaneous starts
+                        hasStarted = true;
                     }
                 });
             }, { threshold: 0.3 });
