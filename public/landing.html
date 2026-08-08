@@ -690,11 +690,16 @@
             position: absolute;
             left: 0.25rem;
             right: 0.25rem;
-            min-height: 2.8rem;
-            padding: 0.42rem 0.5rem;
+            min-height: 0;
+            padding: 0.36rem 0.5rem;
             border: 2px solid #4a86ff;
             background: rgba(255,255,255,0.92);
             box-shadow: 0 4px 10px rgba(37, 99, 235, 0.08);
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 0.12rem;
         }
         .live-demo-open-gap {
             position: absolute;
@@ -828,7 +833,7 @@
             font-weight: 800;
             color: #0f172a;
             text-align: left;
-            margin-bottom: 0.18rem;
+            margin-bottom: 0.08rem;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -2749,7 +2754,7 @@
                                         </div>
                                         <div class="live-demo-job-column" id="stepOneWedColumn">
                                             <div class="live-demo-job-card" style="top: 14px; height: 72px;"><h4>Taylor Residence</h4><div class="live-demo-job-meta"><span class="live-demo-job-chip work">90 m</span><span class="live-demo-job-chip drive">10 m</span></div></div>
-                                            <div class="live-demo-job-card" style="top: 154px; height: 36px;"><h4>Thompson Property</h4><div class="live-demo-job-meta"><span class="live-demo-job-chip work">30 m</span><span class="live-demo-job-chip drive">5 m</span></div></div>
+                                            <div class="live-demo-job-card" style="top: 94px; height: 38px;"><h4>Thompson Property</h4><div class="live-demo-job-meta"><span class="live-demo-job-chip work">30 m</span><span class="live-demo-job-chip drive">5 m</span></div></div>
                                         </div>
                                     </div>
                                     <div class="live-demo-day-bottom"></div>
@@ -2772,8 +2777,8 @@
                                         </div>
                                         <div class="live-demo-job-column" id="stepOneThuColumn">
                                             <div class="live-demo-job-card" style="top: 14px; height: 52px;"><h4>White Home</h4><div class="live-demo-job-meta"><span class="live-demo-job-chip work">60 m</span><span class="live-demo-job-chip drive">10 m</span></div></div>
-                                            <div class="live-demo-job-card" style="top: 154px; height: 36px;"><h4>Wilson Estate</h4><div class="live-demo-job-meta"><span class="live-demo-job-chip work">30 m</span><span class="live-demo-job-chip drive">5 m</span></div></div>
-                                            <div class="live-demo-job-card" style="top: 274px; height: 52px;"><h4>Roberts Home</h4><div class="live-demo-job-meta"><span class="live-demo-job-chip work">60 m</span><span class="live-demo-job-chip drive">10 m</span></div></div>
+                                            <div class="live-demo-job-card" style="top: 74px; height: 38px;"><h4>Wilson Estate</h4><div class="live-demo-job-meta"><span class="live-demo-job-chip work">30 m</span><span class="live-demo-job-chip drive">5 m</span></div></div>
+                                            <div class="live-demo-job-card" style="top: 120px; height: 52px;"><h4>Roberts Home</h4><div class="live-demo-job-meta"><span class="live-demo-job-chip work">60 m</span><span class="live-demo-job-chip drive">10 m</span></div></div>
                                         </div>
                                     </div>
                                     <div class="live-demo-day-bottom"></div>
@@ -2962,8 +2967,8 @@
 
                 if (applyState === 'ready') {
                     const moveCards = document.querySelectorAll('#stepOneTueColumn .live-demo-job-card[data-move-target]');
-                    const wedMovedSlots = ['98px', '210px'];
-                    const thuMovedSlots = ['78px', '210px'];
+                    const wedMovedSlots = ['94px', '198px'];
+                    const thuMovedSlots = ['74px', '198px'];
                     let wedIndex = 0;
                     let thuIndex = 0;
 
@@ -2975,7 +2980,7 @@
                     if (wedExistingCards[1]) wedExistingCards[1].style.top = '154px';
                     if (thuExistingCards[0]) thuExistingCards[0].style.top = '14px';
                     if (thuExistingCards[1]) thuExistingCards[1].style.top = '154px';
-                    if (thuExistingCards[2]) thuExistingCards[2].style.top = '230px';
+                    if (thuExistingCards[2]) thuExistingCards[2].style.top = '242px';
 
                     moveCards.forEach((card) => {
                         const target = card.getAttribute('data-move-target');
