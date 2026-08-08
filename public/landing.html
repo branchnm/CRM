@@ -326,6 +326,13 @@
             font-weight: 700;
             box-shadow: 0 2px 6px rgba(15, 23, 42, 0.06);
         }
+        .live-demo-toolbar-btn.apply-live {
+            background: linear-gradient(180deg, #2d6dff 0%, #2563eb 100%);
+            color: white;
+            border-color: transparent;
+            box-shadow: 0 8px 18px rgba(37, 99, 235, 0.28);
+            animation: pulse 1.2s ease-in-out infinite;
+        }
         .live-demo-toolbar-btn.muted {
             background: linear-gradient(180deg, #7da6ff 0%, #5b8ef7 100%);
             color: white;
@@ -365,6 +372,9 @@
         }
         .live-demo-pill-tag.blue {
             background: #2563eb;
+        }
+        .live-demo-pill-tag.green {
+            background: #16a34a;
         }
         .live-demo-pill-copy {
             flex: 1;
@@ -2428,15 +2438,15 @@
                         <div class="demo-steps">
                             <div class="demo-step active" data-step="1">
                                 <div class="step-number">1</div>
-                                <div class="step-label">Weather</div>
+                                <div class="step-label">Rain Alert</div>
                             </div>
                             <div class="demo-step" data-step="2">
                                 <div class="step-number">2</div>
-                                <div class="step-label">Capacity</div>
+                                <div class="step-label">Apply All</div>
                             </div>
                             <div class="demo-step" data-step="3">
                                 <div class="step-number">3</div>
-                                <div class="step-label">Route</div>
+                                <div class="step-label">Optimize Route</div>
                             </div>
                         </div>
                     </div>
@@ -2582,54 +2592,58 @@
                 const capacityFoot = document.querySelector('[data-capacity-foot]');
                 const dayCards = document.querySelectorAll('.live-demo-day');
                 const pills = document.querySelectorAll('.live-demo-pill');
+                const applyAllBtn = document.querySelector('.live-demo-toolbar-actions .live-demo-toolbar-btn:last-child');
 
                 const states = [
                     {
                         key: 'storm',
                         activeDay: 'today',
-                        routeTitle: "TUE, JUL 28'S JOBS",
-                        routeAction: 'Navigate Full Route (2 stops)',
-                        capacityLabel: 'Day Capacity: 2h 10m / 14h 0m',
-                        capacityUsed: '15% used',
-                        capacityWidth: '15%',
-                        capacityFoot: 'Work window: 5:00 AM - 7:00 PM with route-aware job sizing.',
+                        applyPulse: true,
+                        routeTitle: "TODAY'S JOBS",
+                        routeAction: 'Rain delay predicted by 8 AM',
+                        capacityLabel: 'Day Capacity: 7h 0m / 14h 0m',
+                        capacityUsed: '50% used',
+                        capacityWidth: '50%',
+                        capacityFoot: 'Weather alert: heavy rain pushes early jobs into a risky window.',
                         pills: [
-                            ['Heavy Rain', '7 jobs', 'Tue, Aug 11', 'red'],
-                            ['Delay', '5:00 AM → 3:00 PM', 'Apply', 'blue'],
-                            ['End Early', '5:00 AM → 6:00 AM', 'Apply', 'blue'],
-                            ['Route', 'Travel + work synced', 'Review', 'blue']
+                            ['Heavy Rain', 'Morning storm risk', '95% at 8 AM', 'red'],
+                            ['Delay Start', '5:00 AM → 10:00 AM', 'Recommended', 'blue'],
+                            ['Move Jobs', '3 jobs to Sun (20%)', 'Best day', 'blue'],
+                            ['Apply All', 'Bundle all changes', 'Ready', 'blue']
                         ]
                     },
                     {
-                        key: 'delay',
-                        activeDay: 'sat',
-                        routeTitle: "SAT, AUG 8'S JOBS",
-                        routeAction: 'Delay Start to 8:00 AM',
-                        capacityLabel: 'Day Capacity: 4h 0m / 14h 0m',
-                        capacityUsed: '29% used',
-                        capacityWidth: '29%',
-                        capacityFoot: 'Morning rain compresses the route, so the app suggests a later start.',
+                        key: 'apply',
+                        activeDay: 'sun',
+                        applyPulse: true,
+                        routeTitle: "SUN, AUG 9'S JOBS",
+                        routeAction: 'Apply All executed: +3 jobs moved',
+                        capacityLabel: 'Day Capacity: 5h 30m / 14h 0m',
+                        capacityUsed: '39% used',
+                        capacityWidth: '39%',
+                        capacityFoot: 'Rain delay and reschedule suggestions applied in one tap.',
                         pills: [
-                            ['Rain Window', '6 jobs flagged', 'Saturday', 'red'],
-                            ['Delay', 'Start when grass dries', '8:00 AM', 'blue'],
-                            ['Capacity', '4h planned inside 14h day', 'Fits', 'blue'],
-                            ['Route', 'Crew timing is still realistic', 'Keep Route', 'blue']
+                            ['Applied', 'Delay start to 10:00 AM', 'Saved', 'green'],
+                            ['Moved', '3 jobs shifted to Sun', 'Done', 'green'],
+                            ['Capacity', 'Now balanced across days', 'Stable', 'blue'],
+                            ['Next Step', 'Optimize route order', 'Run', 'blue']
                         ]
                     },
                     {
                         key: 'optimized',
                         activeDay: 'sun',
+                        applyPulse: false,
                         routeTitle: "SUN, AUG 9'S JOBS",
-                        routeAction: 'Navigate Full Route (5 stops)',
-                        capacityLabel: 'Day Capacity: 2h 30m / 14h 0m',
-                        capacityUsed: '18% used',
-                        capacityWidth: '18%',
-                        capacityFoot: 'Rounded drive times and job durations are reflected in the route plan.',
+                        routeAction: 'Navigate Optimized Route (8 stops)',
+                        capacityLabel: 'Day Capacity: 5h 5m / 14h 0m',
+                        capacityUsed: '36% used',
+                        capacityWidth: '36%',
+                        capacityFoot: 'Route optimization reorders stops and uses rounded drive + job time blocks.',
                         pills: [
-                            ['Clear Window', 'Best mowing day', 'Move jobs here', 'blue'],
+                            ['Clear Window', 'Best mowing day', 'Accepted', 'blue'],
                             ['Drive Time', 'Rounded to 5-minute blocks', 'Enabled', 'blue'],
-                            ['Route', '5 stops organized tightly', 'Navigate', 'blue'],
-                            ['Schedule', 'Real slot usage', 'Synced', 'blue']
+                            ['Route', '8 stops organized tightly', 'Navigate', 'blue'],
+                            ['Schedule', 'Updated slots + order', 'Synced', 'blue']
                         ]
                     }
                 ];
@@ -2653,6 +2667,10 @@
                     dayCards.forEach((card) => {
                         card.classList.toggle('is-active', card.getAttribute('data-day') === state.activeDay);
                     });
+
+                    if (applyAllBtn) {
+                        applyAllBtn.classList.toggle('apply-live', Boolean(state.applyPulse));
+                    }
 
                     pills.forEach((pill, pillIndex) => {
                         const pillState = state.pills[pillIndex];
