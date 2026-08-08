@@ -294,6 +294,11 @@
             gap: 1rem;
             padding: 0.4rem 0.2rem;
         }
+        .live-demo-title-block {
+            display: flex;
+            flex-direction: column;
+            gap: 0.16rem;
+        }
         .live-demo-toolbar-brand {
             font-size: 1rem;
             font-weight: 900;
@@ -338,6 +343,48 @@
             color: white;
             border-color: transparent;
             opacity: 0.78;
+        }
+        .live-demo-header-card {
+            border: 1px solid rgba(59, 130, 246, 0.24);
+            border-radius: 0.9rem;
+            background: rgba(255, 255, 255, 0.86);
+            padding: 0.62rem 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.7rem;
+        }
+        .live-demo-header-copy {
+            display: flex;
+            flex-direction: column;
+            gap: 0.08rem;
+        }
+        .live-demo-header-kicker {
+            font-size: 0.66rem;
+            font-weight: 900;
+            color: #2563eb;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+        .live-demo-header-title {
+            font-size: 0.93rem;
+            font-weight: 900;
+            color: #0f172a;
+            line-height: 1.15;
+        }
+        .live-demo-header-note {
+            font-size: 0.75rem;
+            color: #475569;
+            font-weight: 700;
+        }
+        .live-demo-header-step {
+            border-radius: 999px;
+            background: #2563eb;
+            color: white;
+            font-size: 0.72rem;
+            font-weight: 900;
+            padding: 0.34rem 0.65rem;
+            white-space: nowrap;
         }
         .live-demo-suggestion-row {
             display: grid;
@@ -703,27 +750,45 @@
             padding-bottom: 0.3rem;
         }
         .live-demo-job-card.compact h4 {
-            font-size: 0.7rem;
+            font-size: 0.68rem;
             margin-bottom: 0.12rem;
         }
-        .live-demo-job-card.compact p {
-            font-size: 0.6rem;
+        .live-demo-job-card.compact .live-demo-job-chip {
+            font-size: 0.56rem;
+            padding: 0.1rem 0.34rem;
         }
         .live-demo-job-card h4 {
             font-size: 0.76rem;
             font-weight: 800;
             color: #0f172a;
-            text-align: center;
-            margin-bottom: 0.28rem;
+            text-align: left;
+            margin-bottom: 0.18rem;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
         }
-        .live-demo-job-card p {
-            font-size: 0.68rem;
-            color: #1d4ed8;
-            text-align: center;
-            line-height: 1.2;
+        .live-demo-job-meta {
+            display: flex;
+            align-items: center;
+            gap: 0.34rem;
+        }
+        .live-demo-job-chip {
+            border-radius: 999px;
+            padding: 0.12rem 0.42rem;
+            font-size: 0.62rem;
+            font-weight: 800;
+            line-height: 1;
+            white-space: nowrap;
+        }
+        .live-demo-job-chip.work {
+            color: #047857;
+            background: #d1fae5;
+            border: 1px solid #34d399;
+        }
+        .live-demo-job-chip.drive {
+            color: #6d28d9;
+            background: #ede9fe;
+            border: 1px solid #c4b5fd;
         }
         .live-demo-route {
             display: flex;
@@ -2316,6 +2381,10 @@
                 align-items: flex-start;
                 flex-direction: column;
             }
+            .live-demo-header-card {
+                flex-direction: column;
+                align-items: flex-start;
+            }
             .live-demo-toolbar-actions {
                 justify-content: flex-start;
             }
@@ -2534,6 +2603,7 @@
         <div class="container">
             <div class="section-header">
                 <h2>Demo</h2>
+                <p>Weather-aware reschedule example.</p>
             </div>
             
             <!-- Animated App Demo -->
@@ -2541,23 +2611,31 @@
                 <div class="app-demo-screen">
                     <div class="live-demo-shell">
                         <div class="live-demo-toolbar">
-                            <div class="live-demo-toolbar-brand">JOB FLOW <span>DEMO</span></div>
+                            <div class="live-demo-title-block">
+                                <div class="live-demo-toolbar-brand">JOB FLOW <span>DEMO</span></div>
+                            </div>
                             <div class="live-demo-toolbar-actions">
                                 <span class="live-demo-toolbar-btn apply-live">Step 1</span>
                             </div>
                         </div>
 
-                        <div class="live-demo-stage-title">Step 1: Rain Delay</div>
-                        <div class="live-demo-stage-note">Delay start. Move overflow jobs.</div>
+                        <div class="live-demo-header-card">
+                            <div class="live-demo-header-copy">
+                                <span class="live-demo-header-kicker">Weekly Forecast View</span>
+                                <div class="live-demo-header-title">Tue is rained out. Shift overflow to Wed and Thu.</div>
+                                <span class="live-demo-header-note">Work blocks include work time and drive time.</span>
+                            </div>
+                            <span class="live-demo-header-step">Step 1</span>
+                        </div>
 
                         <div class="live-demo-board-wrap">
                             <div class="live-demo-board">
-                                <div class="live-demo-day is-active" data-day="today">
+                                <div class="live-demo-day is-active" data-day="tue">
                                     <div class="live-demo-day-header">
-                                        <div class="live-demo-day-title"><span class="live-demo-day-name">Today</span><span class="live-demo-day-date">Aug 7</span></div>
+                                        <div class="live-demo-day-title"><span class="live-demo-day-name">Tue</span><span class="live-demo-day-date">Aug 18</span></div>
                                         <span class="live-demo-day-badge">95%</span>
                                     </div>
-                                    <div class="live-demo-day-meta"><span>10 jobs</span><span class="alert">Rain delay</span><span class="full">FULL</span></div>
+                                    <div class="live-demo-day-meta"><span>10 jobs</span><span class="alert">Rained out</span><span class="full">FULL</span></div>
                                     <div class="live-demo-day-track"></div>
                                     <div class="live-demo-day-body planning rainy">
                                         <div class="live-demo-time-rail">
@@ -2569,50 +2647,50 @@
                                         </div>
                                         <div class="live-demo-job-column">
                                             <div class="live-demo-open-gap" style="top: 6px; height: 210px;"></div>
-                                            <div class="live-demo-job-card compact" style="top: 220px;"><h4>Anderson Property</h4><p>11 AM • 60m + 10m</p></div>
-                                            <div class="live-demo-job-card compact" style="top: 260px;"><h4>Brown Residence</h4><p>12 PM • 60m + 10m</p></div>
-                                            <div class="live-demo-job-card compact" style="top: 300px;"><h4>Clark Property</h4><p>1 PM • 60m + 10m</p></div>
-                                            <div class="live-demo-job-card compact" style="top: 340px;"><h4>Davis Property</h4><p>2 PM • 60m + 10m</p></div>
+                                            <div class="live-demo-job-card compact" style="top: 220px;"><h4>Anderson Property</h4><div class="live-demo-job-meta"><span class="live-demo-job-chip work">60 m</span><span class="live-demo-job-chip drive">10 m</span></div></div>
+                                            <div class="live-demo-job-card compact" style="top: 260px;"><h4>Brown Residence</h4><div class="live-demo-job-meta"><span class="live-demo-job-chip work">60 m</span><span class="live-demo-job-chip drive">10 m</span></div></div>
+                                            <div class="live-demo-job-card compact" style="top: 300px;"><h4>Clark Property</h4><div class="live-demo-job-meta"><span class="live-demo-job-chip work">60 m</span><span class="live-demo-job-chip drive">10 m</span></div></div>
+                                            <div class="live-demo-job-card compact" style="top: 340px;"><h4>Davis Property</h4><div class="live-demo-job-meta"><span class="live-demo-job-chip work">60 m</span><span class="live-demo-job-chip drive">10 m</span></div></div>
                                             <div class="live-demo-inline-suggestion">
                                                 <div class="live-demo-inline-suggestion-head">
                                                     <span class="live-demo-inline-suggestion-tag">Capacity</span>
                                                     <span class="live-demo-inline-suggestion-title">Move 3 jobs</span>
                                                     <span class="live-demo-inline-suggestion-action">Apply</span>
                                                 </div>
-                                                <div class="live-demo-inline-suggestion-copy">1 to Sat, 2 to Sun.</div>
+                                                <div class="live-demo-inline-suggestion-copy">1 to Wed, 2 to Thu.</div>
                                             </div>
                                         </div>
                                     </div>
                                     <div class="live-demo-day-bottom"></div>
                                 </div>
 
-                                <div class="live-demo-day" data-day="sat">
+                                <div class="live-demo-day" data-day="wed">
                                     <div class="live-demo-day-header">
-                                        <div class="live-demo-day-title"><span class="live-demo-day-name">Sat</span><span class="live-demo-day-date">Aug 8</span></div>
+                                        <div class="live-demo-day-title"><span class="live-demo-day-name">Wed</span><span class="live-demo-day-date">Aug 19</span></div>
                                         <span class="live-demo-day-badge">88%</span>
                                     </div>
                                     <div class="live-demo-day-meta"><span class="alert">2 jobs</span><span>open</span></div>
                                     <div class="live-demo-day-track"></div>
-                                    <div class="live-demo-day-body planning rainy">
+                                    <div class="live-demo-day-body planning sunny">
                                         <div class="live-demo-time-rail">
-                                            <div class="live-demo-rail-mark"><span class="icon">🌧️</span><span>5 AM</span></div>
-                                            <div class="live-demo-rail-mark"><span class="icon">🌧️</span><span>8 AM</span></div>
+                                            <div class="live-demo-rail-mark"><span class="icon">☁️</span><span>5 AM</span></div>
+                                            <div class="live-demo-rail-mark"><span class="icon">☀️</span><span>8 AM</span></div>
                                             <div class="live-demo-rail-mark"><span class="icon">☁️</span><span>11 AM</span></div>
-                                            <div class="live-demo-rail-mark"><span class="icon">☁️</span><span>2 PM</span></div>
+                                            <div class="live-demo-rail-mark"><span class="icon">☀️</span><span>2 PM</span></div>
                                             <div class="live-demo-rail-mark"><span class="icon">☀️</span><span>5 PM</span></div>
                                         </div>
                                         <div class="live-demo-job-column">
                                             <div class="live-demo-open-gap" style="top: 6px; height: 282px;"></div>
-                                            <div class="live-demo-job-card" style="top: 292px;"><h4>Taylor Residence</h4><p>4 PM • $46 • 60 min + 10m drive</p></div>
-                                            <div class="live-demo-job-card" style="top: 344px;"><h4>Thompson Property</h4><p>5 PM • $43 • 60 min + 10m drive</p></div>
+                                            <div class="live-demo-job-card" style="top: 292px;"><h4>Taylor Residence</h4><div class="live-demo-job-meta"><span class="live-demo-job-chip work">60 m</span><span class="live-demo-job-chip drive">10 m</span></div></div>
+                                            <div class="live-demo-job-card" style="top: 344px;"><h4>Thompson Property</h4><div class="live-demo-job-meta"><span class="live-demo-job-chip work">60 m</span><span class="live-demo-job-chip drive">10 m</span></div></div>
                                         </div>
                                     </div>
                                     <div class="live-demo-day-bottom"></div>
                                 </div>
 
-                                <div class="live-demo-day" data-day="sun">
+                                <div class="live-demo-day" data-day="thu">
                                     <div class="live-demo-day-header">
-                                        <div class="live-demo-day-title"><span class="live-demo-day-name">Sun</span><span class="live-demo-day-date">Aug 9</span></div>
+                                        <div class="live-demo-day-title"><span class="live-demo-day-name">Thu</span><span class="live-demo-day-date">Aug 20</span></div>
                                         <span class="live-demo-day-badge">84%</span>
                                     </div>
                                     <div class="live-demo-day-meta"><span>3 jobs</span><span>open</span></div>
@@ -2626,9 +2704,9 @@
                                             <div class="live-demo-rail-mark"><span class="icon">🌤️</span><span>5 PM</span></div>
                                         </div>
                                         <div class="live-demo-job-column">
-                                            <div class="live-demo-job-card" style="top: 14px;"><h4>White Home</h4><p>5 AM • $38 • 60 min + 10m drive</p></div>
-                                            <div class="live-demo-job-card" style="top: 68px;"><h4>Wilson Estate</h4><p>6 AM • $47 • 60 min + 10m drive</p></div>
-                                            <div class="live-demo-job-card" style="top: 122px;"><h4>Roberts Home</h4><p>8 AM • $50 • 60 min + 10m drive</p></div>
+                                            <div class="live-demo-job-card" style="top: 14px;"><h4>White Home</h4><div class="live-demo-job-meta"><span class="live-demo-job-chip work">60 m</span><span class="live-demo-job-chip drive">10 m</span></div></div>
+                                            <div class="live-demo-job-card" style="top: 68px;"><h4>Wilson Estate</h4><div class="live-demo-job-meta"><span class="live-demo-job-chip work">60 m</span><span class="live-demo-job-chip drive">10 m</span></div></div>
+                                            <div class="live-demo-job-card" style="top: 122px;"><h4>Roberts Home</h4><div class="live-demo-job-meta"><span class="live-demo-job-chip work">60 m</span><span class="live-demo-job-chip drive">10 m</span></div></div>
                                         </div>
                                     </div>
                                     <div class="live-demo-day-bottom"></div>
@@ -2644,19 +2722,19 @@
                             </div>
                             <div class="live-demo-next-board">
                                 <div class="live-demo-next-day">
-                                    <h5>Today</h5>
+                                    <h5>Tue</h5>
                                     <div class="live-demo-next-mini-job">Anderson Property</div>
                                     <div class="live-demo-next-mini-job">Brown Residence</div>
                                     <div class="live-demo-next-mini-job">Clark Property</div>
                                 </div>
                                 <div class="live-demo-next-day">
-                                    <h5>Sat (+1)</h5>
+                                    <h5>Wed (+1)</h5>
                                     <div class="live-demo-next-mini-job">Taylor Residence</div>
                                     <div class="live-demo-next-mini-job moved">Davis Property <span class="move-tag">moved</span></div>
                                     <div class="live-demo-next-mini-job">Thompson Property</div>
                                 </div>
                                 <div class="live-demo-next-day">
-                                    <h5>Sun (+2)</h5>
+                                    <h5>Thu (+2)</h5>
                                     <div class="live-demo-next-mini-job">White Home</div>
                                     <div class="live-demo-next-mini-job moved">Wilson Estate <span class="move-tag">moved</span></div>
                                     <div class="live-demo-next-mini-job moved">Roberts Home <span class="move-tag">moved</span></div>
