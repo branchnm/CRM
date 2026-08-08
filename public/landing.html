@@ -2599,7 +2599,7 @@
             align-items: center;
             justify-content: center;
             gap: 0.24rem;
-            margin-bottom: 0.35rem;
+            margin-bottom: 0.45rem;
         }
         .feature-route-stop {
             width: 0.62rem;
@@ -2881,26 +2881,29 @@
         .feature-route-compare {
             display: grid;
             grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-            gap: 0.35rem;
-            align-items: center;
+            gap: 0.5rem;
+            align-items: stretch;
         }
         .feature-route-box {
             border: 1px solid #dbeafe;
             border-radius: 0.75rem;
             background: #f8fafc;
-            padding: 0.5rem;
-            min-height: 124px;
+            padding: 0.62rem;
+            min-width: 0;
+            box-sizing: border-box;
+            overflow: hidden;
         }
         .feature-route-box.optimized {
             background: #eff6ff;
             border-color: #bfdbfe;
         }
         .feature-route-head {
-            font-size: 0.74rem;
+            font-size: 0.68rem;
             font-weight: 900;
             letter-spacing: 0.04em;
             text-transform: uppercase;
-            margin-bottom: 0.35rem;
+            margin-bottom: 0.4rem;
+            line-height: 1.25;
             color: #5b5a97;
         }
         .feature-route-box.optimized .feature-route-head {
@@ -2908,19 +2911,27 @@
         }
         .feature-route-arrow {
             color: #4f46e5;
-            font-size: 1.55rem;
+            font-size: 1.35rem;
             font-weight: 900;
             line-height: 1;
             padding: 0 0.1rem;
+            align-self: center;
         }
         .feature-route-metric {
             display: flex;
             align-items: center;
-            gap: 0.28rem;
-            font-size: 1.02rem;
+            gap: 0.36rem;
+            font-size: 0.86rem;
             font-weight: 800;
             color: #2f2d72;
-            margin-top: 0.35rem;
+            margin-top: 0.42rem;
+            line-height: 1.2;
+            min-width: 0;
+        }
+        .feature-route-metric span:last-child,
+        .feature-route-metric strong {
+            min-width: 0;
+            overflow-wrap: anywhere;
         }
         .feature-route-metric strong {
             color: #4f46e5;
@@ -2995,6 +3006,15 @@
             .features-cta {
                 flex-direction: column;
                 align-items: center;
+            }
+            .feature-route-compare {
+                gap: 0.4rem;
+            }
+            .feature-route-box {
+                padding: 0.55rem;
+            }
+            .feature-route-metric {
+                font-size: 0.82rem;
             }
             .compliance-grid {
                 grid-template-columns: 1fr;
