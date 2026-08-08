@@ -1086,6 +1086,95 @@
             margin-left: 0.26rem;
             text-transform: uppercase;
         }
+        .live-demo-notify-popup {
+            margin-top: 0.8rem;
+            border: 2px solid #2563eb;
+            border-radius: 1rem;
+            background: #f8fbff;
+            box-shadow: 0 10px 22px rgba(37, 99, 235, 0.14);
+            padding: 0.8rem 0.85rem;
+        }
+        .live-demo-notify-popup.is-hidden {
+            display: none;
+        }
+        .live-demo-notify-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.6rem;
+            margin-bottom: 0.35rem;
+        }
+        .live-demo-notify-head strong {
+            font-size: 0.82rem;
+            font-weight: 900;
+            color: #1e3a8a;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .live-demo-notify-tag {
+            border-radius: 999px;
+            padding: 0.16rem 0.44rem;
+            background: #1d4ed8;
+            color: white;
+            font-size: 0.62rem;
+            font-weight: 800;
+        }
+        .live-demo-notify-copy {
+            font-size: 0.77rem;
+            color: #1e293b;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            line-height: 1.35;
+        }
+        .live-demo-notify-list {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.3rem;
+            margin-bottom: 0.55rem;
+        }
+        .live-demo-notify-item {
+            border: 1px solid rgba(59, 130, 246, 0.25);
+            border-radius: 0.55rem;
+            background: white;
+            padding: 0.3rem 0.4rem;
+            font-size: 0.68rem;
+            color: #334155;
+            font-weight: 700;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .live-demo-notify-actions {
+            display: flex;
+            gap: 0.35rem;
+            margin-bottom: 0.4rem;
+        }
+        .live-demo-notify-btn {
+            flex: 1;
+            border: none;
+            border-radius: 0.6rem;
+            padding: 0.36rem 0.5rem;
+            font-size: 0.72rem;
+            font-weight: 800;
+            cursor: pointer;
+        }
+        .live-demo-notify-btn.primary {
+            background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%);
+            color: white;
+        }
+        .live-demo-notify-btn.secondary {
+            background: #e2e8f0;
+            color: #334155;
+        }
+        .live-demo-notify-btn:disabled {
+            opacity: 0.6;
+            cursor: default;
+        }
+        .live-demo-notify-status {
+            font-size: 0.68rem;
+            color: #475569;
+            font-weight: 700;
+        }
 
         /* Simple Weather Forecast Bar */
         .demo-forecast-bar {
@@ -2678,16 +2767,16 @@
             </div>
             <div class="hero-update-bar">
                 <div class="hero-update-item">
-                    <span class="hero-update-label">Scheduling</span>
-                    <strong>Job blocks now include drive time plus work time.</strong>
+                    <span class="hero-update-label">Weather Monitoring</span>
+                    <strong>Track rain risk across the week and catch weather conflicts before crews roll out.</strong>
                 </div>
                 <div class="hero-update-item">
-                    <span class="hero-update-label">Drive Time</span>
-                    <strong>Travel is rounded up in 5-minute steps for cleaner day planning.</strong>
+                    <span class="hero-update-label">Smart Optimization</span>
+                    <strong>Get route and schedule change suggestions that rebalance jobs to the best weather days.</strong>
                 </div>
                 <div class="hero-update-item">
-                    <span class="hero-update-label">Example</span>
-                    <strong>A 30-minute mow with a 30-minute drive reserves a full 1-hour slot.</strong>
+                    <span class="hero-update-label">Auto Customer Notices</span>
+                    <strong>Send reschedule updates automatically so customers know their new service day right away.</strong>
                 </div>
             </div>
         </div>
@@ -2795,7 +2884,7 @@
                         <div class="live-demo-next-graphic is-hidden" id="stepTwoGraphic">
                             <div class="live-demo-next-head">
                                 <strong>Update Applied</strong>
-                                <span>Tue is now rained out. Wed/Thu absorb moved jobs.</span>
+                                <span>Tue is now rained out. Wed/Thu absorb moved jobs and notices are ready.</span>
                             </div>
                             <div class="live-demo-next-board">
                                 <div class="live-demo-next-day rained">
@@ -2819,6 +2908,25 @@
                                     <div class="live-demo-next-mini-job moved">Brown Residence <span class="move-tag">moved</span></div>
                                 </div>
                             </div>
+                        </div>
+
+                        <div class="live-demo-notify-popup is-hidden" id="demoNotifyPrompt">
+                            <div class="live-demo-notify-head">
+                                <strong>Notify Rescheduled Customers?</strong>
+                                <span class="live-demo-notify-tag">SMS Ready</span>
+                            </div>
+                            <p class="live-demo-notify-copy">Rain moved these jobs. Send an automatic update now with each customer's new day.</p>
+                            <div class="live-demo-notify-list">
+                                <div class="live-demo-notify-item">Anderson Property -> Thu</div>
+                                <div class="live-demo-notify-item">Brown Residence -> Thu</div>
+                                <div class="live-demo-notify-item">Clark Property -> Wed</div>
+                                <div class="live-demo-notify-item">Davis Property -> Wed</div>
+                            </div>
+                            <div class="live-demo-notify-actions">
+                                <button type="button" class="live-demo-notify-btn primary" id="demoNotifySend">Send Updates</button>
+                                <button type="button" class="live-demo-notify-btn secondary" id="demoNotifyLater">Later</button>
+                            </div>
+                            <div class="live-demo-notify-status" id="demoNotifyStatus">Ready to send 4 weather reschedule notices.</div>
                         </div>
                     </div>
                 </div>
@@ -2955,6 +3063,10 @@
             const tueRail = document.getElementById('stepOneTueRail');
             const wedColumn = document.getElementById('stepOneWedColumn');
             const thuColumn = document.getElementById('stepOneThuColumn');
+            const notifyPrompt = document.getElementById('demoNotifyPrompt');
+            const notifySend = document.getElementById('demoNotifySend');
+            const notifyLater = document.getElementById('demoNotifyLater');
+            const notifyStatus = document.getElementById('demoNotifyStatus');
 
             if (!applyStrip || !stepTwo || !tueDay || !tueBody || !tueRail || !wedColumn || !thuColumn) {
                 return;
@@ -2962,6 +3074,21 @@
 
             let applyState = 'ready';
             let movedCards = [];
+
+            if (notifySend && notifyLater && notifyStatus) {
+                notifySend.addEventListener('click', function() {
+                    notifyStatus.textContent = '4 SMS updates sent: Tue weather delay and new Wed/Thu service windows confirmed.';
+                    notifySend.textContent = 'Sent';
+                    notifySend.disabled = true;
+                    notifyLater.disabled = true;
+                });
+
+                notifyLater.addEventListener('click', function() {
+                    notifyStatus.textContent = 'Notification draft saved. Team can send customer updates later from Customer Comms.';
+                    notifyLater.textContent = 'Deferred';
+                    notifyLater.disabled = true;
+                });
+            }
 
             applyStrip.addEventListener('click', function() {
                 if (applyState === 'finalized') {
@@ -3029,6 +3156,9 @@
                     }
 
                     stepTwo.classList.remove('is-hidden');
+                    if (notifyPrompt) {
+                        notifyPrompt.classList.remove('is-hidden');
+                    }
                     applyState = 'applied';
                     return;
                 }
