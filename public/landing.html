@@ -744,6 +744,23 @@
             line-height: 1.3;
             font-weight: 700;
         }
+        .live-demo-suggestion-strip {
+            margin-top: 0.5rem;
+            border: 2px solid #2563eb;
+            border-radius: 0.8rem;
+            background: rgba(255,255,255,0.96);
+            box-shadow: 0 8px 20px rgba(37, 99, 235, 0.12);
+            padding: 0.44rem 0.55rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.4rem;
+        }
+        .live-demo-suggestion-copy {
+            font-size: 0.66rem;
+            color: #334155;
+            font-weight: 800;
+        }
         .live-demo-job-card.compact {
             min-height: 2.2rem;
             padding-top: 0.3rem;
@@ -962,12 +979,28 @@
             background: white;
             padding: 0.55rem;
         }
+        .live-demo-next-day.rained {
+            background: linear-gradient(180deg, #fff7f7 0%, #ffe4e4 100%);
+            border-color: rgba(239, 68, 68, 0.4);
+        }
         .live-demo-next-day h5 {
             margin-bottom: 0.38rem;
             font-size: 0.72rem;
             color: #1d4ed8;
             font-weight: 900;
             text-transform: uppercase;
+        }
+        .live-demo-next-status {
+            display: inline-flex;
+            align-items: center;
+            border-radius: 999px;
+            padding: 0.14rem 0.42rem;
+            margin-bottom: 0.36rem;
+            font-size: 0.58rem;
+            font-weight: 900;
+            color: white;
+            background: #ef4444;
+            letter-spacing: 0.02em;
         }
         .live-demo-next-mini-job {
             border: 1px solid #93c5fd;
@@ -2622,7 +2655,7 @@
                         <div class="live-demo-header-card">
                             <div class="live-demo-header-copy">
                                 <span class="live-demo-header-kicker">Weekly Forecast View</span>
-                                <div class="live-demo-header-title">Tue is rained out. Shift overflow to Wed and Thu.</div>
+                                <div class="live-demo-header-title">Tue starts normal. Forecast suggests moving overflow to Wed and Thu.</div>
                                 <span class="live-demo-header-note">Work blocks include work time and drive time.</span>
                             </div>
                             <span class="live-demo-header-step">Step 1</span>
@@ -2635,31 +2668,27 @@
                                         <div class="live-demo-day-title"><span class="live-demo-day-name">Tue</span><span class="live-demo-day-date">Aug 18</span></div>
                                         <span class="live-demo-day-badge">95%</span>
                                     </div>
-                                    <div class="live-demo-day-meta"><span>10 jobs</span><span class="alert">Rained out</span><span class="full">FULL</span></div>
+                                    <div class="live-demo-day-meta"><span>10 jobs</span><span class="full">FULL</span></div>
                                     <div class="live-demo-day-track"></div>
-                                    <div class="live-demo-day-body planning rainy">
+                                    <div class="live-demo-day-body planning sunny">
                                         <div class="live-demo-time-rail">
-                                            <div class="live-demo-rail-mark"><span class="icon">🌧️</span><span>5 AM</span></div>
-                                            <div class="live-demo-rail-mark"><span class="icon">🌧️</span><span>8 AM</span></div>
-                                            <div class="live-demo-rail-mark"><span class="icon">🌧️</span><span>11 AM</span></div>
-                                            <div class="live-demo-rail-mark"><span class="icon">🌧️</span><span>2 PM</span></div>
-                                            <div class="live-demo-rail-mark"><span class="icon">🌧️</span><span>5 PM</span></div>
+                                            <div class="live-demo-rail-mark"><span class="icon">🌤️</span><span>5 AM</span></div>
+                                            <div class="live-demo-rail-mark"><span class="icon">☀️</span><span>8 AM</span></div>
+                                            <div class="live-demo-rail-mark"><span class="icon">☁️</span><span>11 AM</span></div>
+                                            <div class="live-demo-rail-mark"><span class="icon">☀️</span><span>2 PM</span></div>
+                                            <div class="live-demo-rail-mark"><span class="icon">☀️</span><span>5 PM</span></div>
                                         </div>
                                         <div class="live-demo-job-column">
-                                            <div class="live-demo-open-gap" style="top: 6px; height: 210px;"></div>
-                                            <div class="live-demo-job-card compact" style="top: 220px;"><h4>Anderson Property</h4><div class="live-demo-job-meta"><span class="live-demo-job-chip work">60 m</span><span class="live-demo-job-chip drive">10 m</span></div></div>
-                                            <div class="live-demo-job-card compact" style="top: 260px;"><h4>Brown Residence</h4><div class="live-demo-job-meta"><span class="live-demo-job-chip work">60 m</span><span class="live-demo-job-chip drive">10 m</span></div></div>
-                                            <div class="live-demo-job-card compact" style="top: 300px;"><h4>Clark Property</h4><div class="live-demo-job-meta"><span class="live-demo-job-chip work">60 m</span><span class="live-demo-job-chip drive">10 m</span></div></div>
-                                            <div class="live-demo-job-card compact" style="top: 340px;"><h4>Davis Property</h4><div class="live-demo-job-meta"><span class="live-demo-job-chip work">60 m</span><span class="live-demo-job-chip drive">10 m</span></div></div>
-                                            <div class="live-demo-inline-suggestion">
-                                                <div class="live-demo-inline-suggestion-head">
-                                                    <span class="live-demo-inline-suggestion-tag">Capacity</span>
-                                                    <span class="live-demo-inline-suggestion-title">Move 3 jobs</span>
-                                                    <span class="live-demo-inline-suggestion-action">Apply</span>
-                                                </div>
-                                                <div class="live-demo-inline-suggestion-copy">1 to Wed, 2 to Thu.</div>
-                                            </div>
+                                            <div class="live-demo-job-card" style="top: 14px;"><h4>Anderson Property</h4><div class="live-demo-job-meta"><span class="live-demo-job-chip work">60 m</span><span class="live-demo-job-chip drive">10 m</span></div></div>
+                                            <div class="live-demo-job-card" style="top: 68px;"><h4>Brown Residence</h4><div class="live-demo-job-meta"><span class="live-demo-job-chip work">60 m</span><span class="live-demo-job-chip drive">10 m</span></div></div>
+                                            <div class="live-demo-job-card" style="top: 122px;"><h4>Clark Property</h4><div class="live-demo-job-meta"><span class="live-demo-job-chip work">60 m</span><span class="live-demo-job-chip drive">10 m</span></div></div>
+                                            <div class="live-demo-job-card" style="top: 176px;"><h4>Davis Property</h4><div class="live-demo-job-meta"><span class="live-demo-job-chip work">60 m</span><span class="live-demo-job-chip drive">10 m</span></div></div>
                                         </div>
+                                    </div>
+                                    <div class="live-demo-suggestion-strip">
+                                        <span class="live-demo-inline-suggestion-tag">Suggestion</span>
+                                        <span class="live-demo-suggestion-copy">Move 3 jobs: 1 to Wed, 2 to Thu.</span>
+                                        <span class="live-demo-inline-suggestion-action">Apply</span>
                                     </div>
                                     <div class="live-demo-day-bottom"></div>
                                 </div>
@@ -2717,12 +2746,13 @@
 
                         <div class="live-demo-next-graphic">
                             <div class="live-demo-next-head">
-                                <strong>Step 2: After Apply</strong>
-                                <span>Moved jobs highlighted.</span>
+                                <strong>Step 2: Update Applied</strong>
+                                <span>Tue is now rained out. Wed/Thu absorb moved jobs.</span>
                             </div>
                             <div class="live-demo-next-board">
-                                <div class="live-demo-next-day">
+                                <div class="live-demo-next-day rained">
                                     <h5>Tue</h5>
+                                    <span class="live-demo-next-status">Rained Out</span>
                                     <div class="live-demo-next-mini-job">Anderson Property</div>
                                     <div class="live-demo-next-mini-job">Brown Residence</div>
                                     <div class="live-demo-next-mini-job">Clark Property</div>
