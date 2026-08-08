@@ -1221,14 +1221,77 @@ export function DailySchedule({
     }
 
     try {
-      // Calculate scheduled time from 15-minute slot index.
-      // Slot 0 = 5:00 AM, slot 1 = 5:15 AM, etc.
-      const totalMinutes = timeSlot !== undefined ? (5 * 60) + (timeSlot * 15) : undefined;
-      const scheduledTime = totalMinutes !== undefined
-        ? `${Math.floor(totalMinutes / 60)}:${(totalMinutes % 60).toString().padStart(2, '0')}`
-        : undefined;
-      
-      await updateJob({ ...job, date: newDate, scheduledTime });
+      // Keep persisted order aligned with slot-based drag preview.
+      // Rendering is order-first, so date/time-only updates can appear offset after refresh.
+      const sortByExistingSequence = (a: Job, b: Job) => {
+        const orderA = a.order ?? 9999;
+        const orderB = b.order ?? 9999;
+        if (orderA !== orderB) return orderA - orderB;
+        if (a.scheduledTime && b.scheduledTime && a.scheduledTime !== b.scheduledTime) {
+          return a.scheduledTime.localeCompare(b.scheduledTime);
+        }
+        return 0;
+      };
+
+      const targetJobs = jobs
+        .filter(j => j.date === newDate && j.id !== jobId)
+        .sort(sortByExistingSequence);
+
+      let insertAt = targetJobs.length;
+      if (timeSlot !== undefined) {
+        const slotOffset = Math.max(0, (dayStartHour - 5) * 4);
+        let runningSlot = slotOffset;
+
+        for (let i = 0; i < targetJobs.length; i++) {
+          if (timeSlot <= runningSlot) {
+            insertAt = i;
+            break;
+          }
+          runningSlot += Math.max(1, Math.ceil(getEstimatedJobMinutes(targetJobs[i]) / 15));
+        }
+      }
+
+      const movedJobDraft: Job = {
+        ...job,
+        date: newDate,
+      };
+
+      const reorderedTargetJobs = [...targetJobs];
+      reorderedTargetJobs.splice(insertAt, 0, movedJobDraft);
+
+      // Recompute each job's persisted scheduledTime from the final sequence so
+      // repeated drag/drop operations use the updated saved positions.
+      const slotOffset = Math.max(0, (dayStartHour - 5) * 4);
+      let runningSlot = slotOffset;
+
+      const targetUpdates: Job[] = reorderedTargetJobs.map((dayJob, idx) => {
+        const totalMinutes = (5 * 60) + (runningSlot * 15);
+        const nextScheduledTime = `${Math.floor(totalMinutes / 60)}:${(totalMinutes % 60).toString().padStart(2, '0')}`;
+
+        const update: Job = {
+          ...dayJob,
+          date: newDate,
+          order: idx + 1,
+          scheduledTime: nextScheduledTime,
+        };
+
+        runningSlot += Math.max(1, Math.ceil(getEstimatedJobMinutes(dayJob) / 15));
+        return update;
+      });
+
+      const updatesToPersist = targetUpdates.filter((updatedJob) => {
+        const originalJob = jobs.find(j => j.id === updatedJob.id);
+        if (!originalJob) return true;
+        return (
+          originalJob.order !== updatedJob.order ||
+          originalJob.date !== updatedJob.date ||
+          originalJob.scheduledTime !== updatedJob.scheduledTime
+        );
+      });
+
+      for (const update of updatesToPersist) {
+        await updateJob(update);
+      }
       
       // Update customer's nextCutDate if this job was their next cut
       const customer = customers.find(c => c.id === job.customerId);

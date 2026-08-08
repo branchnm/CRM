@@ -15,9 +15,7 @@ import {
   CloudSun,
   LogOut,
   MapPin,
-  Route,
   CheckCircle,
-  Loader2,
 } from "lucide-react";
 import { fetchCustomers, updateCustomer } from "./services/customers";
 import { fetchJobs, addJob, updateJob } from "./services/jobs";
@@ -32,7 +30,6 @@ import {
   DEFAULT_JOB_WORK_MINUTES,
   DEFAULT_JOB_DRIVE_MINUTES,
 } from "./utils/scheduleCapacity";
-import { ROUTE_OPTIMIZATION_ENABLED } from "./config/routeOptimization";
 
 // Check if demo mode is enabled via environment variable OR URL parameter
 const checkDemoMode = (): boolean => {
@@ -734,23 +731,14 @@ function App() {
             {jobs.length > 0 && (
               <Button
                 onClick={() => {
-                  if (!ROUTE_OPTIMIZATION_ENABLED) return;
-                  const event = new CustomEvent('optimizeRoute');
+                  const event = new CustomEvent('applyAllSuggestions');
                   window.dispatchEvent(event);
                 }}
-                disabled={optimizationStatus === 'optimizing' || !ROUTE_OPTIMIZATION_ENABLED}
                 size="sm"
-                className="shrink-0 transition-colors bg-blue-600 hover:bg-blue-700 px-3 disabled:cursor-not-allowed disabled:opacity-50"
-                title={ROUTE_OPTIMIZATION_ENABLED ? undefined : 'Route optimization is disabled for now'}
+                className="shrink-0 transition-colors bg-blue-600 hover:bg-blue-700 px-3"
               >
-                {optimizationStatus === 'optimizing' && <Loader2 className="h-4 w-4 mr-2 animate-spin shrink-0" />}
-                {optimizationStatus === 'optimized' && <CheckCircle className="h-4 w-4 mr-2 shrink-0" />}
-                {optimizationStatus === 'idle' && <Route className="h-4 w-4 mr-2 shrink-0" />}
-                <span className="text-sm">
-                  {optimizationStatus === 'optimizing' && 'Optimizing'}
-                  {optimizationStatus === 'optimized' && 'Optimized'}
-                  {optimizationStatus === 'idle' && (ROUTE_OPTIMIZATION_ENABLED ? 'Optimize' : 'Optimize Off')}
-                </span>
+                <CheckCircle className="h-4 w-4 mr-2 shrink-0" />
+                <span className="text-sm">Apply All</span>
               </Button>
             )}
           </div>
@@ -934,14 +922,11 @@ function App() {
             {jobs.length > 0 && (
               <Button
                 onClick={() => {
-                  if (!ROUTE_OPTIMIZATION_ENABLED) return;
-                  const event = new CustomEvent('optimizeRoute');
+                  const event = new CustomEvent('applyAllSuggestions');
                   window.dispatchEvent(event);
                 }}
-                disabled={optimizationStatus === 'optimizing' || !ROUTE_OPTIMIZATION_ENABLED}
                 size="sm"
-                className="shrink-0 transition-colors bg-blue-600 hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
-                title={ROUTE_OPTIMIZATION_ENABLED ? undefined : 'Route optimization is disabled for now'}
+                className="shrink-0 transition-colors bg-blue-600 hover:bg-blue-700"
                 style={{ 
                   fontSize: 'max(1.4vh, 10px)',
                   padding: 'max(0.5vh, 3px) max(2vw, 8px)',
@@ -949,14 +934,8 @@ function App() {
                   height: 'auto'
                 }}
               >
-                {optimizationStatus === 'optimizing' && <Loader2 style={{ width: 'max(1.8vh, 14px)', height: 'max(1.8vh, 14px)' }} className="animate-spin shrink-0" />}
-                {optimizationStatus === 'optimized' && <CheckCircle style={{ width: 'max(1.8vh, 14px)', height: 'max(1.8vh, 14px)' }} className="shrink-0" />}
-                {optimizationStatus === 'idle' && <Route style={{ width: 'max(1.8vh, 14px)', height: 'max(1.8vh, 14px)' }} className="shrink-0" />}
-                <span style={{ marginLeft: 'max(0.8vw, 4px)' }}>
-                  {optimizationStatus === 'optimizing' && 'Optimizing'}
-                  {optimizationStatus === 'optimized' && 'Optimized'}
-                  {optimizationStatus === 'idle' && (ROUTE_OPTIMIZATION_ENABLED ? 'Optimize' : 'Optimize Off')}
-                </span>
+                <CheckCircle style={{ width: 'max(1.8vh, 14px)', height: 'max(1.8vh, 14px)' }} className="shrink-0" />
+                <span style={{ marginLeft: 'max(0.8vw, 4px)' }}>Apply All</span>
               </Button>
             )}
           </div>
