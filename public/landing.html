@@ -341,7 +341,7 @@
         }
         .live-demo-suggestion-row {
             display: grid;
-            grid-template-columns: repeat(4, minmax(0, 1fr));
+            grid-template-columns: repeat(3, minmax(0, 1fr));
             gap: 0.8rem;
         }
         .live-demo-pill {
@@ -408,7 +408,7 @@
         }
         .live-demo-board {
             display: grid;
-            grid-template-columns: repeat(4, minmax(0, 1fr));
+            grid-template-columns: repeat(3, minmax(0, 1fr));
             gap: 1rem;
             align-items: stretch;
         }
@@ -433,12 +433,82 @@
             right: -1.4rem;
         }
         .live-demo-day {
+            position: relative;
             background: rgba(255,255,255,0.94);
             border: 1px solid rgba(148, 163, 184, 0.28);
             border-radius: 1.35rem;
             box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
             padding: 0.8rem 0.8rem 0.7rem;
             transition: transform 0.35s ease, box-shadow 0.35s ease, border-color 0.35s ease;
+        }
+        .live-demo-plan-pop {
+            position: absolute;
+            top: 1rem;
+            left: calc(100% - 0.35rem);
+            width: 275px;
+            padding: 0.7rem 0.75rem;
+            border-radius: 0.95rem;
+            border: 2px solid #1d4ed8;
+            background: rgba(248, 251, 255, 0.98);
+            box-shadow: 0 16px 28px rgba(30, 58, 138, 0.18);
+            z-index: 5;
+            transition: opacity 0.25s ease, transform 0.25s ease;
+        }
+        .live-demo-plan-pop.hidden {
+            opacity: 0;
+            transform: translateY(8px);
+            pointer-events: none;
+        }
+        .live-demo-plan-pop::before {
+            content: '';
+            position: absolute;
+            left: -10px;
+            top: 34px;
+            width: 16px;
+            height: 16px;
+            background: rgba(248, 251, 255, 0.98);
+            border-left: 2px solid #1d4ed8;
+            border-bottom: 2px solid #1d4ed8;
+            transform: rotate(45deg);
+        }
+        .live-demo-plan-title {
+            font-size: 0.76rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #1e3a8a;
+            margin-bottom: 0.45rem;
+        }
+        .live-demo-plan-line {
+            color: #1e293b;
+            font-size: 0.74rem;
+            line-height: 1.35;
+            margin-bottom: 0.34rem;
+            font-weight: 700;
+        }
+        .live-demo-plan-line strong {
+            color: #0f172a;
+            font-weight: 900;
+        }
+        .live-demo-plan-chip-row {
+            display: flex;
+            gap: 0.38rem;
+            flex-wrap: wrap;
+            margin-top: 0.35rem;
+        }
+        .live-demo-plan-chip {
+            border-radius: 999px;
+            padding: 0.2rem 0.52rem;
+            font-size: 0.66rem;
+            font-weight: 800;
+            color: white;
+            background: #1d4ed8;
+        }
+        .live-demo-plan-chip.green {
+            background: #059669;
+        }
+        .live-demo-plan-chip.purple {
+            background: #6d28d9;
         }
         .live-demo-day.is-active {
             transform: translateY(-4px);
@@ -1897,6 +1967,18 @@
             .live-demo-board {
                 grid-template-columns: repeat(2, minmax(230px, 1fr));
             }
+            .live-demo-plan-pop {
+                left: auto;
+                right: 0.4rem;
+                top: 0.65rem;
+                width: 255px;
+            }
+            .live-demo-plan-pop::before {
+                left: auto;
+                right: 1rem;
+                top: -10px;
+                transform: rotate(135deg);
+            }
             .live-demo-nav {
                 display: none;
             }
@@ -2069,6 +2151,14 @@
             }
             .live-demo-day {
                 min-width: 0;
+            }
+            .live-demo-plan-pop {
+                position: static;
+                width: 100%;
+                margin: 0.6rem 0 0;
+            }
+            .live-demo-plan-pop::before {
+                display: none;
             }
             .live-demo-day-body {
                 height: 300px;
@@ -2276,24 +2366,19 @@
 
                         <div class="live-demo-suggestion-row">
                             <div class="live-demo-pill" data-pill="0">
-                                <span class="live-demo-pill-tag green">Applied</span>
-                                <span class="live-demo-pill-copy">Delay start to 10:00 AM</span>
-                                <span class="live-demo-pill-action">Saved</span>
+                                <span class="live-demo-pill-tag red">Rain Delay</span>
+                                <span class="live-demo-pill-copy">Push day start to 10:00 AM</span>
+                                <span class="live-demo-pill-action">Urgent</span>
                             </div>
                             <div class="live-demo-pill" data-pill="1">
-                                <span class="live-demo-pill-tag green">Moved</span>
-                                <span class="live-demo-pill-copy">3 jobs shifted to Sun</span>
-                                <span class="live-demo-pill-action">Done</span>
+                                <span class="live-demo-pill-tag blue">Overflow</span>
+                                <span class="live-demo-pill-copy">3 jobs no longer fit Today</span>
+                                <span class="live-demo-pill-action">Review</span>
                             </div>
                             <div class="live-demo-pill" data-pill="2">
-                                <span class="live-demo-pill-tag blue">Capacity</span>
-                                <span class="live-demo-pill-copy">Now balanced across days</span>
-                                <span class="live-demo-pill-action">Stable</span>
-                            </div>
-                            <div class="live-demo-pill" data-pill="3">
-                                <span class="live-demo-pill-tag blue">Next Step</span>
-                                <span class="live-demo-pill-copy small">Optimize route order</span>
-                                <span class="live-demo-pill-action">Run</span>
+                                <span class="live-demo-pill-tag blue">Plan</span>
+                                <span class="live-demo-pill-copy">1 to Sat gap, 2 to Sun</span>
+                                <span class="live-demo-pill-action">Apply All</span>
                             </div>
                         </div>
 
@@ -2305,7 +2390,19 @@
                                         <div class="live-demo-day-title"><span class="live-demo-day-name">Today</span><span class="live-demo-day-date">Aug 7</span></div>
                                         <span class="live-demo-day-badge">95%</span>
                                     </div>
-                                    <div class="live-demo-day-meta"><span>7 jobs</span><span>⏱ 3h 30m</span></div>
+                                    <div class="live-demo-day-meta"><span>7 jobs</span><span class="alert">Rain delay</span><span>⏱ 6h 45m</span></div>
+                                    <div class="live-demo-plan-pop" data-plan-popup>
+                                        <div class="live-demo-plan-title">Suggested by Weather + Route</div>
+                                        <div class="live-demo-plan-line"><strong>1.</strong> Delay start from <strong>5:00 AM</strong> to <strong>10:00 AM</strong>.</div>
+                                        <div class="live-demo-plan-line"><strong>2.</strong> Three jobs will not fit after delay.</div>
+                                        <div class="live-demo-plan-line"><strong>3.</strong> Move <strong>Garcia Home</strong> to Sat between two nearby stops for lower drive time.</div>
+                                        <div class="live-demo-plan-line"><strong>4.</strong> Move <strong>Lee Property</strong> and <strong>Harris Estate</strong> to Sun.</div>
+                                        <div class="live-demo-plan-chip-row">
+                                            <span class="live-demo-plan-chip">Rain Delay</span>
+                                            <span class="live-demo-plan-chip purple">Route Gap Fit</span>
+                                            <span class="live-demo-plan-chip green">Balanced Capacity</span>
+                                        </div>
+                                    </div>
                                     <div class="live-demo-day-track"></div>
                                     <div class="live-demo-day-body rainy">
                                         <div class="live-demo-time-rail">
@@ -2334,9 +2431,9 @@
                                 <div class="live-demo-day" data-day="sat">
                                     <div class="live-demo-day-header">
                                         <div class="live-demo-day-title"><span class="live-demo-day-name">Sat</span><span class="live-demo-day-date">Aug 8</span></div>
-                                        <span class="live-demo-day-badge">70%</span>
+                                        <span class="live-demo-day-badge">88%</span>
                                     </div>
-                                    <div class="live-demo-day-meta"><span class="alert">6 jobs</span><span class="full">FULL</span><span>⏱ 4h</span></div>
+                                    <div class="live-demo-day-meta"><span class="alert">6 jobs</span><span class="full">NEAR FULL</span><span>⏱ 6h 5m</span></div>
                                     <div class="live-demo-day-track"></div>
                                     <div class="live-demo-day-body rainy">
                                         <div class="live-demo-time-rail">
@@ -2364,9 +2461,9 @@
                                 <div class="live-demo-day" data-day="sun">
                                     <div class="live-demo-day-header">
                                         <div class="live-demo-day-title"><span class="live-demo-day-name">Sun</span><span class="live-demo-day-date">Aug 9</span></div>
-                                        <span class="live-demo-day-badge">20%</span>
+                                        <span class="live-demo-day-badge">84%</span>
                                     </div>
-                                    <div class="live-demo-day-meta"><span>5 jobs</span><span>⏱ 2h 30m</span></div>
+                                    <div class="live-demo-day-meta"><span class="alert">5 jobs</span><span class="full">NEAR FULL</span><span>⏱ 5h 40m</span></div>
                                     <div class="live-demo-day-track"></div>
                                     <div class="live-demo-day-body sunny">
                                         <div class="live-demo-time-rail">
@@ -2391,48 +2488,22 @@
                                     <div class="live-demo-day-bottom"></div>
                                 </div>
 
-                                <div class="live-demo-day" data-day="mon">
-                                    <div class="live-demo-day-header">
-                                        <div class="live-demo-day-title"><span class="live-demo-day-name">Mon</span><span class="live-demo-day-date">Aug 10</span></div>
-                                        <span class="live-demo-day-badge">75%</span>
-                                    </div>
-                                    <div class="live-demo-day-meta"><span>2 jobs</span><span>⏱ 1h</span></div>
-                                    <div class="live-demo-day-track"></div>
-                                    <div class="live-demo-day-body rainy">
-                                        <div class="live-demo-time-rail">
-                                            <div class="live-demo-rail-mark"><span class="icon">☁️</span><span>5 AM</span></div>
-                                            <div class="live-demo-rail-mark"><span class="icon">☁️</span><span>8 AM</span></div>
-                                            <div class="live-demo-rail-mark"><span class="icon">☁️</span><span>11 AM</span></div>
-                                            <div class="live-demo-rail-mark"><span class="icon">🌧️</span><span>2 PM</span></div>
-                                        </div>
-                                        <div class="live-demo-job-column">
-                                            <div class="live-demo-job-card" style="top: 18px;"><h4>Young Residence</h4><p>5 AM • $41 • 60 min</p></div>
-                                            <div class="live-demo-job-card" style="top: 72px;"><h4>King Home</h4><p>6 AM • $68 • 60 min</p></div>
-                                        </div>
-                                        <div class="live-demo-night-rail">
-                                            <div class="live-demo-rail-mark"><span class="icon">🌧️</span><span>8 PM</span></div>
-                                            <div class="live-demo-rail-mark"><span class="icon">🌧️</span><span>11 PM</span></div>
-                                            <div class="live-demo-rail-mark"><span class="icon">🌧️</span><span>2 AM</span></div>
-                                        </div>
-                                    </div>
-                                    <div class="live-demo-day-bottom"></div>
-                                </div>
                             </div>
                             <button class="live-demo-nav right" aria-hidden="true">›</button>
                         </div>
 
                         <div class="live-demo-route">
-                            <div class="live-demo-route-title" data-route-title>SUN, AUG 9'S JOBS</div>
-                            <div class="live-demo-route-btn" data-route-action>Apply All executed: +3 jobs moved</div>
+                            <div class="live-demo-route-title" data-route-title>TODAY'S MOVE PLAN</div>
+                            <div class="live-demo-route-btn" data-route-action>Move 1 job to Sat gap, move 2 jobs to Sun</div>
                         </div>
 
                         <div class="live-demo-capacity-card">
                             <div class="live-demo-capacity-head">
-                                <span data-capacity-label>Day Capacity: 5h 30m / 14h 0m</span>
-                                <span data-capacity-used>39% used</span>
+                                <span data-capacity-label>Day Capacity: 6h 45m / 14h 0m</span>
+                                <span data-capacity-used>48% used</span>
                             </div>
-                            <div class="live-demo-capacity-bar"><span data-capacity-fill style="width: 39%;"></span></div>
-                            <div class="live-demo-capacity-foot" data-capacity-foot>Rain delay and reschedule suggestions applied in one tap.</div>
+                            <div class="live-demo-capacity-bar"><span data-capacity-fill style="width: 48%;"></span></div>
+                            <div class="live-demo-capacity-foot" data-capacity-foot>Delay plus route-aware rebalancing keeps drive and work blocks realistic.</div>
                         </div>
 
                         <div class="demo-steps">
@@ -2592,46 +2663,48 @@
                 const capacityFoot = document.querySelector('[data-capacity-foot]');
                 const dayCards = document.querySelectorAll('.live-demo-day');
                 const pills = document.querySelectorAll('.live-demo-pill');
+                const planPopup = document.querySelector('[data-plan-popup]');
                 const applyAllBtn = document.querySelector('.live-demo-toolbar-actions .live-demo-toolbar-btn:last-child');
 
                 const states = [
                     {
                         key: 'storm',
                         activeDay: 'today',
+                        showPopup: true,
                         applyPulse: true,
-                        routeTitle: "TODAY'S JOBS",
-                        routeAction: 'Rain delay predicted by 8 AM',
-                        capacityLabel: 'Day Capacity: 7h 0m / 14h 0m',
-                        capacityUsed: '50% used',
-                        capacityWidth: '50%',
-                        capacityFoot: 'Weather alert: heavy rain pushes early jobs into a risky window.',
+                        routeTitle: "TODAY'S MOVE PLAN",
+                        routeAction: 'Move 1 job to Sat gap, move 2 jobs to Sun',
+                        capacityLabel: 'Day Capacity: 6h 45m / 14h 0m',
+                        capacityUsed: '48% used',
+                        capacityWidth: '48%',
+                        capacityFoot: 'Weather alert: delay start, then split the overflow by route fit.',
                         pills: [
-                            ['Heavy Rain', 'Morning storm risk', '95% at 8 AM', 'red'],
-                            ['Delay Start', '5:00 AM → 10:00 AM', 'Recommended', 'blue'],
-                            ['Move Jobs', '3 jobs to Sun (20%)', 'Best day', 'blue'],
-                            ['Apply All', 'Bundle all changes', 'Ready', 'blue']
+                            ['Rain Delay', 'Push day start to 10:00 AM', 'Urgent', 'red'],
+                            ['Overflow', '3 jobs no longer fit Today', 'Review', 'blue'],
+                            ['Plan', '1 to Sat gap, 2 to Sun', 'Apply All', 'blue']
                         ]
                     },
                     {
                         key: 'apply',
-                        activeDay: 'sun',
+                        activeDay: 'sat',
+                        showPopup: false,
                         applyPulse: true,
-                        routeTitle: "SUN, AUG 9'S JOBS",
-                        routeAction: 'Apply All executed: +3 jobs moved',
-                        capacityLabel: 'Day Capacity: 5h 30m / 14h 0m',
-                        capacityUsed: '39% used',
-                        capacityWidth: '39%',
-                        capacityFoot: 'Rain delay and reschedule suggestions applied in one tap.',
+                        routeTitle: "SAT + SUN REBALANCED",
+                        routeAction: '1 inserted between Sat stops, 2 moved to Sun',
+                        capacityLabel: 'Day Capacity: 5h 55m / 14h 0m',
+                        capacityUsed: '42% used',
+                        capacityWidth: '42%',
+                        capacityFoot: 'Apply All completes delay plus coordinated overflow moves.',
                         pills: [
-                            ['Applied', 'Delay start to 10:00 AM', 'Saved', 'green'],
-                            ['Moved', '3 jobs shifted to Sun', 'Done', 'green'],
-                            ['Capacity', 'Now balanced across days', 'Stable', 'blue'],
-                            ['Next Step', 'Optimize route order', 'Run', 'blue']
+                            ['Applied', 'Start moved to 10:00 AM', 'Saved', 'green'],
+                            ['Moved', 'Sat +1, Sun +2 jobs', 'Done', 'green'],
+                            ['Capacity', 'All three days now feasible', 'Stable', 'blue']
                         ]
                     },
                     {
                         key: 'optimized',
                         activeDay: 'sun',
+                        showPopup: false,
                         applyPulse: false,
                         routeTitle: "SUN, AUG 9'S JOBS",
                         routeAction: 'Navigate Optimized Route (8 stops)',
@@ -2640,9 +2713,8 @@
                         capacityWidth: '36%',
                         capacityFoot: 'Route optimization reorders stops and uses rounded drive + job time blocks.',
                         pills: [
-                            ['Clear Window', 'Best mowing day', 'Accepted', 'blue'],
                             ['Drive Time', 'Rounded to 5-minute blocks', 'Enabled', 'blue'],
-                            ['Route', '8 stops organized tightly', 'Navigate', 'blue'],
+                            ['Route', 'Sat insertion keeps mileage low', 'Optimized', 'blue'],
                             ['Schedule', 'Updated slots + order', 'Synced', 'blue']
                         ]
                     }
@@ -2659,6 +2731,9 @@
                     if (capacityUsed) capacityUsed.textContent = state.capacityUsed;
                     if (capacityFill) capacityFill.style.width = state.capacityWidth;
                     if (capacityFoot) capacityFoot.textContent = state.capacityFoot;
+                    if (planPopup) {
+                        planPopup.classList.toggle('hidden', !state.showPopup);
+                    }
 
                     steps.forEach((step, stepIndex) => {
                         step.classList.toggle('active', stepIndex === index);
