@@ -31,7 +31,7 @@
         .container {
             max-width: 1200px;
             margin: 0 auto;
-            padding: 0 2rem;
+            padding: 0 1.5rem;
         }
         .header-content {
             display: flex;
@@ -77,8 +77,14 @@
         .hero {
             background: transparent;
             color: white;
-            padding: 84px 0 24px 0;
+            padding: 76px 0 30px 0;
             text-align: center;
+        }
+        .hero-subtitle {
+            max-width: 1220px;
+            margin: 0 auto 1.25rem;
+            line-height: 1.45;
+            text-wrap: balance;
         }
         .hero-update-bar {
             max-width: 980px;
@@ -375,12 +381,12 @@
 
         /* Features Section with Visual Demos */
         .demo-features {
-            padding: 40px 0 80px 0;
+            padding: 54px 0 72px 0;
             background: transparent;
             scroll-margin-top: -40px;
         }
         .demo-features .section-header {
-            margin-bottom: 36px;
+            margin-bottom: 30px;
         }
         .demo-features .section-header h2 {
             color: white;
@@ -2458,7 +2464,7 @@
         /* Simple Features */
         /* Simple Features */
         .features {
-            padding: 80px 0;
+            padding: 34px 0 54px 0;
             background: transparent;
         }
         .features .container {
@@ -2468,7 +2474,7 @@
         }
         .section-header {
             text-align: center;
-            margin-bottom: 60px;
+            margin-bottom: 48px;
         }
         .section-header h2 {
             font-size: 2.5rem;
@@ -2947,7 +2953,7 @@
             color: #4f46e5;
         }
         .features-cta {
-            margin-top: 1.5rem;
+            margin-top: 1.9rem;
             display: flex;
             justify-content: center;
             gap: 0.8rem;
@@ -2995,8 +3001,18 @@
         }
 
         @media (max-width: 768px) {
+            .container {
+                padding: 0 1rem;
+            }
+            .hero {
+                padding: 62px 0 24px 0;
+            }
             .hero h1 {
                 font-size: 2.5rem;
+            }
+            .hero-subtitle {
+                margin-bottom: 1rem;
+                line-height: 1.38;
             }
             .hero p {
                 font-size: 1.2rem;
@@ -3024,6 +3040,12 @@
             .features .container {
                 padding-left: 0.9rem;
                 padding-right: 0.9rem;
+            }
+            .features {
+                padding: 22px 0 40px 0;
+            }
+            .demo-features {
+                padding: 40px 0 60px 0;
             }
             .feature-route-compare {
                 grid-template-columns: minmax(148px, 1fr) auto minmax(148px, 1fr);
@@ -3431,7 +3453,7 @@
     </section>
 
     <!-- Feature Cards Section -->
-    <section class="features" style="padding: 26px 0 36px 0;">
+    <section class="features" style="padding: 34px 0 54px 0;">
         <div class="container">
             <div class="section-header" style="margin-bottom: 28px;">
                 <h2 style="color: white;">Time Efficient Features</h2>
