@@ -755,11 +755,22 @@
             align-items: center;
             justify-content: space-between;
             gap: 0.4rem;
+            animation: suggestionPulse 1.4s ease-in-out infinite;
         }
         .live-demo-suggestion-copy {
             font-size: 0.66rem;
             color: #334155;
             font-weight: 800;
+        }
+        @keyframes suggestionPulse {
+            0%, 100% {
+                transform: scale(1);
+                box-shadow: 0 8px 20px rgba(37, 99, 235, 0.12);
+            }
+            50% {
+                transform: scale(1.015);
+                box-shadow: 0 12px 26px rgba(37, 99, 235, 0.24);
+            }
         }
         .live-demo-job-card.compact {
             min-height: 2.2rem;
@@ -2688,7 +2699,7 @@
                                         <div class="live-demo-day-title"><span class="live-demo-day-name">Wed</span><span class="live-demo-day-date">Aug 19</span></div>
                                         <span class="live-demo-day-badge">88%</span>
                                     </div>
-                                    <div class="live-demo-day-meta"><span class="alert">2 jobs</span><span>open</span></div>
+                                    <div class="live-demo-day-meta"><span>2 jobs</span><span>open</span></div>
                                     <div class="live-demo-day-track"></div>
                                     <div class="live-demo-day-body planning sunny">
                                         <div class="live-demo-time-rail">
@@ -2748,9 +2759,10 @@
                                     <div class="live-demo-next-mini-job">Clark Property</div>
                                 </div>
                                 <div class="live-demo-next-day">
-                                    <h5>Wed (+1)</h5>
+                                    <h5>Wed (+2)</h5>
                                     <div class="live-demo-next-mini-job">Taylor Residence</div>
                                     <div class="live-demo-next-mini-job moved">Davis Property <span class="move-tag">moved</span></div>
+                                    <div class="live-demo-next-mini-job moved">Clark Property <span class="move-tag">moved</span></div>
                                     <div class="live-demo-next-mini-job">Thompson Property</div>
                                 </div>
                                 <div class="live-demo-next-day">
