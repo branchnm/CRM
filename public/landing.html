@@ -728,6 +728,88 @@
             font-size: 0.72rem;
             font-weight: 600;
         }
+        .live-demo-stage-title {
+            font-size: 0.98rem;
+            font-weight: 900;
+            letter-spacing: 0.02em;
+            color: #1e3a8a;
+            text-transform: uppercase;
+        }
+        .live-demo-stage-note {
+            margin-top: -0.35rem;
+            color: #475569;
+            font-size: 0.86rem;
+            font-weight: 700;
+        }
+        .live-demo-simple-popup {
+            margin-top: 0.65rem;
+            padding: 0.8rem 0.85rem;
+            border: 2px solid #2563eb;
+            border-radius: 0.95rem;
+            background: #f8fbff;
+            box-shadow: 0 8px 18px rgba(37, 99, 235, 0.12);
+        }
+        .live-demo-simple-popup h4 {
+            font-size: 0.84rem;
+            color: #1e3a8a;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            margin-bottom: 0.45rem;
+        }
+        .live-demo-simple-popup p {
+            font-size: 0.78rem;
+            color: #1e293b;
+            font-weight: 700;
+            line-height: 1.4;
+            margin-bottom: 0.24rem;
+        }
+        .live-demo-next-graphic {
+            margin-top: 0.95rem;
+            padding: 0.95rem;
+            border-radius: 1rem;
+            border: 1px solid rgba(37, 99, 235, 0.24);
+            background: linear-gradient(180deg, #ffffff 0%, #f7fbff 100%);
+        }
+        .live-demo-next-head {
+            display: flex;
+            justify-content: space-between;
+            gap: 0.7rem;
+            align-items: center;
+            margin-bottom: 0.7rem;
+        }
+        .live-demo-next-head strong {
+            font-size: 0.9rem;
+            color: #0f172a;
+        }
+        .live-demo-next-head span {
+            font-size: 0.78rem;
+            color: #475569;
+            font-weight: 700;
+        }
+        .live-demo-next-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 0.65rem;
+        }
+        .live-demo-next-card {
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 0.85rem;
+            background: white;
+            padding: 0.65rem;
+        }
+        .live-demo-next-card h5 {
+            font-size: 0.78rem;
+            color: #1d4ed8;
+            margin-bottom: 0.25rem;
+            font-weight: 900;
+            text-transform: uppercase;
+        }
+        .live-demo-next-card p {
+            font-size: 0.74rem;
+            color: #1e293b;
+            line-height: 1.35;
+            font-weight: 700;
+        }
 
         /* Simple Weather Forecast Bar */
         .demo-forecast-bar {
@@ -1947,6 +2029,9 @@
             .live-demo-board {
                 grid-template-columns: repeat(2, minmax(230px, 1fr));
             }
+            .live-demo-next-grid {
+                grid-template-columns: 1fr;
+            }
             .live-demo-plan-pop {
                 left: auto;
                 right: 0.4rem;
@@ -2125,6 +2210,10 @@
             .live-demo-board {
                 grid-template-columns: 1fr;
                 overflow-x: auto;
+            }
+            .live-demo-next-head {
+                flex-direction: column;
+                align-items: flex-start;
             }
             .live-demo-day {
                 min-width: 0;
@@ -2332,32 +2421,17 @@
             <!-- Animated App Demo -->
             <div class="app-demo-container">
                 <div class="app-demo-screen">
-                    <div class="live-demo-shell" data-demo-state="apply">
+                    <div class="live-demo-shell">
                         <div class="live-demo-toolbar">
                             <div class="live-demo-toolbar-brand">JOB FLOW <span>DEMO</span></div>
                             <div class="live-demo-toolbar-actions">
                                 <span class="live-demo-toolbar-btn">Today</span>
-                                <span class="live-demo-toolbar-btn">Apply All</span>
+                                <span class="live-demo-toolbar-btn apply-live">Suggestion Ready</span>
                             </div>
                         </div>
 
-                        <div class="live-demo-suggestion-row">
-                            <div class="live-demo-pill" data-pill="0">
-                                <span class="live-demo-pill-tag red">Step 1</span>
-                                <span class="live-demo-pill-copy">Rain delay detected on Today</span>
-                                <span class="live-demo-pill-action">Watch</span>
-                            </div>
-                            <div class="live-demo-pill" data-pill="1">
-                                <span class="live-demo-pill-tag blue">Step 2</span>
-                                <span class="live-demo-pill-copy">App proposes where overflow goes</span>
-                                <span class="live-demo-pill-action">Apply</span>
-                            </div>
-                            <div class="live-demo-pill" data-pill="2">
-                                <span class="live-demo-pill-tag blue">Step 3</span>
-                                <span class="live-demo-pill-copy">Route and schedule finalize</span>
-                                <span class="live-demo-pill-action">Done</span>
-                            </div>
-                        </div>
+                        <div class="live-demo-stage-title">Step 1: Rain Delay Suggestion</div>
+                        <div class="live-demo-stage-note">Start with three day cards. The app suggests delaying Today and moving overflow jobs.</div>
 
                         <div class="live-demo-board-wrap">
                             <div class="live-demo-board">
@@ -2367,16 +2441,11 @@
                                         <span class="live-demo-day-badge">95%</span>
                                     </div>
                                     <div class="live-demo-day-meta"><span>7 jobs</span><span class="alert">Rain delay</span><span>⏱ 6h 45m</span></div>
-                                    <div class="live-demo-plan-pop" data-plan-popup>
-                                        <div class="live-demo-plan-title" data-popup-title>Step 1: Rain Delay</div>
-                                        <div class="live-demo-plan-line" data-popup-line="0"><strong>Delay</strong> the first day to <strong>10:00 AM</strong>.</div>
-                                        <div class="live-demo-plan-line" data-popup-line="1">That leaves <strong>3 jobs</strong> without room on Today.</div>
-                                        <div class="live-demo-plan-line" data-popup-line="2">Next, the app suggests the best split across Sat and Sun.</div>
-                                        <div class="live-demo-plan-chip-row">
-                                            <span class="live-demo-plan-chip" data-popup-chip="0">Weather Risk</span>
-                                            <span class="live-demo-plan-chip purple" data-popup-chip="1">Needs Replan</span>
-                                            <span class="live-demo-plan-chip green" data-popup-chip="2">Step-by-Step</span>
-                                        </div>
+                                    <div class="live-demo-simple-popup">
+                                        <h4>Suggestion</h4>
+                                        <p>Delay Today start to 10:00 AM due to heavy rain.</p>
+                                        <p>Three jobs no longer fit after the delay.</p>
+                                        <p>Move 1 job to Sat and 2 jobs to Sun.</p>
                                     </div>
                                     <div class="live-demo-day-track"></div>
                                     <div class="live-demo-day-body rainy">
@@ -2466,32 +2535,24 @@
                             </div>
                         </div>
 
-                        <div class="live-demo-route">
-                            <div class="live-demo-route-title" data-route-title>TODAY'S MOVE PLAN</div>
-                            <div class="live-demo-route-btn" data-route-action>Move 1 job to Sat gap, move 2 jobs to Sun</div>
-                        </div>
-
-                        <div class="live-demo-capacity-card">
-                            <div class="live-demo-capacity-head">
-                                <span data-capacity-label>Day Capacity: 6h 45m / 14h 0m</span>
-                                <span data-capacity-used>48% used</span>
+                        <div class="live-demo-next-graphic">
+                            <div class="live-demo-next-head">
+                                <strong>Step 2: After Apply All (New Graphic)</strong>
+                                <span>The schedule is redistributed and ready for route optimization.</span>
                             </div>
-                            <div class="live-demo-capacity-bar"><span data-capacity-fill style="width: 48%;"></span></div>
-                            <div class="live-demo-capacity-foot" data-capacity-foot>Delay plus route-aware rebalancing keeps drive and work blocks realistic.</div>
-                        </div>
-
-                        <div class="demo-steps">
-                            <div class="demo-step" data-step="1">
-                                <div class="step-number">1</div>
-                                <div class="step-label">Rain Alert</div>
-                            </div>
-                            <div class="demo-step active" data-step="2">
-                                <div class="step-number">2</div>
-                                <div class="step-label">Apply All</div>
-                            </div>
-                            <div class="demo-step" data-step="3">
-                                <div class="step-number">3</div>
-                                <div class="step-label">Optimize Route</div>
+                            <div class="live-demo-next-grid">
+                                <div class="live-demo-next-card">
+                                    <h5>Sat Gap Fill</h5>
+                                    <p>1 overflow job is inserted between nearby Sat jobs for lower drive time.</p>
+                                </div>
+                                <div class="live-demo-next-card">
+                                    <h5>Sun Overflow</h5>
+                                    <p>2 overflow jobs move to Sun, which has safer weather and enough room.</p>
+                                </div>
+                                <div class="live-demo-next-card">
+                                    <h5>Next Action</h5>
+                                    <p>Click Optimize Route to finalize order with 5-minute rounded drive blocks.</p>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -2620,204 +2681,6 @@
         </div>
     </footer>
 
-    <script>
-        // Landing page forecast board demo
-        (function() {
-            let hasStarted = false;
-            const stepDuration = 4200;
 
-            function runDemoAnimation() {
-                const steps = document.querySelectorAll('.demo-step');
-                const board = document.querySelector('.live-demo-shell');
-                const routeTitle = document.querySelector('[data-route-title]');
-                const routeAction = document.querySelector('[data-route-action]');
-                const capacityLabel = document.querySelector('[data-capacity-label]');
-                const capacityUsed = document.querySelector('[data-capacity-used]');
-                const capacityFill = document.querySelector('[data-capacity-fill]');
-                const capacityFoot = document.querySelector('[data-capacity-foot]');
-                const dayCards = document.querySelectorAll('.live-demo-day');
-                const pills = document.querySelectorAll('.live-demo-pill');
-                const planPopup = document.querySelector('[data-plan-popup]');
-                const popupTitle = document.querySelector('[data-popup-title]');
-                const popupLines = document.querySelectorAll('[data-popup-line]');
-                const popupChips = document.querySelectorAll('[data-popup-chip]');
-                const applyAllBtn = document.querySelector('.live-demo-toolbar-actions .live-demo-toolbar-btn:last-child');
-
-                const states = [
-                    {
-                        key: 'storm',
-                        activeDay: 'today',
-                        showPopup: true,
-                        applyPulse: true,
-                        routeTitle: "TODAY'S MOVE PLAN",
-                        routeAction: 'Move 1 job to Sat gap, move 2 jobs to Sun',
-                        capacityLabel: 'Day Capacity: 6h 45m / 14h 0m',
-                        capacityUsed: '48% used',
-                        capacityWidth: '48%',
-                        capacityFoot: 'Weather alert: delay start, then split the overflow by route fit.',
-                        popup: {
-                            title: 'Step 1: Rain Delay',
-                            lines: [
-                                'Delay the first day to 10:00 AM.',
-                                'Three jobs no longer fit on Today.',
-                                'The app prepares a move plan automatically.'
-                            ],
-                            chips: [
-                                ['Weather Risk', 'blue'],
-                                ['Needs Replan', 'purple'],
-                                ['Step-by-Step', 'green']
-                            ]
-                        },
-                        pills: [
-                            ['Step 1', 'Rain delay detected on Today', 'Watch', 'red'],
-                            ['Step 2', 'App proposes where overflow goes', 'Review', 'blue'],
-                            ['Step 3', 'Route and schedule finalize', 'Later', 'blue']
-                        ]
-                    },
-                    {
-                        key: 'apply',
-                        activeDay: 'sat',
-                        showPopup: true,
-                        applyPulse: true,
-                        routeTitle: "SAT + SUN REBALANCED",
-                        routeAction: '1 inserted between Sat stops, 2 moved to Sun',
-                        capacityLabel: 'Day Capacity: 5h 55m / 14h 0m',
-                        capacityUsed: '42% used',
-                        capacityWidth: '42%',
-                        capacityFoot: 'Apply All completes delay plus coordinated overflow moves.',
-                        popup: {
-                            title: 'Step 2: Apply All Moves',
-                            lines: [
-                                'Move Garcia Home into an open Sat gap.',
-                                'Move Harris Estate and Lee Property to Sun.',
-                                'This keeps drive time and capacity balanced.'
-                            ],
-                            chips: [
-                                ['Sat +1 Job', 'blue'],
-                                ['Sun +2 Jobs', 'green'],
-                                ['Lower Mileage', 'purple']
-                            ]
-                        },
-                        pills: [
-                            ['Step 1', 'Rain delay accepted', 'Done', 'green'],
-                            ['Step 2', 'Sat +1, Sun +2 jobs moved', 'Done', 'green'],
-                            ['Step 3', 'Optimize route order next', 'Ready', 'blue']
-                        ]
-                    },
-                    {
-                        key: 'optimized',
-                        activeDay: 'sun',
-                        showPopup: true,
-                        applyPulse: false,
-                        routeTitle: "SUN, AUG 9'S JOBS",
-                        routeAction: 'Navigate Optimized Route (8 stops)',
-                        capacityLabel: 'Day Capacity: 5h 5m / 14h 0m',
-                        capacityUsed: '36% used',
-                        capacityWidth: '36%',
-                        capacityFoot: 'Route optimization reorders stops and uses rounded drive + job time blocks.',
-                        popup: {
-                            title: 'Step 3: Route Optimized',
-                            lines: [
-                                'Stops are reordered for shorter drive time.',
-                                'Drive time is rounded to 5-minute blocks.',
-                                'The schedule is now realistic and ready to run.'
-                            ],
-                            chips: [
-                                ['Route Locked', 'blue'],
-                                ['5-min Blocks', 'purple'],
-                                ['Crew Ready', 'green']
-                            ]
-                        },
-                        pills: [
-                            ['Step 1', 'Rain delay + moves complete', 'Done', 'green'],
-                            ['Step 2', 'Route shortened automatically', 'Optimized', 'blue'],
-                            ['Step 3', 'Schedule synced and ready', 'Synced', 'blue']
-                        ]
-                    }
-                ];
-
-                function applyState(index) {
-                    const state = states[index];
-                    if (!state || !board) return;
-
-                    board.dataset.demoState = state.key;
-                    if (routeTitle) routeTitle.textContent = state.routeTitle;
-                    if (routeAction) routeAction.textContent = state.routeAction;
-                    if (capacityLabel) capacityLabel.textContent = state.capacityLabel;
-                    if (capacityUsed) capacityUsed.textContent = state.capacityUsed;
-                    if (capacityFill) capacityFill.style.width = state.capacityWidth;
-                    if (capacityFoot) capacityFoot.textContent = state.capacityFoot;
-                    if (planPopup) {
-                        planPopup.classList.toggle('hidden', !state.showPopup);
-                    }
-                    if (popupTitle && state.popup) {
-                        popupTitle.textContent = state.popup.title;
-                    }
-                    if (state.popup) {
-                        popupLines.forEach((lineEl, lineIndex) => {
-                            if (state.popup.lines[lineIndex]) {
-                                lineEl.textContent = state.popup.lines[lineIndex];
-                            }
-                        });
-                        popupChips.forEach((chipEl, chipIndex) => {
-                            const chipState = state.popup.chips[chipIndex];
-                            if (!chipState) return;
-                            chipEl.textContent = chipState[0];
-                            chipEl.className = `live-demo-plan-chip ${chipState[1]}`;
-                        });
-                    }
-
-                    steps.forEach((step, stepIndex) => {
-                        step.classList.toggle('active', stepIndex === index);
-                    });
-
-                    dayCards.forEach((card) => {
-                        card.classList.toggle('is-active', card.getAttribute('data-day') === state.activeDay);
-                    });
-
-                    if (applyAllBtn) {
-                        applyAllBtn.classList.toggle('apply-live', Boolean(state.applyPulse));
-                    }
-
-                    pills.forEach((pill, pillIndex) => {
-                        const pillState = state.pills[pillIndex];
-                        if (!pillState) return;
-                        const [tag, copy, action, tone] = pillState;
-                        const tagEl = pill.querySelector('.live-demo-pill-tag');
-                        const copyEl = pill.querySelector('.live-demo-pill-copy');
-                        const actionEl = pill.querySelector('.live-demo-pill-action');
-                        if (tagEl) {
-                            tagEl.textContent = tag;
-                            tagEl.className = `live-demo-pill-tag ${tone}`;
-                        }
-                        if (copyEl) copyEl.textContent = copy;
-                        if (actionEl) actionEl.textContent = action;
-                    });
-                }
-
-                let stepIndex = 0;
-                applyState(stepIndex);
-                setInterval(() => {
-                    stepIndex = (stepIndex + 1) % states.length;
-                    applyState(stepIndex);
-                }, stepDuration);
-            }
-
-            // Start animation when demo comes into viewport
-            const observer = new IntersectionObserver((entries) => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting && !hasStarted) {
-                        runDemoAnimation();
-                        hasStarted = true;
-                    }
-                });
-            }, { threshold: 0.3 });
-
-            const demoContainer = document.querySelector('.app-demo-container');
-            if (demoContainer) {
-                observer.observe(demoContainer);
-            }
-        })();
-    </script>
 </body>
 </html>
