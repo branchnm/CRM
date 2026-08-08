@@ -622,17 +622,17 @@
             height: 430px;
             border-radius: 0.95rem;
             overflow: hidden;
-            background: linear-gradient(180deg, #eef2f7 0%, #dce6f5 100%);
+            background: linear-gradient(180deg, #f2ecff 0%, #ddd4f6 100%);
             border: 1px solid rgba(148, 163, 184, 0.22);
         }
         .live-demo-day-body.rainy {
-            background: linear-gradient(180deg, #dbe8ff 0%, #8aa3e0 100%);
+            background: linear-gradient(180deg, #ddd7ff 0%, #998ed6 100%);
         }
         .live-demo-day-body.sunny {
-            background: linear-gradient(180deg, #f4f5f7 0%, #eceef2 100%);
+            background: linear-gradient(180deg, #f8f4ff 0%, #ece8fb 100%);
         }
         .live-demo-day-body.planning {
-            background: linear-gradient(180deg, #dce8ff 0%, #8ea7de 100%);
+            background: linear-gradient(180deg, #ece6ff 0%, #b6a9ea 100%);
         }
         .live-demo-job-column {
             position: absolute;
@@ -771,6 +771,27 @@
                 transform: scale(1.015);
                 box-shadow: 0 12px 26px rgba(37, 99, 235, 0.24);
             }
+        }
+        .live-demo-day[data-day="tue"] .live-demo-suggestion-strip {
+            position: absolute;
+            left: 0.95rem;
+            right: 0.95rem;
+            bottom: 1.05rem;
+            margin-top: 0;
+            z-index: 5;
+        }
+        .live-demo-suggestion-strip.is-clickable {
+            cursor: pointer;
+        }
+        .live-demo-suggestion-strip.applied {
+            animation: none;
+            border-color: #16a34a;
+            box-shadow: 0 8px 20px rgba(22, 163, 74, 0.2);
+        }
+        .live-demo-job-card.moved-highlight {
+            border-color: #2563eb;
+            background: #e9f2ff;
+            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.18), 0 6px 14px rgba(37, 99, 235, 0.16);
         }
         .live-demo-job-card.compact {
             min-height: 2.2rem;
@@ -1027,6 +1048,9 @@
             border-color: #2563eb;
             background: #dbeafe;
             box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.32);
+        }
+        .live-demo-next-graphic.is-hidden {
+            display: none;
         }
         .live-demo-next-mini-job .move-tag {
             font-size: 0.58rem;
@@ -2664,29 +2688,29 @@
 
                         <div class="live-demo-board-wrap">
                             <div class="live-demo-board">
-                                <div class="live-demo-day is-active" data-day="tue">
+                                <div class="live-demo-day is-active" data-day="tue" id="stepOneTueDay">
                                     <div class="live-demo-day-header">
                                         <div class="live-demo-day-title"><span class="live-demo-day-name">Tue</span><span class="live-demo-day-date">Aug 18</span></div>
                                         <span class="live-demo-day-badge">95%</span>
                                     </div>
                                     <div class="live-demo-day-meta"><span>10 jobs</span><span class="full">FULL</span></div>
                                     <div class="live-demo-day-track"></div>
-                                    <div class="live-demo-day-body planning rainy">
-                                        <div class="live-demo-time-rail">
+                                    <div class="live-demo-day-body planning rainy" id="stepOneTueBody">
+                                        <div class="live-demo-time-rail" id="stepOneTueRail">
                                             <div class="live-demo-rail-mark"><span class="icon">🌧️</span><span>5 AM</span></div>
                                             <div class="live-demo-rail-mark"><span class="icon">🌧️</span><span>8 AM</span></div>
                                             <div class="live-demo-rail-mark"><span class="icon">🌧️</span><span>11 AM</span></div>
                                             <div class="live-demo-rail-mark"><span class="icon">🌧️</span><span>2 PM</span></div>
                                             <div class="live-demo-rail-mark"><span class="icon">🌧️</span><span>5 PM</span></div>
                                         </div>
-                                        <div class="live-demo-job-column">
-                                            <div class="live-demo-job-card" style="top: 14px;"><h4>Anderson Property</h4><div class="live-demo-job-meta"><span class="live-demo-job-chip work">60 m</span><span class="live-demo-job-chip drive">10 m</span></div></div>
-                                            <div class="live-demo-job-card" style="top: 68px;"><h4>Brown Residence</h4><div class="live-demo-job-meta"><span class="live-demo-job-chip work">60 m</span><span class="live-demo-job-chip drive">10 m</span></div></div>
-                                            <div class="live-demo-job-card" style="top: 122px;"><h4>Clark Property</h4><div class="live-demo-job-meta"><span class="live-demo-job-chip work">60 m</span><span class="live-demo-job-chip drive">10 m</span></div></div>
-                                            <div class="live-demo-job-card" style="top: 176px;"><h4>Davis Property</h4><div class="live-demo-job-meta"><span class="live-demo-job-chip work">60 m</span><span class="live-demo-job-chip drive">10 m</span></div></div>
+                                        <div class="live-demo-job-column" id="stepOneTueColumn">
+                                            <div class="live-demo-job-card" data-move-target="thu" data-job="Anderson Property" style="top: 14px;"><h4>Anderson Property</h4><div class="live-demo-job-meta"><span class="live-demo-job-chip work">60 m</span><span class="live-demo-job-chip drive">10 m</span></div></div>
+                                            <div class="live-demo-job-card" data-move-target="thu" data-job="Brown Residence" style="top: 68px;"><h4>Brown Residence</h4><div class="live-demo-job-meta"><span class="live-demo-job-chip work">60 m</span><span class="live-demo-job-chip drive">10 m</span></div></div>
+                                            <div class="live-demo-job-card" data-move-target="wed" data-job="Clark Property" style="top: 122px;"><h4>Clark Property</h4><div class="live-demo-job-meta"><span class="live-demo-job-chip work">60 m</span><span class="live-demo-job-chip drive">10 m</span></div></div>
+                                            <div class="live-demo-job-card" data-move-target="wed" data-job="Davis Property" style="top: 176px;"><h4>Davis Property</h4><div class="live-demo-job-meta"><span class="live-demo-job-chip work">60 m</span><span class="live-demo-job-chip drive">10 m</span></div></div>
                                         </div>
                                     </div>
-                                    <div class="live-demo-suggestion-strip">
+                                    <div class="live-demo-suggestion-strip is-clickable" id="demoApplySuggestion">
                                         <span class="live-demo-inline-suggestion-tag">Suggestion</span>
                                         <span class="live-demo-suggestion-copy">Move 4 jobs: 2 to Wed, 2 to Thu.</span>
                                         <span class="live-demo-inline-suggestion-action">Apply</span>
@@ -2709,7 +2733,7 @@
                                             <div class="live-demo-rail-mark"><span class="icon">☀️</span><span>2 PM</span></div>
                                             <div class="live-demo-rail-mark"><span class="icon">☀️</span><span>5 PM</span></div>
                                         </div>
-                                        <div class="live-demo-job-column">
+                                        <div class="live-demo-job-column" id="stepOneWedColumn">
                                             <div class="live-demo-open-gap" style="top: 6px; height: 282px;"></div>
                                             <div class="live-demo-job-card" style="top: 292px;"><h4>Taylor Residence</h4><div class="live-demo-job-meta"><span class="live-demo-job-chip work">60 m</span><span class="live-demo-job-chip drive">10 m</span></div></div>
                                             <div class="live-demo-job-card" style="top: 344px;"><h4>Thompson Property</h4><div class="live-demo-job-meta"><span class="live-demo-job-chip work">60 m</span><span class="live-demo-job-chip drive">10 m</span></div></div>
@@ -2733,7 +2757,7 @@
                                             <div class="live-demo-rail-mark"><span class="icon">☁️</span><span>2 PM</span></div>
                                             <div class="live-demo-rail-mark"><span class="icon">🌤️</span><span>5 PM</span></div>
                                         </div>
-                                        <div class="live-demo-job-column">
+                                        <div class="live-demo-job-column" id="stepOneThuColumn">
                                             <div class="live-demo-job-card" style="top: 14px;"><h4>White Home</h4><div class="live-demo-job-meta"><span class="live-demo-job-chip work">60 m</span><span class="live-demo-job-chip drive">10 m</span></div></div>
                                             <div class="live-demo-job-card" style="top: 68px;"><h4>Wilson Estate</h4><div class="live-demo-job-meta"><span class="live-demo-job-chip work">60 m</span><span class="live-demo-job-chip drive">10 m</span></div></div>
                                             <div class="live-demo-job-card" style="top: 122px;"><h4>Roberts Home</h4><div class="live-demo-job-meta"><span class="live-demo-job-chip work">60 m</span><span class="live-demo-job-chip drive">10 m</span></div></div>
@@ -2745,7 +2769,7 @@
                             </div>
                         </div>
 
-                        <div class="live-demo-next-graphic">
+                        <div class="live-demo-next-graphic is-hidden" id="stepTwoGraphic">
                             <div class="live-demo-next-head">
                                 <strong>Step 2: Update Applied</strong>
                                 <span>Tue is now rained out. Wed/Thu absorb moved jobs.</span>
@@ -2768,8 +2792,8 @@
                                 <div class="live-demo-next-day">
                                     <h5>Thu (+2)</h5>
                                     <div class="live-demo-next-mini-job">White Home</div>
-                                    <div class="live-demo-next-mini-job moved">Wilson Estate <span class="move-tag">moved</span></div>
-                                    <div class="live-demo-next-mini-job moved">Roberts Home <span class="move-tag">moved</span></div>
+                                    <div class="live-demo-next-mini-job moved">Anderson Property <span class="move-tag">moved</span></div>
+                                    <div class="live-demo-next-mini-job moved">Brown Residence <span class="move-tag">moved</span></div>
                                 </div>
                             </div>
                         </div>
@@ -2898,6 +2922,85 @@
             </div>
         </div>
     </footer>
+
+    <script>
+        (function() {
+            const applyStrip = document.getElementById('demoApplySuggestion');
+            const stepTwo = document.getElementById('stepTwoGraphic');
+            const tueDay = document.getElementById('stepOneTueDay');
+            const tueBody = document.getElementById('stepOneTueBody');
+            const tueRail = document.getElementById('stepOneTueRail');
+            const wedColumn = document.getElementById('stepOneWedColumn');
+            const thuColumn = document.getElementById('stepOneThuColumn');
+            const stepBadge = document.querySelector('.live-demo-toolbar-btn.apply-live');
+
+            if (!applyStrip || !stepTwo || !tueDay || !tueBody || !tueRail || !wedColumn || !thuColumn) {
+                return;
+            }
+
+            let isApplied = false;
+
+            applyStrip.addEventListener('click', function() {
+                if (isApplied) {
+                    return;
+                }
+                isApplied = true;
+
+                const moveCards = document.querySelectorAll('#stepOneTueColumn .live-demo-job-card[data-move-target]');
+                const wedTopSlots = ['236px', '290px'];
+                const thuTopSlots = ['176px', '230px'];
+                let wedIndex = 0;
+                let thuIndex = 0;
+
+                moveCards.forEach((card) => {
+                    const target = card.getAttribute('data-move-target');
+                    if (target === 'wed') {
+                        card.style.top = wedTopSlots[Math.min(wedIndex, wedTopSlots.length - 1)];
+                        wedColumn.appendChild(card);
+                        wedIndex += 1;
+                    } else {
+                        card.style.top = thuTopSlots[Math.min(thuIndex, thuTopSlots.length - 1)];
+                        thuColumn.appendChild(card);
+                        thuIndex += 1;
+                    }
+                    card.classList.add('moved-highlight');
+                });
+
+                tueBody.classList.remove('sunny');
+                tueBody.classList.add('rainy');
+
+                const rainTimes = ['5 AM', '8 AM', '11 AM', '2 PM', '5 PM'];
+                const marks = tueRail.querySelectorAll('.live-demo-rail-mark');
+                marks.forEach((mark, index) => {
+                    const icon = mark.querySelector('.icon');
+                    const label = mark.querySelector('span:last-child');
+                    if (icon) icon.textContent = '🌧️';
+                    if (label) label.textContent = rainTimes[index] || label.textContent;
+                });
+
+                const tueMeta = tueDay.querySelector('.live-demo-day-meta');
+                if (tueMeta) {
+                    tueMeta.innerHTML = '<span>6 jobs</span><span class="alert">Rained out</span><span class="full">FULL</span>';
+                }
+
+                applyStrip.classList.add('applied');
+                const copy = applyStrip.querySelector('.live-demo-suggestion-copy');
+                const action = applyStrip.querySelector('.live-demo-inline-suggestion-action');
+                if (copy) {
+                    copy.textContent = 'Applied: 2 jobs moved to Wed, 2 moved to Thu.';
+                }
+                if (action) {
+                    action.textContent = 'Done';
+                }
+
+                if (stepBadge) {
+                    stepBadge.textContent = 'Step 2';
+                }
+
+                stepTwo.classList.remove('is-hidden');
+            });
+        })();
+    </script>
 
 
 </body>
