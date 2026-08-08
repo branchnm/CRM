@@ -2507,9 +2507,11 @@
         }
         .features-title-note {
             margin-top: 0.4rem;
-            color: rgba(255,255,255,0.88);
-            font-size: 0.95rem;
-            font-weight: 700;
+            color: #f8fafc;
+            font-size: 1.05rem;
+            font-weight: 800;
+            letter-spacing: 0.01em;
+            text-shadow: 0 2px 10px rgba(15, 23, 42, 0.35);
         }
         .feature-card-top {
             display: flex;
@@ -2539,7 +2541,7 @@
             border-radius: 0.75rem;
             padding: 0.55rem;
             border: 1px solid #e2e8f0;
-            min-height: 112px;
+            min-height: 106px;
         }
         .feature-state.bad {
             background: #fff7f7;
@@ -2625,6 +2627,18 @@
         }
         .feature-msg-pill .sent {
             color: #0284c7;
+        }
+        .feature-popup-tip {
+            display: inline-flex;
+            align-items: center;
+            border-radius: 999px;
+            padding: 0.14rem 0.42rem;
+            margin-bottom: 0.32rem;
+            font-size: 0.62rem;
+            font-weight: 900;
+            letter-spacing: 0.01em;
+            color: #0c4a6e;
+            background: #e0f2fe;
         }
 
         /* SMS Compliance Section */
@@ -3095,22 +3109,20 @@
                         <div class="feature-icon" style="margin: 0;">🌦️</div>
                         <h3>Smart Weather Monitoring</h3>
                     </div>
-                    <div class="feature-problem">Problem: Surprise rain forces same-day manual reshuffles.</div>
+                    <div class="feature-problem">Problem: Crews find weather conflicts too late.</div>
                     <div class="feature-compare">
                         <div class="feature-state bad">
-                            <div class="feature-state-head">Without JobFlow</div>
-                            <div class="feature-state-line">Tue risk missed</div>
-                            <div class="feature-state-line">Crew reroute scramble</div>
-                            <div class="feature-state-line">Jobs run behind</div>
+                            <div class="feature-state-head">Late Heads-Up</div>
+                            <div class="feature-state-line">Rain noticed day-of</div>
+                            <div class="feature-state-line">Manual reshuffle rush</div>
                         </div>
                         <div class="feature-state good">
-                            <div class="feature-state-head">With JobFlow</div>
-                            <div class="feature-state-line">Rain flagged early</div>
-                            <div class="feature-state-line">Best-day move suggested</div>
-                            <div class="feature-state-line">Day stays on track</div>
+                            <div class="feature-state-head">Ahead-of-Time Alert</div>
+                            <div class="feature-state-line">Notified before dispatch</div>
+                            <div class="feature-state-line">Reschedule in minutes</div>
                         </div>
                     </div>
-                    <div class="feature-outcome">Prevents weather chaos before dispatch.</div>
+                    <div class="feature-outcome">Get notified ahead and reschedule quickly.</div>
                 </div>
 
                 <div class="feature-card" style="background: white; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
@@ -3145,19 +3157,18 @@
                         <div class="feature-icon" style="margin: 0;">📲</div>
                         <h3>Automated Customer Notices</h3>
                     </div>
-                    <div class="feature-problem">Problem: Teams forget to message customers after schedule changes.</div>
+                    <div class="feature-problem">Problem: Route changes happen, but customers are not always messaged.</div>
                     <div class="feature-compare">
                         <div class="feature-state bad">
                             <div class="feature-state-head">Manual Messaging</div>
-                            <div class="feature-msg-pill"><span>Anderson</span><span class="missed">No text</span></div>
-                            <div class="feature-msg-pill"><span>Brown</span><span class="missed">No text</span></div>
-                            <div class="feature-msg-pill"><span>Clark</span><span class="missed">No text</span></div>
+                            <div class="feature-state-line">Updates get skipped</div>
+                            <div class="feature-state-line">Customers left guessing</div>
                         </div>
                         <div class="feature-state good">
                             <div class="feature-state-head">Auto Notices</div>
-                            <div class="feature-msg-pill"><span>Anderson -> Thu</span><span class="sent">Sent</span></div>
-                            <div class="feature-msg-pill"><span>Brown -> Thu</span><span class="sent">Sent</span></div>
-                            <div class="feature-msg-pill"><span>Clark -> Wed</span><span class="sent">Sent</span></div>
+                            <div class="feature-popup-tip">Never ghost a customer again.</div>
+                            <div class="feature-msg-pill"><span>4 schedule updates</span><span class="sent">Sent</span></div>
+                            <div class="feature-state-line">New service day confirmed</div>
                         </div>
                     </div>
                     <div class="feature-outcome">Every customer gets timely schedule updates.</div>
