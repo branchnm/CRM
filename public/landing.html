@@ -2787,6 +2787,119 @@
             font-weight: 900;
             margin-top: 0.12rem;
         }
+        .feature-simple-card {
+            padding-top: 1.7rem;
+            padding-bottom: 1.7rem;
+        }
+        .feature-simple-hero {
+            text-align: center;
+            margin-bottom: 0.75rem;
+        }
+        .feature-simple-icon {
+            font-size: 3.1rem;
+            line-height: 1;
+            margin-bottom: 0.55rem;
+        }
+        .feature-simple-title {
+            margin: 0;
+            color: #4f46e5;
+            font-size: 1.05rem;
+            font-weight: 900;
+            line-height: 1.15;
+        }
+        .feature-simple-subtitle {
+            text-align: center;
+            color: #64748b;
+            font-size: 0.78rem;
+            font-weight: 700;
+            margin-bottom: 0.75rem;
+        }
+        .feature-info-panel {
+            border: 1px solid #c7d2fe;
+            border-radius: 0.8rem;
+            background: linear-gradient(180deg, #f8faff 0%, #eff2ff 100%);
+            padding: 0.62rem;
+        }
+        .feature-info-item {
+            display: flex;
+            align-items: center;
+            gap: 0.55rem;
+            padding: 0.42rem 0.3rem;
+            font-size: 0.78rem;
+            font-weight: 800;
+            color: #1e293b;
+            border-bottom: 1px solid #dbeafe;
+        }
+        .feature-info-item:last-child {
+            border-bottom: none;
+        }
+        .feature-info-badge {
+            width: 1.75rem;
+            height: 1.75rem;
+            border-radius: 999px;
+            flex-shrink: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: #4f46e5;
+            background: #e0e7ff;
+            font-size: 0.9rem;
+            font-weight: 900;
+        }
+        .feature-route-compare {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+            gap: 0.35rem;
+            align-items: center;
+        }
+        .feature-route-box {
+            border: 1px solid #dbeafe;
+            border-radius: 0.75rem;
+            background: #f8fafc;
+            padding: 0.5rem;
+            min-height: 124px;
+        }
+        .feature-route-box.optimized {
+            background: #eff6ff;
+            border-color: #bfdbfe;
+        }
+        .feature-route-head {
+            font-size: 0.62rem;
+            font-weight: 900;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            margin-bottom: 0.35rem;
+            color: #475569;
+        }
+        .feature-route-box.optimized .feature-route-head {
+            color: #4f46e5;
+        }
+        .feature-route-arrow {
+            color: #4f46e5;
+            font-size: 1.55rem;
+            font-weight: 900;
+            line-height: 1;
+            padding: 0 0.1rem;
+        }
+        .feature-route-metric {
+            display: flex;
+            align-items: center;
+            gap: 0.28rem;
+            font-size: 0.76rem;
+            font-weight: 800;
+            color: #1e293b;
+            margin-top: 0.35rem;
+        }
+        .feature-route-metric strong {
+            color: #4f46e5;
+        }
+        .features-cta {
+            margin-top: 1.5rem;
+            display: flex;
+            justify-content: center;
+            gap: 0.8rem;
+            flex-wrap: wrap;
+        }
 
         /* SMS Compliance Section */
         /* Footer */
@@ -2846,6 +2959,10 @@
             }
             .cta-buttons {
                 flex-direction: column;
+            }
+            .features-cta {
+                flex-direction: column;
+                align-items: center;
             }
             .compliance-grid {
                 grid-template-columns: 1fr;
@@ -3238,10 +3355,6 @@
             <p class="hero-subtitle">
                 <span class="hero-phrase">As businesses in the outdoor service industry grow, manual rescheduling due to weather delays becomes inefficient, forcing owners to spend more time optimizing routes and keeping customers in the loop instead of focusing on growth. Recent advances in AI make it possible to manage those disruptions far more efficiently by monitoring the weather, suggesting optimized schedule changes, and notifying customers and crews.</span>
             </p>
-            <div class="hero-buttons">
-                <a href="#demo-features" class="btn btn-secondary">See How It Works</a>
-                <a href="/app" class="btn btn-primary">Sign Up / Login</a>
-            </div>
         </div>
     </section>
 
@@ -3253,57 +3366,44 @@
             </div>
             <div class="features-grid" style="max-width: 1200px; margin: 0 auto;">
                 
-                <div class="feature-card" style="background: white; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
-                    <div class="feature-card-top">
-                        <div class="feature-icon" style="margin: 0;">🌦️</div>
-                        <h3>Smart Weather Monitoring</h3>
+                <div class="feature-card feature-simple-card" style="background: white; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+                    <div class="feature-simple-hero">
+                        <div class="feature-simple-icon">🌦️</div>
+                        <h3 class="feature-simple-title">Smart Weather Monitoring</h3>
                     </div>
-                    <div class="feature-problem">Problem: Rain catches crews off guard.</div>
-                    <div class="feature-compare">
-                        <div class="feature-state bad">
-                            <div class="feature-state-head">No Early Alert</div>
-                            <div class="feature-state-line">Weather noticed too late</div>
-                            <div class="feature-state-line">Manual scramble</div>
-                            <div class="feature-state-line">Route falls behind</div>
-                        </div>
-                        <div class="feature-state good">
-                            <div class="feature-state-head">Ahead-Of-Time Alert</div>
-                            <div class="feature-mini-row">
-                                <span class="feature-weather-pill alert">Rain Tue 95%</span>
-                                <span class="feature-weather-pill good">Move to Wed</span>
-                            </div>
-                            <div class="feature-state-line">Reschedule in seconds</div>
-                            <div class="feature-state-line">Crew stays on plan</div>
-                        </div>
+                    <div class="feature-simple-subtitle">Weather changes. You stay ahead.</div>
+                    <div class="feature-info-panel">
+                        <div class="feature-info-item"><span class="feature-info-badge">🔔</span><span>Early weather alerts</span></div>
+                        <div class="feature-info-item"><span class="feature-info-badge">🕒</span><span>Reschedule in seconds</span></div>
+                        <div class="feature-info-item"><span class="feature-info-badge">✅</span><span>Crew stays on plan</span></div>
                     </div>
-                    <div class="feature-outcome">Get notified ahead of time and reschedule quickly.</div>
                 </div>
 
-                <div class="feature-card" style="background: white; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
-                    <div class="feature-card-top">
-                        <div class="feature-icon" style="margin: 0;">🧭</div>
-                        <h3>Optimized Suggestions</h3>
+                <div class="feature-card feature-simple-card" style="background: white; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+                    <div class="feature-simple-hero">
+                        <div class="feature-simple-icon">🧭</div>
+                        <h3 class="feature-simple-title">Optimized Routes</h3>
                     </div>
-                    <div class="feature-problem">Problem: Manual routing leaves avoidable drive time on the table.</div>
-                    <div class="feature-compare">
-                        <div class="feature-state bad">
-                            <div class="feature-state-head">Manual Route</div>
+                    <div class="feature-simple-subtitle">Smarter routing. Less drive time.</div>
+                    <div class="feature-route-compare">
+                        <div class="feature-route-box">
+                            <div class="feature-route-head">Manual Route</div>
                             <div class="feature-route-row">
                                 <span class="feature-route-stop"></span><span class="feature-route-link"></span><span class="feature-route-stop"></span><span class="feature-route-link"></span><span class="feature-route-stop"></span><span class="feature-route-link"></span><span class="feature-route-stop"></span>
                             </div>
-                            <div class="feature-state-line">Backtracking</div>
-                            <div class="feature-state-line">8.0h total day</div>
+                            <div class="feature-route-metric"><span>🚗</span><span>Backtracking</span></div>
+                            <div class="feature-route-metric"><span>🕒</span><span>8.0h total day</span></div>
                         </div>
-                        <div class="feature-state good">
-                            <div class="feature-state-head">Optimized Plan</div>
+                        <div class="feature-route-arrow">→</div>
+                        <div class="feature-route-box optimized">
+                            <div class="feature-route-head">Optimized Route</div>
                             <div class="feature-route-row">
                                 <span class="feature-route-stop good"></span><span class="feature-route-link good"></span><span class="feature-route-stop good"></span><span class="feature-route-link good"></span><span class="feature-route-stop good"></span><span class="feature-route-link good"></span><span class="feature-route-stop good"></span>
                             </div>
-                            <div class="feature-state-line">Cleaner order</div>
-                            <div class="feature-state-line">6.9h total day</div>
+                            <div class="feature-route-metric"><span>🚗</span><span>Efficient routes</span></div>
+                            <div class="feature-route-metric"><span>🕒</span><strong>6.9h total day</strong></div>
                         </div>
                     </div>
-                    <div class="feature-outcome">Cuts wasted driving and protects crew capacity.</div>
                 </div>
 
                 <div class="feature-card feature-auto-card" style="background: white; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
@@ -3322,6 +3422,10 @@
                     </div>
                 </div>
 
+            </div>
+            <div class="features-cta">
+                <a href="#demo-features" class="btn btn-secondary">See How It Works</a>
+                <a href="/app" class="btn btn-primary">Sign Up / Login</a>
             </div>
         </div>
     </section>
