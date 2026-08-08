@@ -2880,7 +2880,7 @@
         }
         .feature-route-compare {
             display: grid;
-            grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+            grid-template-columns: minmax(152px, 1fr) auto minmax(152px, 1fr);
             gap: 0.5rem;
             align-items: stretch;
         }
@@ -2890,8 +2890,11 @@
             background: #f8fafc;
             padding: 0.62rem;
             min-width: 0;
+            min-height: 176px;
             box-sizing: border-box;
             overflow: hidden;
+            display: flex;
+            flex-direction: column;
         }
         .feature-route-box.optimized {
             background: #eff6ff;
@@ -2931,7 +2934,9 @@
         .feature-route-metric span:last-child,
         .feature-route-metric strong {
             min-width: 0;
-            overflow-wrap: anywhere;
+            white-space: nowrap;
+            word-break: normal;
+            overflow-wrap: normal;
         }
         .feature-route-metric strong {
             color: #4f46e5;
@@ -3008,13 +3013,15 @@
                 align-items: center;
             }
             .feature-route-compare {
-                gap: 0.4rem;
+                grid-template-columns: minmax(140px, 1fr) auto minmax(140px, 1fr);
+                gap: 0.35rem;
             }
             .feature-route-box {
-                padding: 0.55rem;
+                padding: 0.5rem;
+                min-height: 164px;
             }
             .feature-route-metric {
-                font-size: 0.82rem;
+                font-size: 0.79rem;
             }
             .compliance-grid {
                 grid-template-columns: 1fr;
