@@ -2265,7 +2265,7 @@
             <!-- Animated App Demo -->
             <div class="app-demo-container">
                 <div class="app-demo-screen">
-                    <div class="live-demo-shell" data-demo-state="storm">
+                    <div class="live-demo-shell" data-demo-state="apply">
                         <div class="live-demo-toolbar">
                             <div class="live-demo-toolbar-brand">JOB FLOW <span>DEMO</span></div>
                             <div class="live-demo-toolbar-actions">
@@ -2276,24 +2276,24 @@
 
                         <div class="live-demo-suggestion-row">
                             <div class="live-demo-pill" data-pill="0">
-                                <span class="live-demo-pill-tag red">Heavy Rain</span>
-                                <span class="live-demo-pill-copy">7 jobs</span>
-                                <span class="live-demo-pill-action">Tue, Aug 11</span>
+                                <span class="live-demo-pill-tag green">Applied</span>
+                                <span class="live-demo-pill-copy">Delay start to 10:00 AM</span>
+                                <span class="live-demo-pill-action">Saved</span>
                             </div>
                             <div class="live-demo-pill" data-pill="1">
-                                <span class="live-demo-pill-tag blue">Delay</span>
-                                <span class="live-demo-pill-copy">5:00 AM → 3:00 PM</span>
-                                <span class="live-demo-pill-action">Apply</span>
+                                <span class="live-demo-pill-tag green">Moved</span>
+                                <span class="live-demo-pill-copy">3 jobs shifted to Sun</span>
+                                <span class="live-demo-pill-action">Done</span>
                             </div>
                             <div class="live-demo-pill" data-pill="2">
-                                <span class="live-demo-pill-tag blue">End Early</span>
-                                <span class="live-demo-pill-copy">5:00 AM → 6:00 AM</span>
-                                <span class="live-demo-pill-action">Apply</span>
+                                <span class="live-demo-pill-tag blue">Capacity</span>
+                                <span class="live-demo-pill-copy">Now balanced across days</span>
+                                <span class="live-demo-pill-action">Stable</span>
                             </div>
                             <div class="live-demo-pill" data-pill="3">
-                                <span class="live-demo-pill-tag blue">Route</span>
-                                <span class="live-demo-pill-copy small">Travel + work synced</span>
-                                <span class="live-demo-pill-action">Review</span>
+                                <span class="live-demo-pill-tag blue">Next Step</span>
+                                <span class="live-demo-pill-copy small">Optimize route order</span>
+                                <span class="live-demo-pill-action">Run</span>
                             </div>
                         </div>
 
@@ -2422,25 +2422,25 @@
                         </div>
 
                         <div class="live-demo-route">
-                            <div class="live-demo-route-title" data-route-title>TUE, JUL 28'S JOBS</div>
-                            <div class="live-demo-route-btn" data-route-action>Navigate Full Route (2 stops)</div>
+                            <div class="live-demo-route-title" data-route-title>SUN, AUG 9'S JOBS</div>
+                            <div class="live-demo-route-btn" data-route-action>Apply All executed: +3 jobs moved</div>
                         </div>
 
                         <div class="live-demo-capacity-card">
                             <div class="live-demo-capacity-head">
-                                <span data-capacity-label>Day Capacity: 2h 10m / 14h 0m</span>
-                                <span data-capacity-used>15% used</span>
+                                <span data-capacity-label>Day Capacity: 5h 30m / 14h 0m</span>
+                                <span data-capacity-used>39% used</span>
                             </div>
-                            <div class="live-demo-capacity-bar"><span data-capacity-fill></span></div>
-                            <div class="live-demo-capacity-foot" data-capacity-foot>Work window: 5:00 AM - 7:00 PM with route-aware job sizing.</div>
+                            <div class="live-demo-capacity-bar"><span data-capacity-fill style="width: 39%;"></span></div>
+                            <div class="live-demo-capacity-foot" data-capacity-foot>Rain delay and reschedule suggestions applied in one tap.</div>
                         </div>
 
                         <div class="demo-steps">
-                            <div class="demo-step active" data-step="1">
+                            <div class="demo-step" data-step="1">
                                 <div class="step-number">1</div>
                                 <div class="step-label">Rain Alert</div>
                             </div>
-                            <div class="demo-step" data-step="2">
+                            <div class="demo-step active" data-step="2">
                                 <div class="step-number">2</div>
                                 <div class="step-label">Apply All</div>
                             </div>
@@ -2688,7 +2688,7 @@
                     });
                 }
 
-                let stepIndex = 0;
+                let stepIndex = 1;
                 applyState(stepIndex);
                 setInterval(() => {
                     stepIndex = (stepIndex + 1) % states.length;
