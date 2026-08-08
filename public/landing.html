@@ -763,30 +763,46 @@
         }
         .live-demo-suggestion-strip {
             margin-top: 0.5rem;
-            border: 2px solid #2563eb;
-            border-radius: 0.8rem;
-            background: rgba(255,255,255,0.96);
-            box-shadow: 0 8px 20px rgba(37, 99, 235, 0.12);
-            padding: 0.44rem 0.55rem;
+            border: 2px solid #f59e0b;
+            border-radius: 0.9rem;
+            background: linear-gradient(180deg, #fff8dd 0%, #fff1be 100%);
+            box-shadow: 0 10px 26px rgba(245, 158, 11, 0.28);
+            padding: 0.5rem 0.58rem;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 0.4rem;
-            animation: suggestionPulse 1.4s ease-in-out infinite;
+            gap: 0.45rem;
+            animation: suggestionPulse 1.15s ease-in-out infinite;
         }
         .live-demo-suggestion-copy {
+            display: flex;
+            flex-direction: column;
+            gap: 0.06rem;
+            flex: 1;
+            min-width: 0;
+        }
+        .live-demo-suggestion-copy strong {
             font-size: 0.66rem;
-            color: #334155;
+            color: #92400e;
+            font-weight: 900;
+            letter-spacing: 0.01em;
+            text-transform: uppercase;
+            line-height: 1.15;
+        }
+        .live-demo-suggestion-copy span {
+            font-size: 0.65rem;
+            color: #1e293b;
             font-weight: 800;
+            line-height: 1.2;
         }
         @keyframes suggestionPulse {
             0%, 100% {
                 transform: scale(1);
-                box-shadow: 0 8px 20px rgba(37, 99, 235, 0.12);
+                box-shadow: 0 10px 26px rgba(245, 158, 11, 0.24);
             }
             50% {
-                transform: scale(1.015);
-                box-shadow: 0 12px 26px rgba(37, 99, 235, 0.24);
+                transform: scale(1.02);
+                box-shadow: 0 14px 32px rgba(245, 158, 11, 0.34);
             }
         }
         .live-demo-day[data-day="tue"] .live-demo-suggestion-strip {
@@ -803,7 +819,8 @@
         .live-demo-suggestion-strip.applied {
             animation: none;
             border-color: #16a34a;
-            box-shadow: 0 8px 20px rgba(22, 163, 74, 0.2);
+            background: linear-gradient(180deg, #ecfdf3 0%, #dcfce7 100%);
+            box-shadow: 0 10px 24px rgba(22, 163, 74, 0.22);
         }
         .live-demo-job-card.moved-highlight {
             border-color: #f59e0b;
@@ -1086,16 +1103,27 @@
             margin-left: 0.26rem;
             text-transform: uppercase;
         }
+        .live-demo-notify-modal {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 30;
+            background: rgba(15, 23, 42, 0.38);
+            backdrop-filter: blur(2px);
+            padding: 0.9rem;
+        }
+        .live-demo-notify-modal.is-hidden {
+            display: none;
+        }
         .live-demo-notify-popup {
-            margin-top: 0.8rem;
             border: 2px solid #2563eb;
             border-radius: 1rem;
             background: #f8fbff;
-            box-shadow: 0 10px 22px rgba(37, 99, 235, 0.14);
+            box-shadow: 0 22px 36px rgba(15, 23, 42, 0.28);
             padding: 0.8rem 0.85rem;
-        }
-        .live-demo-notify-popup.is-hidden {
-            display: none;
+            width: min(510px, 100%);
         }
         .live-demo-notify-head {
             display: flex;
@@ -2768,15 +2796,15 @@
             <div class="hero-update-bar">
                 <div class="hero-update-item">
                     <span class="hero-update-label">Weather Monitoring</span>
-                    <strong>Track rain risk across the week and catch weather conflicts before crews roll out.</strong>
+                    <strong>Spot rain-risk days early and protect field hours.</strong>
                 </div>
                 <div class="hero-update-item">
                     <span class="hero-update-label">Smart Optimization</span>
-                    <strong>Get route and schedule change suggestions that rebalance jobs to the best weather days.</strong>
+                    <strong>One-click plan updates move work to better weather days.</strong>
                 </div>
                 <div class="hero-update-item">
                     <span class="hero-update-label">Auto Customer Notices</span>
-                    <strong>Send reschedule updates automatically so customers know their new service day right away.</strong>
+                    <strong>Send weather reschedule texts with each new service day.</strong>
                 </div>
             </div>
         </div>
@@ -2824,8 +2852,8 @@
                                         </div>
                                     </div>
                                     <div class="live-demo-suggestion-strip is-clickable" id="demoApplySuggestion">
-                                        <span class="live-demo-inline-suggestion-tag">Suggestion</span>
-                                        <span class="live-demo-suggestion-copy">Move 4 jobs: 2 to Wed, 2 to Thu.</span>
+                                        <span class="live-demo-inline-suggestion-tag">Rain Alert</span>
+                                        <span class="live-demo-suggestion-copy" id="demoApplyCopy"><strong>Heavy rain forecast Tue 8 AM - 5 PM</strong><span>Move 4 jobs to Wed/Thu. Click Apply.</span></span>
                                         <span class="live-demo-inline-suggestion-action">Apply</span>
                                     </div>
                                     <div class="live-demo-day-bottom"></div>
@@ -2910,23 +2938,25 @@
                             </div>
                         </div>
 
-                        <div class="live-demo-notify-popup is-hidden" id="demoNotifyPrompt">
-                            <div class="live-demo-notify-head">
-                                <strong>Notify Rescheduled Customers?</strong>
-                                <span class="live-demo-notify-tag">SMS Ready</span>
+                        <div class="live-demo-notify-modal is-hidden" id="demoNotifyPrompt">
+                            <div class="live-demo-notify-popup">
+                                <div class="live-demo-notify-head">
+                                    <strong>Notify Rescheduled Customers?</strong>
+                                    <span class="live-demo-notify-tag">SMS Ready</span>
+                                </div>
+                                <p class="live-demo-notify-copy">Jobs were moved due to weather. Send the updated day now so customers are informed immediately.</p>
+                                <div class="live-demo-notify-list">
+                                    <div class="live-demo-notify-item">Anderson Property -> Thu</div>
+                                    <div class="live-demo-notify-item">Brown Residence -> Thu</div>
+                                    <div class="live-demo-notify-item">Clark Property -> Wed</div>
+                                    <div class="live-demo-notify-item">Davis Property -> Wed</div>
+                                </div>
+                                <div class="live-demo-notify-actions">
+                                    <button type="button" class="live-demo-notify-btn primary" id="demoNotifySend">Send Updates</button>
+                                    <button type="button" class="live-demo-notify-btn secondary" id="demoNotifyLater">Later</button>
+                                </div>
+                                <div class="live-demo-notify-status" id="demoNotifyStatus">Ready to send 4 weather reschedule notices.</div>
                             </div>
-                            <p class="live-demo-notify-copy">Rain moved these jobs. Send an automatic update now with each customer's new day.</p>
-                            <div class="live-demo-notify-list">
-                                <div class="live-demo-notify-item">Anderson Property -> Thu</div>
-                                <div class="live-demo-notify-item">Brown Residence -> Thu</div>
-                                <div class="live-demo-notify-item">Clark Property -> Wed</div>
-                                <div class="live-demo-notify-item">Davis Property -> Wed</div>
-                            </div>
-                            <div class="live-demo-notify-actions">
-                                <button type="button" class="live-demo-notify-btn primary" id="demoNotifySend">Send Updates</button>
-                                <button type="button" class="live-demo-notify-btn secondary" id="demoNotifyLater">Later</button>
-                            </div>
-                            <div class="live-demo-notify-status" id="demoNotifyStatus">Ready to send 4 weather reschedule notices.</div>
                         </div>
                     </div>
                 </div>
@@ -2948,7 +2978,7 @@
                         <div class="feature-icon" style="margin: 0;">🖱️</div>
                         <h3 style="margin: 0; color: #667eea;">Drag & Drop Jobs</h3>
                     </div>
-                    <p style="color: #64748b; margin-bottom: 1rem;">Simply grab any job card and drag it to a different day. Your schedule updates instantly. Works perfectly on mobile too!</p>
+                    <p style="color: #64748b; margin-bottom: 1rem;">Move jobs between days in seconds.</p>
                     <div style="display: flex; gap: 0.75rem; align-items: center;">
                         <div style="flex: 1; background: white; border: 2px solid #e5e7eb; border-radius: 12px; padding: 1rem;">
                             <div style="font-weight: 700; color: #1e293b; margin-bottom: 0.25rem;">John Smith</div>
@@ -2961,22 +2991,22 @@
                             <div style="color: #64748b; font-size: 0.75rem;">for new date</div>
                         </div>
                     </div>
-                    <p style="font-size: 0.85rem; color: #64748b; margin-top: 1rem; margin-bottom: 0;">Click and hold a job card, then drag to any day!</p>
+                    <p style="font-size: 0.85rem; color: #64748b; margin-top: 1rem; margin-bottom: 0;">Desktop and mobile friendly.</p>
                 </div>
 
                 <!-- GPS Tracking Card -->
                 <div class="feature-card" style="background: white; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
                     <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
                         <div class="feature-icon" style="margin: 0;">📍</div>
-                        <h3 style="margin: 0; color: #667eea;">GPS Tracking</h3>
+                        <h3 style="margin: 0; color: #667eea;">Auto Customer Updates</h3>
                     </div>
-                    <p style="color: #64748b; margin-bottom: 1rem;">Customers automatically receive text updates when your crew is arriving at or leaving their property.</p>
+                    <p style="color: #64748b; margin-bottom: 1rem;">Customers get clear text updates when timing changes.</p>
                     <div style="background: #f8fafc; border-radius: 12px; padding: 1rem;">
                         <div style="background: white; border-radius: 12px; padding: 0.75rem; margin-bottom: 0.75rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-                            <div style="font-size: 0.85rem; color: #1e293b;">📍 Crew arriving in 5 minutes</div>
+                            <div style="font-size: 0.85rem; color: #1e293b;">🌧️ Weather delay -> moved to Thu</div>
                         </div>
                         <div style="background: white; border-radius: 12px; padding: 0.75rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-                            <div style="font-size: 0.85rem; color: #1e293b;">✅ Service completed</div>
+                            <div style="font-size: 0.85rem; color: #1e293b;">✅ New service window confirmed</div>
                         </div>
                     </div>
                 </div>
@@ -2987,7 +3017,7 @@
                         <div class="feature-icon" style="margin: 0;">🗺️</div>
                         <h3 style="margin: 0; color: #667eea;">Route Optimization</h3>
                     </div>
-                    <p style="color: #64748b; margin-bottom: 1rem;">One click optimizes your entire route, and schedule blocks account for travel plus service time so the day stays realistic.</p>
+                    <p style="color: #64748b; margin-bottom: 1rem;">Reorder stops and rebalance the day with one click.</p>
                     <div style="background: #f8fafc; border-radius: 12px; padding: 1.25rem;">
                         <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
                             <div style="flex: 1; text-align: center;">
@@ -3067,6 +3097,7 @@
             const notifySend = document.getElementById('demoNotifySend');
             const notifyLater = document.getElementById('demoNotifyLater');
             const notifyStatus = document.getElementById('demoNotifyStatus');
+            const applyCopy = document.getElementById('demoApplyCopy');
 
             if (!applyStrip || !stepTwo || !tueDay || !tueBody || !tueRail || !wedColumn || !thuColumn) {
                 return;
@@ -3081,12 +3112,22 @@
                     notifySend.textContent = 'Sent';
                     notifySend.disabled = true;
                     notifyLater.disabled = true;
+                    if (notifyPrompt) {
+                        setTimeout(function() {
+                            notifyPrompt.classList.add('is-hidden');
+                        }, 550);
+                    }
                 });
 
                 notifyLater.addEventListener('click', function() {
                     notifyStatus.textContent = 'Notification draft saved. Team can send customer updates later from Customer Comms.';
                     notifyLater.textContent = 'Deferred';
                     notifyLater.disabled = true;
+                    if (notifyPrompt) {
+                        setTimeout(function() {
+                            notifyPrompt.classList.add('is-hidden');
+                        }, 550);
+                    }
                 });
             }
 
@@ -3094,7 +3135,7 @@
                 if (applyState === 'finalized') {
                     return;
                 }
-                const copy = applyStrip.querySelector('.live-demo-suggestion-copy');
+                const copy = applyStrip.querySelector('.live-demo-suggestion-copy span');
                 const action = applyStrip.querySelector('.live-demo-inline-suggestion-action');
 
                 if (applyState === 'ready') {
@@ -3149,7 +3190,13 @@
 
                     applyStrip.classList.add('applied');
                     if (copy) {
-                        copy.textContent = 'Moved 4 jobs. Click Done to finalize.';
+                        copy.textContent = '4 jobs rebalanced. Review customer notices, then click Done.';
+                    }
+                    if (applyCopy) {
+                        const strong = applyCopy.querySelector('strong');
+                        if (strong) {
+                            strong.textContent = 'Weather risk resolved';
+                        }
                     }
                     if (action) {
                         action.textContent = 'Done';
