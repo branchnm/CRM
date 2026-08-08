@@ -2675,6 +2675,118 @@
             margin-bottom: 0.45rem;
             box-shadow: 0 4px 10px rgba(37, 99, 235, 0.18);
         }
+        .feature-auto-card {
+            padding-top: 1.55rem;
+            padding-bottom: 1.55rem;
+        }
+        .feature-auto-hero {
+            text-align: center;
+            margin-bottom: 0.95rem;
+        }
+        .feature-auto-icon {
+            width: 4.1rem;
+            height: 4.1rem;
+            margin: 0 auto 0.55rem;
+            border-radius: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            color: #4338ca;
+            background: linear-gradient(180deg, #eef2ff 0%, #e0e7ff 100%);
+            box-shadow: inset 0 0 0 1px rgba(99, 102, 241, 0.22);
+        }
+        .feature-auto-title {
+            margin: 0;
+            color: #4338ca;
+            font-size: 1.05rem;
+            font-weight: 900;
+            line-height: 1.2;
+            letter-spacing: 0.01em;
+        }
+        .feature-auto-copy {
+            text-align: center;
+            font-size: 0.79rem;
+            color: #64748b;
+            font-weight: 700;
+            line-height: 1.35;
+            margin-bottom: 0.75rem;
+        }
+        .feature-auto-panel {
+            border: 1px solid #c7d2fe;
+            border-radius: 0.8rem;
+            background: linear-gradient(180deg, #f8faff 0%, #eff2ff 100%);
+            padding: 0.62rem;
+            margin-bottom: 0.75rem;
+        }
+        .feature-auto-panel-head {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            color: #4338ca;
+            font-size: 0.68rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            margin-bottom: 0.45rem;
+        }
+        .feature-auto-check {
+            width: 1.08rem;
+            height: 1.08rem;
+            border-radius: 999px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #4f46e5;
+            color: white;
+            font-size: 0.68rem;
+            font-weight: 900;
+            line-height: 1;
+        }
+        .feature-auto-bubble {
+            border-radius: 0.75rem;
+            background: white;
+            border: 1px solid #e2e8f0;
+            padding: 0.55rem 0.62rem;
+            color: #334155;
+            font-size: 0.8rem;
+            font-weight: 700;
+            line-height: 1.35;
+        }
+        .feature-auto-bubble strong {
+            color: #4f46e5;
+            font-weight: 900;
+        }
+        .feature-auto-outcome {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            padding: 0.25rem 0.1rem 0;
+        }
+        .feature-auto-outcome-icon {
+            width: 2.25rem;
+            height: 2.25rem;
+            border-radius: 999px;
+            background: #eef2ff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #4f46e5;
+            font-size: 1.1rem;
+            flex-shrink: 0;
+        }
+        .feature-auto-outcome-text {
+            font-size: 0.82rem;
+            line-height: 1.25;
+            font-weight: 800;
+            color: #334155;
+        }
+        .feature-auto-outcome-text strong {
+            display: block;
+            color: #4f46e5;
+            font-weight: 900;
+            margin-top: 0.12rem;
+        }
 
         /* SMS Compliance Section */
         /* Footer */
@@ -3194,28 +3306,20 @@
                     <div class="feature-outcome">Cuts wasted driving and protects crew capacity.</div>
                 </div>
 
-                <div class="feature-card" style="background: white; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
-                    <div class="feature-card-top">
-                        <div class="feature-icon" style="margin: 0;">📲</div>
-                        <h3>Automated Customer Notices</h3>
+                <div class="feature-card feature-auto-card" style="background: white; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+                    <div class="feature-auto-hero">
+                        <div class="feature-auto-icon">📲</div>
+                        <h3 class="feature-auto-title">Automated Customer Messages</h3>
                     </div>
-                    <div class="feature-problem">Problem: Customers get left in the dark after schedule changes.</div>
-                    <div class="feature-compare">
-                        <div class="feature-state bad">
-                            <div class="feature-state-head">Manual Messaging</div>
-                            <div class="feature-msg-pill"><span>Anderson</span><span class="missed">Missed</span></div>
-                            <div class="feature-msg-pill"><span>Brown</span><span class="missed">Missed</span></div>
-                            <div class="feature-msg-pill"><span>Clark</span><span class="missed">Missed</span></div>
-                        </div>
-                        <div class="feature-state good">
-                            <div class="feature-state-head">Auto Notices</div>
-                            <div class="feature-msg-pill"><span>Anderson -> Thu</span><span class="sent">Sent</span></div>
-                            <div class="feature-msg-pill"><span>Brown -> Thu</span><span class="sent">Sent</span></div>
-                            <div class="feature-msg-pill"><span>Clark -> Wed</span><span class="sent">Sent</span></div>
-                        </div>
+                    <div class="feature-auto-copy">Every schedule change triggers an automatic text to your customer.</div>
+                    <div class="feature-auto-panel">
+                        <div class="feature-auto-panel-head"><span class="feature-auto-check">✓</span>Auto Message Sent</div>
+                        <div class="feature-auto-bubble">Hi Anderson, your appointment has been rescheduled to <strong>Thursday at 9:00 AM.</strong></div>
                     </div>
-                    <div class="feature-message-popup">Never ghost a customer again.</div>
-                    <div class="feature-outcome">Every reschedule gets an automatic customer text.</div>
+                    <div class="feature-auto-outcome">
+                        <div class="feature-auto-outcome-icon">♥</div>
+                        <div class="feature-auto-outcome-text">Good communication.<strong>Stronger customer trust.</strong></div>
+                    </div>
                 </div>
 
             </div>
