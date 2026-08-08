@@ -2505,6 +2505,127 @@
             color: #64748b;
             line-height: 1.7;
         }
+        .features-title-note {
+            margin-top: 0.4rem;
+            color: rgba(255,255,255,0.88);
+            font-size: 0.95rem;
+            font-weight: 700;
+        }
+        .feature-card-top {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 0.85rem;
+        }
+        .feature-card-top h3 {
+            margin: 0;
+            color: #4f67db;
+            line-height: 1.2;
+            font-size: 2rem;
+        }
+        .feature-problem {
+            color: #64748b;
+            font-size: 0.92rem;
+            font-weight: 700;
+            margin-bottom: 0.75rem;
+        }
+        .feature-compare {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.6rem;
+            margin-bottom: 0.7rem;
+        }
+        .feature-state {
+            border-radius: 0.75rem;
+            padding: 0.55rem;
+            border: 1px solid #e2e8f0;
+            min-height: 112px;
+        }
+        .feature-state.bad {
+            background: #fff7f7;
+            border-color: #fecaca;
+        }
+        .feature-state.good {
+            background: #f0f9ff;
+            border-color: #bae6fd;
+        }
+        .feature-state-head {
+            font-size: 0.62rem;
+            font-weight: 900;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            margin-bottom: 0.36rem;
+        }
+        .feature-state.bad .feature-state-head {
+            color: #b91c1c;
+        }
+        .feature-state.good .feature-state-head {
+            color: #0369a1;
+        }
+        .feature-state-line {
+            font-size: 0.74rem;
+            font-weight: 800;
+            color: #334155;
+            margin-bottom: 0.25rem;
+            line-height: 1.2;
+        }
+        .feature-state-line:last-child {
+            margin-bottom: 0;
+        }
+        .feature-outcome {
+            border-radius: 0.7rem;
+            padding: 0.45rem 0.55rem;
+            font-size: 0.76rem;
+            font-weight: 800;
+            color: #14532d;
+            background: #dcfce7;
+        }
+        .feature-route-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.24rem;
+            margin-bottom: 0.35rem;
+        }
+        .feature-route-stop {
+            width: 0.62rem;
+            height: 0.62rem;
+            border-radius: 999px;
+            background: #94a3b8;
+        }
+        .feature-route-stop.good {
+            background: #0ea5e9;
+        }
+        .feature-route-link {
+            height: 2px;
+            width: 0.7rem;
+            background: #cbd5e1;
+            border-radius: 999px;
+        }
+        .feature-route-link.good {
+            background: #7dd3fc;
+        }
+        .feature-msg-pill {
+            border-radius: 999px;
+            padding: 0.2rem 0.42rem;
+            font-size: 0.68rem;
+            font-weight: 800;
+            display: flex;
+            justify-content: space-between;
+            gap: 0.4rem;
+            background: white;
+            color: #334155;
+            margin-bottom: 0.25rem;
+        }
+        .feature-msg-pill:last-child {
+            margin-bottom: 0;
+        }
+        .feature-msg-pill .missed {
+            color: #dc2626;
+        }
+        .feature-msg-pill .sent {
+            color: #0284c7;
+        }
 
         /* SMS Compliance Section */
         /* Footer */
@@ -2965,76 +3086,81 @@
         <div class="container">
             <div class="section-header" style="margin-bottom: 42px;">
                 <h2 style="color: white;">More Powerful Features</h2>
+                <p class="features-title-note">Stop manual replanning, cut wasted drive time, and never miss a customer update.</p>
             </div>
             <div class="features-grid" style="max-width: 1200px; margin: 0 auto;">
                 
-                <!-- Smart Weather Monitoring Card -->
                 <div class="feature-card" style="background: white; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
-                    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+                    <div class="feature-card-top">
                         <div class="feature-icon" style="margin: 0;">🌦️</div>
-                        <h3 style="margin: 0; color: #667eea;">Smart Weather Monitoring</h3>
+                        <h3>Smart Weather Monitoring</h3>
                     </div>
-                    <p style="color: #64748b; margin-bottom: 1rem;">See weather risk before dispatch.</p>
-                    <div style="display: flex; gap: 0.55rem; align-items: center; margin-bottom: 0.9rem; min-height: 78px;">
-                        <div style="flex: 1; background: #eef6ff; border: 2px solid #93c5fd; border-radius: 10px; padding: 0.65rem 0.6rem; text-align: center;">
-                            <div style="font-size: 1rem;">🌧️</div>
-                            <div style="font-size: 0.74rem; font-weight: 800; color: #1e3a8a;">Tue 95%</div>
+                    <div class="feature-problem">Problem: Surprise rain forces same-day manual reshuffles.</div>
+                    <div class="feature-compare">
+                        <div class="feature-state bad">
+                            <div class="feature-state-head">Without JobFlow</div>
+                            <div class="feature-state-line">Tue risk missed</div>
+                            <div class="feature-state-line">Crew reroute scramble</div>
+                            <div class="feature-state-line">Jobs run behind</div>
                         </div>
-                        <div style="flex: 1; background: #ecfdf5; border: 2px solid #86efac; border-radius: 10px; padding: 0.65rem 0.6rem; text-align: center;">
-                            <div style="font-size: 1rem;">☀️</div>
-                            <div style="font-size: 0.74rem; font-weight: 800; color: #166534;">Wed 88%</div>
-                        </div>
-                        <div style="flex: 1; background: #ecfdf5; border: 2px solid #86efac; border-radius: 10px; padding: 0.65rem 0.6rem; text-align: center;">
-                            <div style="font-size: 1rem;">🌤️</div>
-                            <div style="font-size: 0.74rem; font-weight: 800; color: #166534;">Thu 84%</div>
+                        <div class="feature-state good">
+                            <div class="feature-state-head">With JobFlow</div>
+                            <div class="feature-state-line">Rain flagged early</div>
+                            <div class="feature-state-line">Best-day move suggested</div>
+                            <div class="feature-state-line">Day stays on track</div>
                         </div>
                     </div>
-                    <p style="font-size: 0.85rem; color: #64748b; margin-top: 1rem; margin-bottom: 0;">Alert first. Move work before crews leave.</p>
+                    <div class="feature-outcome">Prevents weather chaos before dispatch.</div>
                 </div>
 
-                <!-- Optimized Suggestions Card -->
                 <div class="feature-card" style="background: white; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
-                    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+                    <div class="feature-card-top">
                         <div class="feature-icon" style="margin: 0;">🧭</div>
-                        <h3 style="margin: 0; color: #667eea;">Optimized Suggestions</h3>
+                        <h3>Optimized Suggestions</h3>
                     </div>
-                    <p style="color: #64748b; margin-bottom: 1rem;">Get best-day moves in one click.</p>
-                    <div style="background: #f8fafc; border-radius: 12px; padding: 1rem; min-height: 144px;">
-                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.55rem; margin-bottom: 0.65rem;">
-                            <div style="flex: 1; background: white; border: 1px solid #dbeafe; border-radius: 8px; padding: 0.5rem; text-align: center;">
-                                <div style="font-size: 0.7rem; color: #64748b; font-weight: 700;">Before</div>
-                                <div style="font-size: 0.88rem; color: #1e293b; font-weight: 800;">8.0h</div>
+                    <div class="feature-problem">Problem: Manual routing leaves avoidable drive time on the table.</div>
+                    <div class="feature-compare">
+                        <div class="feature-state bad">
+                            <div class="feature-state-head">Manual Route</div>
+                            <div class="feature-route-row">
+                                <span class="feature-route-stop"></span><span class="feature-route-link"></span><span class="feature-route-stop"></span><span class="feature-route-link"></span><span class="feature-route-stop"></span><span class="feature-route-link"></span><span class="feature-route-stop"></span>
                             </div>
-                            <div style="font-size: 1.05rem; color: #2563eb; font-weight: 900;">-></div>
-                            <div style="flex: 1; background: #eff6ff; border: 1px solid #93c5fd; border-radius: 8px; padding: 0.5rem; text-align: center;">
-                                <div style="font-size: 0.7rem; color: #1d4ed8; font-weight: 700;">After</div>
-                                <div style="font-size: 0.88rem; color: #1d4ed8; font-weight: 900;">6.9h</div>
-                            </div>
+                            <div class="feature-state-line">Backtracking</div>
+                            <div class="feature-state-line">8.0h total day</div>
                         </div>
-                        <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.45rem;">
-                            <div style="background: white; border-radius: 7px; padding: 0.45rem; text-align: center; font-size: 0.7rem; font-weight: 800; color: #1e293b;">Wed +2</div>
-                            <div style="background: white; border-radius: 7px; padding: 0.45rem; text-align: center; font-size: 0.7rem; font-weight: 800; color: #1e293b;">Thu +2</div>
-                            <div style="background: #dcfce7; border-radius: 7px; padding: 0.45rem; text-align: center; font-size: 0.7rem; font-weight: 800; color: #166534;">Tue Safe</div>
+                        <div class="feature-state good">
+                            <div class="feature-state-head">Optimized Plan</div>
+                            <div class="feature-route-row">
+                                <span class="feature-route-stop good"></span><span class="feature-route-link good"></span><span class="feature-route-stop good"></span><span class="feature-route-link good"></span><span class="feature-route-stop good"></span><span class="feature-route-link good"></span><span class="feature-route-stop good"></span>
+                            </div>
+                            <div class="feature-state-line">Cleaner order</div>
+                            <div class="feature-state-line">6.9h total day</div>
                         </div>
                     </div>
+                    <div class="feature-outcome">Cuts wasted driving and protects crew capacity.</div>
                 </div>
 
-                <!-- Automated Customer Notices Card -->
                 <div class="feature-card" style="background: white; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
-                    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+                    <div class="feature-card-top">
                         <div class="feature-icon" style="margin: 0;">📲</div>
-                        <h3 style="margin: 0; color: #667eea;">Automated Customer Notices</h3>
+                        <h3>Automated Customer Notices</h3>
                     </div>
-                    <p style="color: #64748b; margin-bottom: 1rem;">Send updates as soon as jobs move.</p>
-                    <div style="background: #f8fafc; border-radius: 12px; padding: 1.25rem; min-height: 144px;">
-                        <div style="background: white; border-radius: 10px; padding: 0.6rem 0.65rem; margin-bottom: 0.55rem; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
-                            <div style="font-size: 0.8rem; color: #1e293b; font-weight: 800;">🌧️ Weather delay: moved to Thu</div>
+                    <div class="feature-problem">Problem: Teams forget to message customers after schedule changes.</div>
+                    <div class="feature-compare">
+                        <div class="feature-state bad">
+                            <div class="feature-state-head">Manual Messaging</div>
+                            <div class="feature-msg-pill"><span>Anderson</span><span class="missed">No text</span></div>
+                            <div class="feature-msg-pill"><span>Brown</span><span class="missed">No text</span></div>
+                            <div class="feature-msg-pill"><span>Clark</span><span class="missed">No text</span></div>
                         </div>
-                        <div style="background: white; border-radius: 10px; padding: 0.6rem 0.65rem; margin-bottom: 0.65rem; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
-                            <div style="font-size: 0.8rem; color: #1e293b; font-weight: 800;">✅ New service day confirmed</div>
+                        <div class="feature-state good">
+                            <div class="feature-state-head">Auto Notices</div>
+                            <div class="feature-msg-pill"><span>Anderson -> Thu</span><span class="sent">Sent</span></div>
+                            <div class="feature-msg-pill"><span>Brown -> Thu</span><span class="sent">Sent</span></div>
+                            <div class="feature-msg-pill"><span>Clark -> Wed</span><span class="sent">Sent</span></div>
                         </div>
-                        <button style="width: 100%; background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; border: none; padding: 0.7rem; border-radius: 8px; font-weight: 800; cursor: pointer; font-size: 0.86rem; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);">Send 4 Notices</button>
                     </div>
+                    <div class="feature-outcome">Every customer gets timely schedule updates.</div>
                 </div>
 
             </div>
