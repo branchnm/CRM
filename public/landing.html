@@ -2687,14 +2687,14 @@
             width: 4.35rem;
             height: 4.35rem;
             margin: 0 auto 0.55rem;
-            border-radius: 1rem;
+            border-radius: 999px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 2.4rem;
+            font-size: 2.6rem;
             color: #4338ca;
-            background: linear-gradient(180deg, #eef2ff 0%, #e0e7ff 100%);
-            box-shadow: inset 0 0 0 1px rgba(99, 102, 241, 0.22);
+            background: radial-gradient(circle at 30% 25%, #ffffff 0%, #eef2ff 55%, #dbe3ff 100%);
+            box-shadow: inset 0 0 0 1px rgba(99, 102, 241, 0.16);
         }
         .feature-auto-title {
             margin: 0;
@@ -2796,10 +2796,41 @@
             margin-bottom: 0.75rem;
         }
         .feature-simple-icon {
-            font-size: 3.45rem;
+            width: 4.35rem;
+            height: 4.35rem;
+            margin: 0 auto 0.55rem;
+            border-radius: 999px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.6rem;
             line-height: 1;
-            margin-bottom: 0.55rem;
             color: #4f46e5;
+            background: radial-gradient(circle at 30% 25%, #ffffff 0%, #eef2ff 55%, #dbe3ff 100%);
+            box-shadow: inset 0 0 0 1px rgba(99, 102, 241, 0.16);
+        }
+        .feature-route-clock {
+            width: 2.7rem;
+            height: 2.7rem;
+            display: block;
+        }
+        .feature-route-clock .ring {
+            fill: none;
+            stroke: #4f46e5;
+            stroke-width: 2.5;
+        }
+        .feature-route-clock .tick {
+            stroke: #818cf8;
+            stroke-width: 2;
+            stroke-linecap: round;
+        }
+        .feature-route-clock .hand {
+            stroke: #4f46e5;
+            stroke-width: 2.6;
+            stroke-linecap: round;
+        }
+        .feature-route-clock .center {
+            fill: #4f46e5;
         }
         .feature-simple-title {
             margin: 0;
@@ -3369,7 +3400,7 @@
                 
                 <div class="feature-card feature-simple-card" style="background: white; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
                     <div class="feature-simple-hero">
-                        <div class="feature-simple-icon">☁</div>
+                        <div class="feature-simple-icon">🌦️</div>
                         <h3 class="feature-simple-title">Smart Weather Monitoring</h3>
                     </div>
                     <div class="feature-simple-subtitle">Weather changes. You stay ahead.</div>
@@ -3382,7 +3413,18 @@
 
                 <div class="feature-card feature-simple-card" style="background: white; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
                     <div class="feature-simple-hero">
-                        <div class="feature-simple-icon">⌖</div>
+                        <div class="feature-simple-icon" aria-hidden="true">
+                            <svg class="feature-route-clock" viewBox="0 0 48 48" role="img" focusable="false">
+                                <circle class="ring" cx="24" cy="24" r="17"></circle>
+                                <line class="tick" x1="24" y1="8.5" x2="24" y2="11.5"></line>
+                                <line class="tick" x1="24" y1="36.5" x2="24" y2="39.5"></line>
+                                <line class="tick" x1="8.5" y1="24" x2="11.5" y2="24"></line>
+                                <line class="tick" x1="36.5" y1="24" x2="39.5" y2="24"></line>
+                                <line class="hand" x1="24" y1="24" x2="24" y2="14"></line>
+                                <line class="hand" x1="24" y1="24" x2="31" y2="29"></line>
+                                <circle class="center" cx="24" cy="24" r="2.5"></circle>
+                            </svg>
+                        </div>
                         <h3 class="feature-simple-title">Optimized Routes</h3>
                     </div>
                     <div class="feature-simple-subtitle">Smarter routing. Less drive time.</div>
