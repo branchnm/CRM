@@ -3054,7 +3054,7 @@
             <div class="section-header">
                 <h2>Demo</h2>
             </div>
-            
+
             <!-- Animated App Demo -->
             <div class="app-demo-container">
                 <div class="app-demo-screen">
@@ -3105,6 +3105,87 @@
                                     <div class="live-demo-day-meta"><span>2 jobs</span><span>open</span></div>
                                     <div class="live-demo-day-track"></div>
                                     <div class="live-demo-day-body sunny">
+                                        <div class="live-demo-time-rail">
+                                            <div class="live-demo-rail-mark"><span class="icon">☀️</span><span>5 AM</span></div>
+                                            <div class="live-demo-rail-mark"><span class="icon">☀️</span><span>8 AM</span></div>
+                                            <div class="live-demo-rail-mark"><span class="icon">☀️</span><span>11 AM</span></div>
+                                            <div class="live-demo-rail-mark"><span class="icon">☀️</span><span>2 PM</span></div>
+                                            <div class="live-demo-rail-mark"><span class="icon">☀️</span><span>5 PM</span></div>
+                                        </div>
+                                        <div class="live-demo-job-column" id="stepOneWedColumn">
+                                            <div class="live-demo-job-card" style="top: 14px; height: 72px;"><h4>Taylor Residence</h4><div class="live-demo-job-meta"><span class="live-demo-job-chip work">90 m</span><span class="live-demo-job-chip drive">10 m</span></div></div>
+                                            <div class="live-demo-job-card" style="top: 92px; height: 38px;"><h4>Thompson Property</h4><div class="live-demo-job-meta"><span class="live-demo-job-chip work">30 m</span><span class="live-demo-job-chip drive">5 m</span></div></div>
+                                        </div>
+                                    </div>
+                                    <div class="live-demo-day-bottom"></div>
+                                </div>
+
+                                <div class="live-demo-day" data-day="thu">
+                                    <div class="live-demo-day-header">
+                                        <div class="live-demo-day-title"><span class="live-demo-day-name">Thu</span><span class="live-demo-day-date">Aug 20</span></div>
+                                        <span class="live-demo-day-badge">84%</span>
+                                    </div>
+                                    <div class="live-demo-day-meta"><span>3 jobs</span><span>open</span></div>
+                                    <div class="live-demo-day-track"></div>
+                                    <div class="live-demo-day-body sunny">
+                                        <div class="live-demo-time-rail">
+                                            <div class="live-demo-rail-mark"><span class="icon">🌤️</span><span>5 AM</span></div>
+                                            <div class="live-demo-rail-mark"><span class="icon">☀️</span><span>8 AM</span></div>
+                                            <div class="live-demo-rail-mark"><span class="icon">☁️</span><span>11 AM</span></div>
+                                            <div class="live-demo-rail-mark"><span class="icon">☁️</span><span>2 PM</span></div>
+                                            <div class="live-demo-rail-mark"><span class="icon">🌤️</span><span>5 PM</span></div>
+                                        </div>
+                                        <div class="live-demo-job-column" id="stepOneThuColumn">
+                                            <div class="live-demo-job-card" style="top: 14px; height: 52px;"><h4>White Home</h4><div class="live-demo-job-meta"><span class="live-demo-job-chip work">60 m</span><span class="live-demo-job-chip drive">10 m</span></div></div>
+                                            <div class="live-demo-job-card" style="top: 72px; height: 38px;"><h4>Wilson Estate</h4><div class="live-demo-job-meta"><span class="live-demo-job-chip work">30 m</span><span class="live-demo-job-chip drive">5 m</span></div></div>
+                                            <div class="live-demo-job-card" style="top: 116px; height: 52px;"><h4>Roberts Home</h4><div class="live-demo-job-meta"><span class="live-demo-job-chip work">60 m</span><span class="live-demo-job-chip drive">10 m</span></div></div>
+                                        </div>
+                                    </div>
+                                    <div class="live-demo-day-bottom"></div>
+                                </div>
+
+                            </div>
+                        </div>
+
+                        <div class="live-demo-next-graphic is-hidden" id="stepTwoGraphic">
+                            <div class="live-demo-next-head">
+                                <strong>Update Applied</strong>
+                                <span>Tue is now rained out. Wed/Thu absorb moved jobs and notices are ready.</span>
+                            </div>
+                            <div class="live-demo-next-board">
+                                <div class="live-demo-next-day rained">
+                                    <h5>Tue</h5>
+                                    <span class="live-demo-next-status">Rained Out</span>
+                                    <div class="live-demo-next-mini-job">Anderson Property</div>
+                                    <div class="live-demo-next-mini-job">Brown Residence</div>
+                                    <div class="live-demo-next-mini-job">Clark Property</div>
+                                </div>
+                                <div class="live-demo-next-day">
+                                    <h5>Wed (+2)</h5>
+                                    <div class="live-demo-next-mini-job">Taylor Residence</div>
+                                    <div class="live-demo-next-mini-job moved">Davis Property <span class="move-tag">moved</span></div>
+                                    <div class="live-demo-next-mini-job moved">Clark Property <span class="move-tag">moved</span></div>
+                                    <div class="live-demo-next-mini-job">Thompson Property</div>
+                                </div>
+                                <div class="live-demo-next-day">
+                                    <h5>Thu (+2)</h5>
+                                    <div class="live-demo-next-mini-job">White Home</div>
+                                    <div class="live-demo-next-mini-job moved">Anderson Property <span class="move-tag">moved</span></div>
+                                    <div class="live-demo-next-mini-job moved">Brown Residence <span class="move-tag">moved</span></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="live-demo-notify-modal is-hidden" id="demoNotifyPrompt">
+                            <div class="live-demo-notify-popup">
+                                <div class="live-demo-notify-head">
+                                    <strong>Notify Rescheduled Customers?</strong>
+                                    <span class="live-demo-notify-tag">SMS Ready</span>
+                                </div>
+                                <p class="live-demo-notify-copy">Jobs were moved due to weather. Send the updated day now so customers are informed immediately.</p>
+                                <div class="live-demo-notify-list">
+                                    <div class="live-demo-notify-item">Anderson Property -> Thu</div>
+                                    <div class="live-demo-notify-item">Brown Residence -> Thu</div>
                                     <div class="live-demo-notify-item">Clark Property -> Wed</div>
                                     <div class="live-demo-notify-item">Davis Property -> Wed</div>
                                 </div>
@@ -3117,87 +3198,6 @@
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Feature Cards Section -->
-    <section class="features" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 80px 0;">
-        <div class="container">
-            <div class="section-header">
-                <h2 style="color: white;">More Powerful Features</h2>
-            </div>
-            <div class="features-grid" style="max-width: 1200px; margin: 0 auto;">
-                
-                <!-- Drag & Drop Card -->
-                <div class="feature-card" style="background: white; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
-                    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
-                        <div class="feature-icon" style="margin: 0;">🌦️</div>
-                        <h3 style="margin: 0; color: #667eea;">Smart Weather Monitoring</h3>
-                    </div>
-                    <p style="color: #64748b; margin-bottom: 1rem;">See weather risk before dispatch.</p>
-                    <div style="display: flex; gap: 0.55rem; align-items: center; margin-bottom: 0.9rem;">
-                        <div style="flex: 1; background: #eef6ff; border: 2px solid #93c5fd; border-radius: 10px; padding: 0.65rem 0.6rem; text-align: center;">
-                            <div style="font-size: 1rem;">🌧️</div>
-                            <div style="font-size: 0.74rem; font-weight: 800; color: #1e3a8a;">Tue 95%</div>
-                        </div>
-                        <div style="flex: 1; background: #ecfdf5; border: 2px solid #86efac; border-radius: 10px; padding: 0.65rem 0.6rem; text-align: center;">
-                            <div style="font-size: 1rem;">☀️</div>
-                            <div style="font-size: 0.74rem; font-weight: 800; color: #166534;">Wed 88%</div>
-                        </div>
-                        <div style="flex: 1; background: #ecfdf5; border: 2px solid #86efac; border-radius: 10px; padding: 0.65rem 0.6rem; text-align: center;">
-                            <div style="font-size: 1rem;">🌤️</div>
-                            <div style="font-size: 0.74rem; font-weight: 800; color: #166534;">Thu 84%</div>
-                        </div>
-                    </div>
-                    <p style="font-size: 0.85rem; color: #64748b; margin-top: 1rem; margin-bottom: 0;">Alert first. Move work before crews leave.</p>
-                </div>
-
-                <!-- GPS Tracking Card -->
-                <div class="feature-card" style="background: white; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
-                    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
-                        <div class="feature-icon" style="margin: 0;">🧭</div>
-                        <h3 style="margin: 0; color: #667eea;">Optimized Suggestions</h3>
-                    </div>
-                    <p style="color: #64748b; margin-bottom: 1rem;">Get best-day moves in one click.</p>
-                    <div style="background: #f8fafc; border-radius: 12px; padding: 1rem;">
-                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.55rem; margin-bottom: 0.65rem;">
-                            <div style="flex: 1; background: white; border: 1px solid #dbeafe; border-radius: 8px; padding: 0.5rem; text-align: center;">
-                                <div style="font-size: 0.7rem; color: #64748b; font-weight: 700;">Before</div>
-                                <div style="font-size: 0.88rem; color: #1e293b; font-weight: 800;">8.0h</div>
-                            </div>
-                            <div style="font-size: 1.05rem; color: #2563eb; font-weight: 900;">-></div>
-                            <div style="flex: 1; background: #eff6ff; border: 1px solid #93c5fd; border-radius: 8px; padding: 0.5rem; text-align: center;">
-                                <div style="font-size: 0.7rem; color: #1d4ed8; font-weight: 700;">After</div>
-                                <div style="font-size: 0.88rem; color: #1d4ed8; font-weight: 900;">6.9h</div>
-                            </div>
-                        </div>
-                        <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.45rem;">
-                            <div style="background: white; border-radius: 7px; padding: 0.45rem; text-align: center; font-size: 0.7rem; font-weight: 800; color: #1e293b;">Wed +2</div>
-                            <div style="background: white; border-radius: 7px; padding: 0.45rem; text-align: center; font-size: 0.7rem; font-weight: 800; color: #1e293b;">Thu +2</div>
-                            <div style="background: #dcfce7; border-radius: 7px; padding: 0.45rem; text-align: center; font-size: 0.7rem; font-weight: 800; color: #166534;">Tue Safe</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Route Optimization Card -->
-                <div class="feature-card" style="background: white; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
-                    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
-                        <div class="feature-icon" style="margin: 0;">📲</div>
-                        <h3 style="margin: 0; color: #667eea;">Automated Customer Notices</h3>
-                    </div>
-                    <p style="color: #64748b; margin-bottom: 1rem;">Send updates as soon as jobs move.</p>
-                    <div style="background: #f8fafc; border-radius: 12px; padding: 1.25rem;">
-                        <div style="background: white; border-radius: 10px; padding: 0.6rem 0.65rem; margin-bottom: 0.55rem; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
-                            <div style="font-size: 0.8rem; color: #1e293b; font-weight: 800;">🌧️ Weather delay: moved to Thu</div>
-                        </div>
-                        <div style="background: white; border-radius: 10px; padding: 0.6rem 0.65rem; margin-bottom: 0.65rem; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
-                            <div style="font-size: 0.8rem; color: #1e293b; font-weight: 800;">✅ New service day confirmed</div>
-                        </div>
-                        <button style="width: 100%; background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; border: none; padding: 0.7rem; border-radius: 8px; font-weight: 800; cursor: pointer; font-size: 0.86rem; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);">Send 4 Notices</button>
-                    </div>
-                </div>
-
             </div>
         </div>
     </section>
