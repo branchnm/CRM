@@ -98,21 +98,93 @@
             padding: 0.85rem 0.95rem;
             border-radius: 0.85rem;
             background: rgba(15, 23, 42, 0.16);
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
         }
         .hero-update-label {
             display: block;
-            font-size: 0.8rem;
+            font-size: 0.76rem;
             font-weight: 800;
-            letter-spacing: 0.06em;
+            letter-spacing: 0.05em;
             text-transform: uppercase;
             color: rgba(255,255,255,0.78);
-            margin-bottom: 0.35rem;
+            margin-bottom: 0;
         }
         .hero-update-item strong {
             display: block;
-            font-size: 1rem;
-            line-height: 1.45;
-            font-weight: 700;
+            font-size: 1.02rem;
+            line-height: 1.25;
+            font-weight: 800;
+        }
+        .hero-update-visual {
+            border-radius: 0.75rem;
+            background: rgba(255, 255, 255, 0.14);
+            border: 1px solid rgba(255, 255, 255, 0.26);
+            min-height: 48px;
+            padding: 0.4rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.34rem;
+        }
+        .hero-weather-chip {
+            border-radius: 999px;
+            padding: 0.2rem 0.48rem;
+            font-size: 0.62rem;
+            font-weight: 800;
+            color: white;
+            white-space: nowrap;
+        }
+        .hero-weather-chip.rain {
+            background: #2563eb;
+        }
+        .hero-weather-chip.sun {
+            background: #0f766e;
+        }
+        .hero-route-line {
+            display: flex;
+            align-items: center;
+            gap: 0.24rem;
+        }
+        .hero-route-stop {
+            width: 1.15rem;
+            height: 1.15rem;
+            border-radius: 999px;
+            border: 2px solid rgba(255, 255, 255, 0.65);
+            background: rgba(255, 255, 255, 0.22);
+            position: relative;
+        }
+        .hero-route-stop.best {
+            background: #34d399;
+            border-color: #ecfdf5;
+        }
+        .hero-route-link {
+            width: 1rem;
+            height: 2px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 999px;
+        }
+        .hero-notice-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 0.22rem;
+            width: 100%;
+        }
+        .hero-notice-pill {
+            border-radius: 999px;
+            padding: 0.16rem 0.4rem;
+            background: rgba(255, 255, 255, 0.2);
+            font-size: 0.6rem;
+            font-weight: 800;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            line-height: 1;
+        }
+        .hero-notice-pill span {
+            color: #bbf7d0;
         }
         .hero h1 {
             font-size: 3.5rem;
@@ -2795,16 +2867,36 @@
             </div>
             <div class="hero-update-bar">
                 <div class="hero-update-item">
-                    <span class="hero-update-label">Weather Monitoring</span>
-                    <strong>Spot rain-risk days early and protect field hours.</strong>
+                    <span class="hero-update-label">Smart Weather Monitoring</span>
+                    <div class="hero-update-visual">
+                        <span class="hero-weather-chip rain">Tue Rain</span>
+                        <span class="hero-weather-chip sun">Wed Clear</span>
+                        <span class="hero-weather-chip sun">Thu Clear</span>
+                    </div>
+                    <strong>Rain Risk Watch</strong>
                 </div>
                 <div class="hero-update-item">
-                    <span class="hero-update-label">Smart Optimization</span>
-                    <strong>One-click plan updates move work to better weather days.</strong>
+                    <span class="hero-update-label">Optimized Suggestions</span>
+                    <div class="hero-update-visual">
+                        <div class="hero-route-line">
+                            <span class="hero-route-stop"></span>
+                            <span class="hero-route-link"></span>
+                            <span class="hero-route-stop best"></span>
+                            <span class="hero-route-link"></span>
+                            <span class="hero-route-stop best"></span>
+                        </div>
+                    </div>
+                    <strong>Best-Day Rebalance</strong>
                 </div>
                 <div class="hero-update-item">
-                    <span class="hero-update-label">Auto Customer Notices</span>
-                    <strong>Send weather reschedule texts with each new service day.</strong>
+                    <span class="hero-update-label">Automated Customer Notices</span>
+                    <div class="hero-update-visual">
+                        <div class="hero-notice-stack">
+                            <div class="hero-notice-pill">Moved to Thu <span>Sent</span></div>
+                            <div class="hero-notice-pill">Moved to Wed <span>Sent</span></div>
+                        </div>
+                    </div>
+                    <strong>Auto Text Updates</strong>
                 </div>
             </div>
         </div>
@@ -2975,38 +3067,50 @@
                 <!-- Drag & Drop Card -->
                 <div class="feature-card" style="background: white; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
                     <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
-                        <div class="feature-icon" style="margin: 0;">🖱️</div>
-                        <h3 style="margin: 0; color: #667eea;">Drag & Drop Jobs</h3>
+                        <div class="feature-icon" style="margin: 0;">🌦️</div>
+                        <h3 style="margin: 0; color: #667eea;">Smart Weather Monitoring</h3>
                     </div>
-                    <p style="color: #64748b; margin-bottom: 1rem;">Move jobs between days in seconds.</p>
-                    <div style="display: flex; gap: 0.75rem; align-items: center;">
-                        <div style="flex: 1; background: white; border: 2px solid #e5e7eb; border-radius: 12px; padding: 1rem;">
-                            <div style="font-weight: 700; color: #1e293b; margin-bottom: 0.25rem;">John Smith</div>
-                            <div style="font-size: 0.85rem; color: #64748b;">123 Main St</div>
-                            <div style="font-size: 0.85rem; color: #64748b;">8:00 AM</div>
+                    <p style="color: #64748b; margin-bottom: 1rem;">See weather risk before dispatch.</p>
+                    <div style="display: flex; gap: 0.55rem; align-items: center; margin-bottom: 0.9rem;">
+                        <div style="flex: 1; background: #eef6ff; border: 2px solid #93c5fd; border-radius: 10px; padding: 0.65rem 0.6rem; text-align: center;">
+                            <div style="font-size: 1rem;">🌧️</div>
+                            <div style="font-size: 0.74rem; font-weight: 800; color: #1e3a8a;">Tue 95%</div>
                         </div>
-                        <div style="font-size: 2rem; color: #667eea;">→</div>
-                        <div style="flex: 1; background: #eff6ff; border: 2px dashed #667eea; border-radius: 12px; padding: 1.5rem; text-align: center;">
-                            <div style="color: #667eea; font-weight: 700; font-size: 0.9rem;">Drop here</div>
-                            <div style="color: #64748b; font-size: 0.75rem;">for new date</div>
+                        <div style="flex: 1; background: #ecfdf5; border: 2px solid #86efac; border-radius: 10px; padding: 0.65rem 0.6rem; text-align: center;">
+                            <div style="font-size: 1rem;">☀️</div>
+                            <div style="font-size: 0.74rem; font-weight: 800; color: #166534;">Wed 88%</div>
+                        </div>
+                        <div style="flex: 1; background: #ecfdf5; border: 2px solid #86efac; border-radius: 10px; padding: 0.65rem 0.6rem; text-align: center;">
+                            <div style="font-size: 1rem;">🌤️</div>
+                            <div style="font-size: 0.74rem; font-weight: 800; color: #166534;">Thu 84%</div>
                         </div>
                     </div>
-                    <p style="font-size: 0.85rem; color: #64748b; margin-top: 1rem; margin-bottom: 0;">Desktop and mobile friendly.</p>
+                    <p style="font-size: 0.85rem; color: #64748b; margin-top: 1rem; margin-bottom: 0;">Alert first. Move work before crews leave.</p>
                 </div>
 
                 <!-- GPS Tracking Card -->
                 <div class="feature-card" style="background: white; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
                     <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
-                        <div class="feature-icon" style="margin: 0;">📍</div>
-                        <h3 style="margin: 0; color: #667eea;">Auto Customer Updates</h3>
+                        <div class="feature-icon" style="margin: 0;">🧭</div>
+                        <h3 style="margin: 0; color: #667eea;">Optimized Suggestions</h3>
                     </div>
-                    <p style="color: #64748b; margin-bottom: 1rem;">Customers get clear text updates when timing changes.</p>
+                    <p style="color: #64748b; margin-bottom: 1rem;">Get best-day moves in one click.</p>
                     <div style="background: #f8fafc; border-radius: 12px; padding: 1rem;">
-                        <div style="background: white; border-radius: 12px; padding: 0.75rem; margin-bottom: 0.75rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-                            <div style="font-size: 0.85rem; color: #1e293b;">🌧️ Weather delay -> moved to Thu</div>
+                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.55rem; margin-bottom: 0.65rem;">
+                            <div style="flex: 1; background: white; border: 1px solid #dbeafe; border-radius: 8px; padding: 0.5rem; text-align: center;">
+                                <div style="font-size: 0.7rem; color: #64748b; font-weight: 700;">Before</div>
+                                <div style="font-size: 0.88rem; color: #1e293b; font-weight: 800;">8.0h</div>
+                            </div>
+                            <div style="font-size: 1.05rem; color: #2563eb; font-weight: 900;">-></div>
+                            <div style="flex: 1; background: #eff6ff; border: 1px solid #93c5fd; border-radius: 8px; padding: 0.5rem; text-align: center;">
+                                <div style="font-size: 0.7rem; color: #1d4ed8; font-weight: 700;">After</div>
+                                <div style="font-size: 0.88rem; color: #1d4ed8; font-weight: 900;">6.9h</div>
+                            </div>
                         </div>
-                        <div style="background: white; border-radius: 12px; padding: 0.75rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-                            <div style="font-size: 0.85rem; color: #1e293b;">✅ New service window confirmed</div>
+                        <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.45rem;">
+                            <div style="background: white; border-radius: 7px; padding: 0.45rem; text-align: center; font-size: 0.7rem; font-weight: 800; color: #1e293b;">Wed +2</div>
+                            <div style="background: white; border-radius: 7px; padding: 0.45rem; text-align: center; font-size: 0.7rem; font-weight: 800; color: #1e293b;">Thu +2</div>
+                            <div style="background: #dcfce7; border-radius: 7px; padding: 0.45rem; text-align: center; font-size: 0.7rem; font-weight: 800; color: #166534;">Tue Safe</div>
                         </div>
                     </div>
                 </div>
@@ -3014,26 +3118,18 @@
                 <!-- Route Optimization Card -->
                 <div class="feature-card" style="background: white; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
                     <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
-                        <div class="feature-icon" style="margin: 0;">🗺️</div>
-                        <h3 style="margin: 0; color: #667eea;">Route Optimization</h3>
+                        <div class="feature-icon" style="margin: 0;">📲</div>
+                        <h3 style="margin: 0; color: #667eea;">Automated Customer Notices</h3>
                     </div>
-                    <p style="color: #64748b; margin-bottom: 1rem;">Reorder stops and rebalance the day with one click.</p>
+                    <p style="color: #64748b; margin-bottom: 1rem;">Send updates as soon as jobs move.</p>
                     <div style="background: #f8fafc; border-radius: 12px; padding: 1.25rem;">
-                        <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
-                            <div style="flex: 1; text-align: center;">
-                                <div style="font-size: 1.5rem; font-weight: 700; color: #1e293b;">18 mi</div>
-                                <div style="font-size: 0.75rem; color: #64748b;">Distance</div>
-                            </div>
-                            <div style="flex: 1; text-align: center;">
-                                <div style="font-size: 1.5rem; font-weight: 700; color: #1e293b;">3.5h</div>
-                                <div style="font-size: 0.75rem; color: #64748b;">Drive Time</div>
-                            </div>
-                            <div style="flex: 1; text-align: center;">
-                                <div style="font-size: 1.5rem; font-weight: 700; color: #1e293b;">8.0h</div>
-                                <div style="font-size: 0.75rem; color: #64748b;">Total Day</div>
-                            </div>
+                        <div style="background: white; border-radius: 10px; padding: 0.6rem 0.65rem; margin-bottom: 0.55rem; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
+                            <div style="font-size: 0.8rem; color: #1e293b; font-weight: 800;">🌧️ Weather delay: moved to Thu</div>
                         </div>
-                        <button style="width: 100%; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; padding: 0.75rem; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 0.9rem; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);">View Route & Schedule</button>
+                        <div style="background: white; border-radius: 10px; padding: 0.6rem 0.65rem; margin-bottom: 0.65rem; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
+                            <div style="font-size: 0.8rem; color: #1e293b; font-weight: 800;">✅ New service day confirmed</div>
+                        </div>
+                        <button style="width: 100%; background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; border: none; padding: 0.7rem; border-radius: 8px; font-weight: 800; cursor: pointer; font-size: 0.86rem; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);">Send 4 Notices</button>
                     </div>
                 </div>
 
