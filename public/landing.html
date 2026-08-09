@@ -2892,7 +2892,7 @@
         }
         .feature-route-compare {
             display: grid;
-            grid-template-columns: minmax(166px, 1fr) auto minmax(166px, 1fr);
+            grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
             gap: clamp(0.3rem, 1.2vw, 0.62rem);
             align-items: stretch;
             width: 100%;
@@ -3052,8 +3052,12 @@
                 padding: 40px 0 60px 0;
             }
             .feature-route-compare {
-                grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+                grid-template-columns: minmax(0, 1fr);
                 gap: 0.4rem;
+            }
+            .feature-route-arrow {
+                transform: rotate(90deg);
+                padding: 0;
             }
             .feature-route-box {
                 padding: 0.56rem;
