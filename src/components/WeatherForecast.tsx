@@ -5081,6 +5081,7 @@ export function WeatherForecast({
                   const isPersistedRainedOutDay = persistedRainedOutDays.has(dateStr);
                   const isWeatherCanceledDay = isPersistedRainedOutDay || (hasWeatherMoveSuggestions && !hasWeatherTimeSuggestions);
                   const isWeatherClosedDay = isPersistedRainedOutDay || ((hasWeatherMoveSuggestions || hasWeatherTimeSuggestions) && (isAtCapacity || remainingMinutes <= 0));
+                  const isRainyDayVisual = isWeatherCanceledDay || hasWeatherMoveSuggestions || hasOvernightRain || rainChance >= 45;
                   const combinedSuggestions = [
                     ...suggestionsForDay.moveSuggestions.map((suggestion) => ({ kind: 'move' as const, suggestion })),
                     ...suggestionsForDay.timeSuggestions.map((suggestion) => ({ kind: 'time' as const, suggestion })),
@@ -5202,6 +5203,23 @@ export function WeatherForecast({
                         <div className={`relative border-r border-gray-200 overflow-hidden ${
                           isMobile ? 'px-1 pb-0 pt-0 flex flex-col' : 'px-[0.44vh] py-0 flex flex-col'
                         }`} style={{ background: LANDING_DAY_CARD_PURPLE_GRADIENT }}>
+                          {isRainyDayVisual && (
+                            <>
+                              <div
+                                className="absolute inset-0 pointer-events-none z-0"
+                                style={{
+                                  background: 'linear-gradient(180deg, rgba(37, 99, 235, 0.20) 0%, rgba(59, 130, 246, 0.10) 100%)'
+                                }}
+                              />
+                              <div
+                                className="absolute inset-0 pointer-events-none z-0"
+                                style={{
+                                  backgroundImage: 'repeating-linear-gradient(115deg, rgba(255, 255, 255, 0.32) 0px, rgba(255, 255, 255, 0.32) 2px, transparent 2px, transparent 10px)',
+                                  opacity: 0.65
+                                }}
+                              />
+                            </>
+                          )}
                           
                           <div className={`relative z-10 ${isMobile ? 'flex-1 flex flex-col min-h-0' : 'flex-1 flex flex-col min-h-0'}`}>
                             {/* Draggable START Time Bar - At very top before 5am icon */}
