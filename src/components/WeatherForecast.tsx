@@ -64,6 +64,9 @@ const checkDemoMode = (): boolean => {
 
 const DEMO_MODE = checkDemoMode();
 const RESCHEDULE_CAPACITY_MARGIN_PERCENT = 92;
+const DESKTOP_DAY_CARD_WIDTH_PX = 650;
+const DESKTOP_DAY_CARD_GAP_PX = 20;
+const DESKTOP_DAY_CARD_SCROLL_STEP_PX = DESKTOP_DAY_CARD_WIDTH_PX + DESKTOP_DAY_CARD_GAP_PX;
 
 const WORK_DAY_START_HOUR = DEFAULT_DAY_START_HOUR; // 5 AM earliest start
 const WORK_DAY_END_HOUR = DEFAULT_DAY_END_HOUR; // 7 PM latest end (19:00 = 7 PM)
@@ -430,8 +433,8 @@ export function WeatherForecast({
         return;
       }
 
-      const cardWidth = 280; // Reduced from 320px to fit 4-5 cards on most screens
-      const gapWidth = 20; // Reduced gap from 24px to 20px
+      const cardWidth = DESKTOP_DAY_CARD_WIDTH_PX;
+      const gapWidth = DESKTOP_DAY_CARD_GAP_PX;
       const arrowSpace = 200; // Space for arrows positioned outside (100px each side)
       
       const availableWidth = window.innerWidth - arrowSpace;
@@ -4907,8 +4910,7 @@ export function WeatherForecast({
                     
                     // Also scroll the forecast container
                     if (forecastScrollContainerRef.current) {
-                      const cardWidth = 280 + 20; // Card width + gap
-                      forecastScrollContainerRef.current.scrollBy({ left: -cardWidth, behavior: 'smooth' });
+                      forecastScrollContainerRef.current.scrollBy({ left: -DESKTOP_DAY_CARD_SCROLL_STEP_PX, behavior: 'smooth' });
                     }
                     scrollToTop();
                   }}
@@ -4934,8 +4936,7 @@ export function WeatherForecast({
                     
                     // Also scroll the forecast container
                     if (forecastScrollContainerRef.current) {
-                      const cardWidth = 280 + 20;
-                      forecastScrollContainerRef.current.scrollBy({ left: -cardWidth, behavior: 'smooth' });
+                      forecastScrollContainerRef.current.scrollBy({ left: -DESKTOP_DAY_CARD_SCROLL_STEP_PX, behavior: 'smooth' });
                     }
                     scrollToTop();
                   } else if (e.key === 'ArrowRight') {
@@ -4948,8 +4949,7 @@ export function WeatherForecast({
                     
                     // Also scroll the forecast container
                     if (forecastScrollContainerRef.current) {
-                      const cardWidth = 280 + 20;
-                      forecastScrollContainerRef.current.scrollBy({ left: cardWidth, behavior: 'smooth' });
+                      forecastScrollContainerRef.current.scrollBy({ left: DESKTOP_DAY_CARD_SCROLL_STEP_PX, behavior: 'smooth' });
                     }
                     scrollToTop();
                   }
@@ -5112,9 +5112,9 @@ export function WeatherForecast({
                       style={{
                         scrollSnapAlign: 'start',
                         scrollMarginTop: isMobile ? '0.75rem' : '1rem',
-                        width: isMobile ? '97vw' : '280px',
-                        minWidth: isMobile ? '97vw' : '280px',
-                        maxWidth: isMobile ? '97vw' : '280px',
+                        width: isMobile ? '97vw' : `${DESKTOP_DAY_CARD_WIDTH_PX}px`,
+                        minWidth: isMobile ? '97vw' : `${DESKTOP_DAY_CARD_WIDTH_PX}px`,
+                        maxWidth: isMobile ? '97vw' : `${DESKTOP_DAY_CARD_WIDTH_PX}px`,
                         height: dayCardViewportHeight ? `${dayCardViewportHeight}px` : undefined,
                       }}
                     >
@@ -6410,8 +6410,7 @@ export function WeatherForecast({
                     
                     // Also scroll the forecast container
                     if (forecastScrollContainerRef.current) {
-                      const cardWidth = 280 + 20; // Card width + gap
-                      forecastScrollContainerRef.current.scrollBy({ left: cardWidth, behavior: 'smooth' });
+                      forecastScrollContainerRef.current.scrollBy({ left: DESKTOP_DAY_CARD_SCROLL_STEP_PX, behavior: 'smooth' });
                     }
                     scrollToTop();
                   }}
