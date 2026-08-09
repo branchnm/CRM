@@ -636,8 +636,8 @@
         }
         .live-demo-board {
             display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 1rem;
+            grid-template-columns: repeat(auto-fit, minmax(clamp(240px, 24vw, 320px), 1fr));
+            gap: clamp(0.9rem, 1.6vw, 1.2rem);
             align-items: stretch;
         }
         .live-demo-day {
@@ -3090,7 +3090,7 @@
                 grid-template-columns: repeat(2, minmax(0, 1fr));
             }
             .live-demo-board {
-                grid-template-columns: repeat(2, minmax(230px, 1fr));
+                grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr));
             }
             .live-demo-next-grid {
                 grid-template-columns: 1fr;
@@ -3302,7 +3302,7 @@
             }
             .live-demo-board {
                 grid-template-columns: 1fr;
-                overflow-x: auto;
+                overflow-x: visible;
             }
             .live-demo-next-head {
                 flex-direction: column;
