@@ -5685,25 +5685,7 @@ export function WeatherForecast({
                                           gridColumn: '1'
                                         }}
                                       >
-                                        {isFirstSlot && hasOvernightRain ? (
-                                          <div className="flex flex-col items-center gap-[0.14vh]">
-                                            {getWeatherForHour()}
-                                            <div className="flex flex-col items-center gap-[0.19vh] mt-[0.5vh]">
-                                              <div className={`relative flex items-center justify-center bg-blue-50 rounded-full border border-blue-200 ${
-                                                isMobile ? 'w-[2.74vh] h-[2.74vh]' : 'w-[3.07vh] h-[3.07vh]'
-                                              }`}>
-                                                <svg className={`text-blue-600 ${isMobile ? 'w-[1.82vh] h-[1.82vh]' : 'w-[1.92vh] h-[1.92vh]'}`} fill="currentColor" viewBox="0 0 20 20">
-                                                  <path fillRule="evenodd" d="M10 2a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0110 2zM10 15a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0110 15zM10 7a3 3 0 100 6 3 3 0 000-6zM15.657 5.404a.75.75 0 10-1.06-1.06l-1.061 1.06a.75.75 0 001.06 1.06l1.06-1.06zM6.464 14.596a.75.75 0 10-1.06-1.06l-1.06 1.06a.75.75 0 001.06 1.06l1.06-1.06zM18 10a.75.75 0 01-.75.75h-1.5a.75.75 0 010-1.5h1.5A.75.75 0 0118 10zM5 10a.75.75 0 01-.75.75h-1.5a.75.75 0 010-1.5h1.5A.75.75 0 015 10zM14.596 15.657a.75.75 0 001.06-1.06l-1.06-1.061a.75.75 0 10-1.06 1.06l1.06 1.06zM5.404 6.464a.75.75 0 001.06-1.06l-1.06-1.06a.75.75 0 10-1.061 1.06l1.06 1.06z" clipRule="evenodd" />
-                                                </svg>
-                                              </div>
-                                              <span className={`text-blue-700 font-bold whitespace-nowrap tracking-tight ${
-                                                isMobile ? 'text-[0.91vh]' : 'text-[0.96vh]'
-                                              }`}>WET</span>
-                                            </div>
-                                          </div>
-                                        ) : (
-                                          getWeatherForHour()
-                                        )}
+                                        {getWeatherForHour()}
                                       </div>
                                     );
                                   })}
