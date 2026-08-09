@@ -64,9 +64,10 @@ const checkDemoMode = (): boolean => {
 
 const DEMO_MODE = checkDemoMode();
 const RESCHEDULE_CAPACITY_MARGIN_PERCENT = 92;
-const DESKTOP_DAY_CARD_WIDTH_PX = 372;
+const DESKTOP_DAY_CARD_WIDTH_PX = 426;
 const DESKTOP_DAY_CARD_GAP_PX = 20;
 const DESKTOP_DAY_CARD_SCROLL_STEP_PX = DESKTOP_DAY_CARD_WIDTH_PX + DESKTOP_DAY_CARD_GAP_PX;
+const LANDING_DAY_CARD_PURPLE_GRADIENT = 'linear-gradient(180deg, #ede5ff 0%, #c7b7f2 100%)';
 
 const WORK_DAY_START_HOUR = DEFAULT_DAY_START_HOUR; // 5 AM earliest start
 const WORK_DAY_END_HOUR = DEFAULT_DAY_END_HOUR; // 7 PM latest end (19:00 = 7 PM)
@@ -5145,20 +5146,7 @@ export function WeatherForecast({
                         } ${isWeatherClosedDay ? 'ring-2 ring-blue-700 shadow-blue-200' : isAtCapacity ? 'ring-2 ring-blue-500 shadow-blue-100' : ''}`}
                         style={{
                           scrollSnapStop: isMobile ? 'always' : 'always',
-                          background: weatherForDay?.hourlyForecasts && weatherForDay.hourlyForecasts.length > 0
-                          ? `linear-gradient(to bottom, ${weatherForDay.hourlyForecasts.map((h: any, idx: number) => {
-                              const color = getWeatherBandColor(h.description || '', h.rainAmount || 0);
-
-                              return `${color} ${(idx / (weatherForDay.hourlyForecasts!.length - 1)) * 100}%`;
-                            }).join(', ')})`
-                          : (() => {
-                              // Fallback: solid color based on daily weather description
-                              if (!weatherForDay) return LANDING_WEATHER_PALETTE.clear;
-                              
-                              const desc = (weatherForDay.description || '').toLowerCase();
-                              const amount = weatherForDay.precipitation || 0;
-                              return getWeatherBandColor(desc, amount);
-                            })(),
+                          background: LANDING_DAY_CARD_PURPLE_GRADIENT,
                         border: isWeatherClosedDay
                           ? `2px solid ${LANDING_WEATHER_PALETTE.rain}`
                           : (isAtCapacity ? `2px solid ${LANDING_WEATHER_PALETTE.ring}` : `2px solid ${LANDING_WEATHER_PALETTE.border}`)
