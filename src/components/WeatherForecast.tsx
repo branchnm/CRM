@@ -2757,11 +2757,7 @@ export function WeatherForecast({
       const suggestion = activeSuggestion.suggestion;
       const jobCount = suggestion.jobCount || suggestion.jobIds?.length || (suggestion.jobId ? 1 : 0);
       const moveTarget = formatSuggestionWeekday(suggestion.suggestedDate);
-      const toneClass = suggestion.source === 'capacity'
-        ? 'bg-amber-500'
-        : suggestion.weatherSeverity === 'heavy'
-        ? 'bg-red-500'
-        : 'bg-blue-500';
+      const toneClass = suggestion.source === 'capacity' ? 'bg-amber-500' : 'bg-blue-600';
 
       return {
         badge: suggestion.source === 'capacity'
@@ -2771,7 +2767,7 @@ export function WeatherForecast({
           : 'Rain',
         toneClass,
         title: `Move ${jobCount} job${jobCount === 1 ? '' : 's'} to ${moveTarget}`,
-        detail: suggestion.reason,
+        detail: '',
         actionLabel: `Move to ${moveTarget}`,
       };
     }
@@ -2780,15 +2776,11 @@ export function WeatherForecast({
     const actionLabel = suggestion.type === 'delay'
       ? `Start ${formatSuggestionHour(suggestion.suggestedStartTime)}`
       : `End ${suggestion.suggestedEndTime ? formatSuggestionHour(suggestion.suggestedEndTime) : formatSuggestionHour(suggestion.suggestedStartTime)}`;
-    const fitSummary = suggestion.jobCount > 0
-      ? `${suggestion.jobCount} job${suggestion.jobCount === 1 ? '' : 's'} fit with this change`
-      : 'No jobs fit without moving work';
-
     return {
       badge: suggestion.type === 'delay' ? 'Delay' : 'End Early',
       toneClass: 'bg-blue-500',
       title: actionLabel,
-      detail: `${suggestion.reason} ${fitSummary}`.trim(),
+      detail: '',
       actionLabel: 'Apply',
     };
   };
@@ -5554,7 +5546,7 @@ export function WeatherForecast({
                                           className="absolute inset-0 bg-blue-50/65 pointer-events-none z-20"
                                           style={{
                                             gridColumn: '1 / -1',
-                                            backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(59, 130, 246, 0.28) 4px, rgba(59, 130, 246, 0.28) 8px)'
+                                            backgroundImage: 'none'
                                           }}
                                         />
                                       )}
@@ -5566,7 +5558,7 @@ export function WeatherForecast({
                                           style={{ 
                                             gridColumn: '1 / -1',
                                             height: `${blockedStartPercent}%`,
-                                            backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(59, 130, 246, 0.2) 4px, rgba(59, 130, 246, 0.2) 8px)'
+                                            backgroundImage: 'none'
                                           }}
                                         />
                                       )}
@@ -5579,7 +5571,7 @@ export function WeatherForecast({
                                             gridColumn: '1 / -1',
                                             top: `${blockedEndTopPercent}%`,
                                             height: `${blockedEndPercent}%`,
-                                            backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(59, 130, 246, 0.2) 4px, rgba(59, 130, 246, 0.2) 8px)'
+                                            backgroundImage: 'none'
                                           }}
                                         />
                                       )}
@@ -5965,7 +5957,7 @@ export function WeatherForecast({
                                                   const roundBottomLeft = isLastRow && !needsIndent;
                                                   const roundBottomRight = isLastRow;
                                                   const borderRadius = `${roundTopLeft ? '3vh' : '0'} ${roundTopRight ? '3vh' : '0'} ${roundBottomRight ? '3vh' : '0'} ${roundBottomLeft ? '3vh' : '0'}`;
-                                                  const borderColor = isCompleted ? 'rgb(107, 114, 128)' : isSelected ? 'rgb(21, 128, 61)' : isCutItem ? 'rgb(202, 138, 4)' : isAssigned ? 'rgb(107, 114, 128)' : isAffectedByRain ? 'rgb(30, 64, 175)' : 'rgb(147, 197, 253)';
+                                                  const borderColor = isCompleted ? 'rgb(107, 114, 128)' : isSelected ? 'rgb(21, 128, 61)' : isCutItem ? 'rgb(202, 138, 4)' : isAssigned ? 'rgb(107, 114, 128)' : isAffectedByRain ? 'rgb(217, 119, 6)' : 'rgb(147, 197, 253)';
                                                   const isWidthChangingFromPrev = prevRowIndent !== null && prevRowIndent !== needsIndent;
                                                   const isWidthChangingToNext = nextRowIndent !== null && nextRowIndent !== needsIndent;
                                                   const rowHeight = `calc(100% / ${spanInfo.slotsNeeded})`;
@@ -5973,7 +5965,7 @@ export function WeatherForecast({
                                                   return (
                                                     <div key={rowIndex} className="relative" style={{ height: rowHeight, flex: 'none' }}>
                                                       <div
-                                                        className={`text-xs select-none h-full ${isCompleted ? 'bg-slate-100' : isSelected ? 'bg-emerald-50' : isCutItem ? 'bg-amber-50' : isAssigned ? 'bg-slate-100' : isAffectedByRain ? 'bg-blue-700' : 'bg-blue-50'}`}
+                                                        className={`text-xs select-none h-full ${isCompleted ? 'bg-slate-100' : isSelected ? 'bg-emerald-50' : isCutItem ? 'bg-amber-50' : isAssigned ? 'bg-slate-100' : isAffectedByRain ? 'bg-amber-100' : 'bg-blue-50'}`}
                                                         style={{ marginLeft: needsIndent ? '0' : (isMobile ? '-3vh' : '-4.5vh'), width: needsIndent ? '100%' : (isMobile ? 'calc(100% + 3vh)' : 'calc(100% + 4.5vh)'), borderRadius: isFirstRow && isLastRow ? '3vh' : borderRadius, opacity: isDraggedItem && !isDraggedPreviewCopy ? 0 : 1 }}
                                                       />
                                                       {isFirstRow && <div className="absolute pointer-events-none" style={{ top: 0, left: needsIndent ? '0' : (isMobile ? '-3vh' : '-4.5vh'), width: needsIndent ? '100%' : (isMobile ? 'calc(100% + 3vh)' : 'calc(100% + 4.5vh)'), height: '1.5px', background: borderColor, zIndex: 999 }} />}
@@ -5998,7 +5990,7 @@ export function WeatherForecast({
                                                 className={`absolute top-0 left-0 right-0 bottom-0 flex items-center ${isMobile ? 'gap-1.5' : 'gap-2'} ${!isCompleted ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'}`}
                                                 style={{ height: '100%', minHeight: '100%', paddingLeft: isMobile ? '6px' : '8px', paddingRight: isMobile ? '6px' : '8px', paddingTop: isMobile ? '4px' : '5px', paddingBottom: isMobile ? '4px' : '5px', maxHeight: spanInfo ? '100%' : 'auto', overflow: 'hidden', borderRadius: spansMultipleSlots ? `${rowIndents[0] ? '0' : '3vh'} 3vh 3vh ${rowIndents[rowIndents.length - 1] ? '0' : '3vh'}` : startsAtWeatherIcon ? '0 3vh 3vh 0' : '3vh', zIndex: 20 }}
                                               >
-                                                <div className={`min-w-0 flex-1 truncate font-semibold leading-tight tracking-tight ${isCompleted ? 'text-slate-500' : isAffectedByRain ? 'text-white' : 'text-slate-900'}`} style={{ fontSize: isMobile ? '0.75rem' : '0.8rem' }}>
+                                                <div className={`min-w-0 flex-1 truncate font-semibold leading-tight tracking-tight ${isCompleted ? 'text-slate-500' : isAffectedByRain ? 'text-amber-900' : 'text-slate-900'}`} style={{ fontSize: isMobile ? '0.75rem' : '0.8rem' }}>
                                                   {customer?.name}
                                                 </div>
                                                 <div className={`shrink-0 inline-flex h-[22px] w-[3.7rem] items-center justify-center gap-0.5 rounded-full border px-0.5 text-[0.68rem] font-semibold leading-none ${isCompleted ? 'border-slate-300 bg-slate-100 text-slate-600' : 'border-emerald-300 bg-emerald-50 text-emerald-700'}`}>
@@ -6077,7 +6069,7 @@ export function WeatherForecast({
                                                   : isAssigned
                                                   ? 'bg-slate-100 border-2 border-slate-400 animate-pulse cursor-grabbing'
                                                   : isAffectedByRain
-                                                  ? 'bg-blue-700 border border-blue-800 shadow-md cursor-grab hover:cursor-grabbing'
+                                                  ? 'bg-amber-100 border border-amber-300 shadow-sm cursor-grab hover:cursor-grabbing'
                                                     : 'bg-blue-50/95 border border-blue-200 shadow-[0_1px_4px_rgba(37,99,235,0.10)] cursor-grab hover:cursor-grabbing hover:shadow-[0_4px_10px_rgba(37,99,235,0.14)] active:cursor-grabbing active:bg-blue-100 active:border-blue-300'
                                               }`}
                                               style={{
@@ -6094,12 +6086,12 @@ export function WeatherForecast({
                                                 opacity: isDraggedItem && !isDraggedPreviewCopy ? 0 : 1,
                                                 overflow: 'hidden',
                                                 ...(isAffectedByRain && !isCompleted && !isSelected && !isCutItem && !isDraggedItem && !isAssigned ? {
-                                                  backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 6px, rgba(255, 255, 255, 0.14) 6px, rgba(255, 255, 255, 0.14) 12px)'
+                                                  backgroundImage: 'none'
                                                 } : {})
                                               }}
                                             >
                                               <div className="flex w-full items-center gap-1.5 min-w-0" onDragStart={(e) => e.preventDefault()}>
-                                                <div className={`min-w-0 flex-1 truncate font-semibold leading-tight tracking-tight ${isMobile ? 'text-[0.75rem]' : 'text-[0.8rem]'} ${isCompleted ? 'text-slate-500' : isAffectedByRain ? 'text-white' : 'text-slate-900'}`}>
+                                                <div className={`min-w-0 flex-1 truncate font-semibold leading-tight tracking-tight ${isMobile ? 'text-[0.75rem]' : 'text-[0.8rem]'} ${isCompleted ? 'text-slate-500' : isAffectedByRain ? 'text-amber-900' : 'text-slate-900'}`}>
                                                   {customer?.name}
                                                 </div>
                                                 <div className={`shrink-0 inline-flex h-[22px] w-[3.7rem] items-center justify-center gap-0.5 rounded-full border px-0.5 text-[0.68rem] font-semibold leading-none ${isCompleted ? 'border-slate-300 bg-slate-100 text-slate-600' : 'border-emerald-300 bg-emerald-50 text-emerald-700'}`}>
@@ -6351,9 +6343,11 @@ export function WeatherForecast({
                                     {presentation.title}
                                   </span>
                                 </div>
-                                <div className="mt-1 text-[0.63rem] leading-snug text-slate-500">
-                                  {presentation.detail}
-                                </div>
+                                {presentation.detail ? (
+                                  <div className="mt-1 text-[0.63rem] leading-snug text-slate-500">
+                                    {presentation.detail}
+                                  </div>
+                                ) : null}
                               </div>
 
                               {activeSuggestion.kind === 'move' ? (
