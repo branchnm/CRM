@@ -5078,10 +5078,12 @@ export function WeatherForecast({
                   const hasSuggestions = suggestionsForDay.moveSuggestions.length > 0 || suggestionsForDay.timeSuggestions.length > 0;
                   const hasWeatherMoveSuggestions = suggestionsForDay.moveSuggestions.some(s => (s.source ?? 'weather') === 'weather');
                   const hasWeatherTimeSuggestions = suggestionsForDay.timeSuggestions.some(s => s.type === 'delay' || s.type === 'start-early');
+                  const rainTimeSuggestion = suggestionsForDay.timeSuggestions.find(
+                    (s) => s.type === 'delay' || s.type === 'start-early'
+                  );
                   const isPersistedRainedOutDay = persistedRainedOutDays.has(dateStr);
                   const isWeatherCanceledDay = isPersistedRainedOutDay || (hasWeatherMoveSuggestions && !hasWeatherTimeSuggestions);
                   const isWeatherClosedDay = isPersistedRainedOutDay || ((hasWeatherMoveSuggestions || hasWeatherTimeSuggestions) && (isAtCapacity || remainingMinutes <= 0));
-                  const isRainyDayVisual = isWeatherCanceledDay || hasWeatherMoveSuggestions || hasOvernightRain || rainChance >= 45;
                   const combinedSuggestions = [
                     ...suggestionsForDay.moveSuggestions.map((suggestion) => ({ kind: 'move' as const, suggestion })),
                     ...suggestionsForDay.timeSuggestions.map((suggestion) => ({ kind: 'time' as const, suggestion })),
@@ -5203,24 +5205,7 @@ export function WeatherForecast({
                         <div className={`relative border-r border-gray-200 overflow-hidden ${
                           isMobile ? 'px-1 pb-0 pt-0 flex flex-col' : 'px-[0.44vh] py-0 flex flex-col'
                         }`} style={{ background: LANDING_DAY_CARD_PURPLE_GRADIENT }}>
-                          {isRainyDayVisual && (
-                            <>
-                              <div
-                                className="absolute inset-0 pointer-events-none z-0"
-                                style={{
-                                  background: 'linear-gradient(180deg, rgba(37, 99, 235, 0.20) 0%, rgba(59, 130, 246, 0.10) 100%)'
-                                }}
-                              />
-                              <div
-                                className="absolute inset-0 pointer-events-none z-0"
-                                style={{
-                                  backgroundImage: 'repeating-linear-gradient(115deg, rgba(255, 255, 255, 0.32) 0px, rgba(255, 255, 255, 0.32) 2px, transparent 2px, transparent 10px)',
-                                  opacity: 0.65
-                                }}
-                              />
-                            </>
-                          )}
-                          
+
                           <div className={`relative z-10 ${isMobile ? 'flex-1 flex flex-col min-h-0' : 'flex-1 flex flex-col min-h-0'}`}>
                             {/* Draggable START Time Bar - At very top before 5am icon */}
                             {(() => {
@@ -5548,48 +5533,63 @@ export function WeatherForecast({
                                   const currentEndTime = dayEndTimes.get(dateStr) || DEFAULT_DAY_END_HOUR;
                                   
                                   const totalSlots = 14; // 5am to 6pm = 14 hours
+
+                                  const suggestedRainDelayHour = rainTimeSuggestion?.type === 'delay'
+                                    ? rainTimeSuggestion.suggestedStartTime
+                                    : null;
+                                  const suggestedRainCutoffHour = rainTimeSuggestion?.type === 'start-early'
+                                    ? (rainTimeSuggestion.suggestedEndTime ?? rainTimeSuggestion.suggestedStartTime)
+                                    : null;
+
+                                  const topRainHour = suggestedRainDelayHour ?? (hasOvernightRain && currentStartTime > 5 ? currentStartTime : null);
+                                  const bottomRainHour = suggestedRainCutoffHour;
                                   
-                                  const blockedStartSlots = Math.max(0, currentStartTime - 5);
+                                  const blockedStartSlots = topRainHour ? Math.max(0, topRainHour - 5) : 0;
                                   const blockedStartPercent = (blockedStartSlots / totalSlots) * 100;
                                   
-                                  const blockedEndSlots = Math.max(0, 19 - currentEndTime);
+                                  const blockedEndSlots = bottomRainHour ? Math.max(0, 19 - bottomRainHour) : 0;
                                   const blockedEndPercent = (blockedEndSlots / totalSlots) * 100;
-                                  const blockedEndTopPercent = ((currentEndTime - 5) / totalSlots) * 100;
+                                  const blockedEndTopPercent = bottomRainHour ? ((bottomRainHour - 5) / totalSlots) * 100 : 100;
+
+                                  const rainOverlayStyle = {
+                                    background: 'linear-gradient(180deg, rgba(37, 99, 235, 0.20) 0%, rgba(59, 130, 246, 0.10) 100%)',
+                                    backgroundImage: 'repeating-linear-gradient(115deg, rgba(255, 255, 255, 0.32) 0px, rgba(255, 255, 255, 0.32) 2px, transparent 2px, transparent 10px)',
+                                  };
                                   
                                   return (
                                     <>
                                       {/* Full-day weather cancellation overlay */}
-                                      {isWeatherCanceledDay && !isRainyDayVisual && (
+                                      {isWeatherCanceledDay && (
                                         <div
-                                          className="absolute inset-0 bg-blue-50/65 pointer-events-none z-20"
+                                          className="absolute inset-0 pointer-events-none z-20"
                                           style={{
                                             gridColumn: '1 / -1',
-                                            backgroundImage: 'none'
+                                            ...rainOverlayStyle,
                                           }}
                                         />
                                       )}
 
-                                      {/* Blocked time overlay (before start time) - Blue rain pattern */}
-                                      {!isWeatherCanceledDay && !isRainyDayVisual && currentStartTime > 5 && (
+                                      {/* Rain delay overlay (from start of day until suggested dry start) */}
+                                      {!isWeatherCanceledDay && blockedStartPercent > 0 && (
                                         <div 
-                                          className="absolute top-0 left-0 right-0 bg-blue-50/60 pointer-events-none z-20"
+                                          className="absolute top-0 left-0 right-0 pointer-events-none z-20"
                                           style={{ 
                                             gridColumn: '1 / -1',
                                             height: `${blockedStartPercent}%`,
-                                            backgroundImage: 'none'
+                                            ...rainOverlayStyle,
                                           }}
                                         />
                                       )}
                                       
-                                      {/* Blocked time overlay (after end time) - Blue rain pattern (same as start) */}
-                                      {!isWeatherCanceledDay && !isRainyDayVisual && currentEndTime < 18 && (
+                                      {/* Rain cutoff overlay (from suggested cutoff through end of day) */}
+                                      {!isWeatherCanceledDay && blockedEndPercent > 0 && (
                                         <div 
-                                          className="absolute left-0 right-0 bg-blue-50/60 pointer-events-none z-20"
+                                          className="absolute left-0 right-0 pointer-events-none z-20"
                                           style={{ 
                                             gridColumn: '1 / -1',
                                             top: `${blockedEndTopPercent}%`,
                                             height: `${blockedEndPercent}%`,
-                                            backgroundImage: 'none'
+                                            ...rainOverlayStyle,
                                           }}
                                         />
                                       )}
