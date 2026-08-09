@@ -5534,15 +5534,34 @@ export function WeatherForecast({
                                   
                                   const totalSlots = 14; // 5am to 6pm = 14 hours
 
-                                  const suggestedRainDelayHour = rainTimeSuggestion?.type === 'delay'
-                                    ? rainTimeSuggestion.suggestedStartTime
-                                    : null;
-                                  const suggestedRainCutoffHour = rainTimeSuggestion?.type === 'start-early'
-                                    ? (rainTimeSuggestion.suggestedEndTime ?? rainTimeSuggestion.suggestedStartTime)
+                                  const hasSuggestedDelay = Boolean(
+                                    rainTimeSuggestion
+                                    && (rainTimeSuggestion.type === 'delay'
+                                      || (
+                                        rainTimeSuggestion.type !== 'start-early'
+                                        && rainTimeSuggestion.suggestedEndTime === undefined
+                                        && rainTimeSuggestion.suggestedStartTime > rainTimeSuggestion.currentStartTime
+                                      ))
+                                  );
+
+                                  const hasSuggestedCutoff = Boolean(
+                                    rainTimeSuggestion
+                                    && (rainTimeSuggestion.type === 'start-early'
+                                      || rainTimeSuggestion.suggestedEndTime !== undefined)
+                                  );
+
+                                  const suggestedRainDelayHour = hasSuggestedDelay
+                                    ? rainTimeSuggestion!.suggestedStartTime
                                     : null;
 
-                                  const topRainHour = suggestedRainDelayHour ?? (hasOvernightRain && currentStartTime > 5 ? currentStartTime : null);
-                                  const bottomRainHour = suggestedRainCutoffHour;
+                                  const suggestedRainCutoffHour = hasSuggestedCutoff
+                                    ? (rainTimeSuggestion!.suggestedEndTime ?? rainTimeSuggestion!.suggestedStartTime)
+                                    : null;
+
+                                  const topRainHour = suggestedRainDelayHour
+                                    ?? (currentStartTime > 5 ? currentStartTime : null);
+                                  const bottomRainHour = suggestedRainCutoffHour
+                                    ?? (currentEndTime < DEFAULT_DAY_END_HOUR ? currentEndTime : null);
                                   
                                   const blockedStartSlots = topRainHour ? Math.max(0, topRainHour - 5) : 0;
                                   const blockedStartPercent = (blockedStartSlots / totalSlots) * 100;
