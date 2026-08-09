@@ -3760,6 +3760,29 @@
 
     <script>
         (function() {
+            const host = window.location.hostname;
+            const isLocalhost = host === 'localhost' || host === '127.0.0.1';
+
+            if (!isLocalhost || !('serviceWorker' in navigator)) {
+                return;
+            }
+
+            navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                registrations.forEach(function(registration) {
+                    registration.unregister();
+                });
+            });
+
+            if ('caches' in window) {
+                caches.keys().then(function(cacheNames) {
+                    cacheNames.forEach(function(cacheName) {
+                        caches.delete(cacheName);
+                    });
+                });
+            }
+        })();
+
+        (function() {
             const applyStrip = document.getElementById('demoApplySuggestion');
             const stepTwo = document.getElementById('stepTwoGraphic');
             const tueDay = document.getElementById('stepOneTueDay');
