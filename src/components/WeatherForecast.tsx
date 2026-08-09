@@ -5559,7 +5559,7 @@ export function WeatherForecast({
                                   return (
                                     <>
                                       {/* Full-day weather cancellation overlay */}
-                                      {isWeatherCanceledDay && (
+                                      {isWeatherCanceledDay && !isRainyDayVisual && (
                                         <div
                                           className="absolute inset-0 bg-blue-50/65 pointer-events-none z-20"
                                           style={{
@@ -5570,7 +5570,7 @@ export function WeatherForecast({
                                       )}
 
                                       {/* Blocked time overlay (before start time) - Blue rain pattern */}
-                                      {!isWeatherCanceledDay && currentStartTime > 5 && (
+                                      {!isWeatherCanceledDay && !isRainyDayVisual && currentStartTime > 5 && (
                                         <div 
                                           className="absolute top-0 left-0 right-0 bg-blue-50/60 pointer-events-none z-20"
                                           style={{ 
@@ -5582,7 +5582,7 @@ export function WeatherForecast({
                                       )}
                                       
                                       {/* Blocked time overlay (after end time) - Blue rain pattern (same as start) */}
-                                      {!isWeatherCanceledDay && currentEndTime < 18 && (
+                                      {!isWeatherCanceledDay && !isRainyDayVisual && currentEndTime < 18 && (
                                         <div 
                                           className="absolute left-0 right-0 bg-blue-50/60 pointer-events-none z-20"
                                           style={{ 
