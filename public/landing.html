@@ -2801,6 +2801,7 @@
         .feature-simple-card {
             padding-top: 1.9rem;
             padding-bottom: 1.9rem;
+            overflow: hidden;
         }
         .feature-simple-hero {
             text-align: center;
@@ -2894,6 +2895,8 @@
             grid-template-columns: minmax(166px, 1fr) auto minmax(166px, 1fr);
             gap: 0.62rem;
             align-items: stretch;
+            width: 100%;
+            min-width: 0;
         }
         .feature-route-box {
             border: 1px solid #dbeafe;
@@ -2902,6 +2905,7 @@
             padding: 0.72rem;
             min-width: 0;
             min-height: 188px;
+            width: 100%;
             box-sizing: border-box;
             overflow: hidden;
             display: flex;
@@ -2945,7 +2949,7 @@
         .feature-route-metric span:last-child,
         .feature-route-metric strong {
             min-width: 0;
-            white-space: nowrap;
+            white-space: normal;
             word-break: normal;
             overflow-wrap: normal;
         }
@@ -3224,7 +3228,7 @@
             }
         }
 
-        @media (max-width: 480px) {
+        @media (max-width: 640px) {
             .feature-simple-card {
                 padding: 1.35rem;
             }
