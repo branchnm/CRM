@@ -2893,7 +2893,7 @@
         .feature-route-compare {
             display: grid;
             grid-template-columns: minmax(166px, 1fr) auto minmax(166px, 1fr);
-            gap: 0.62rem;
+            gap: clamp(0.3rem, 1.2vw, 0.62rem);
             align-items: stretch;
             width: 100%;
             min-width: 0;
@@ -2902,9 +2902,9 @@
             border: 1px solid #dbeafe;
             border-radius: 0.75rem;
             background: #f8fafc;
-            padding: 0.72rem;
+            padding: clamp(0.48rem, 1.25vw, 0.72rem);
             min-width: 0;
-            min-height: 188px;
+            min-height: clamp(146px, 20vw, 188px);
             width: 100%;
             box-sizing: border-box;
             overflow: hidden;
@@ -2916,11 +2916,11 @@
             border-color: #bfdbfe;
         }
         .feature-route-head {
-            font-size: 0.78rem;
+            font-size: clamp(0.7rem, 1.6vw, 0.78rem);
             font-weight: 900;
             letter-spacing: 0.04em;
             text-transform: uppercase;
-            margin-bottom: 0.5rem;
+            margin-bottom: clamp(0.3rem, 1vw, 0.5rem);
             line-height: 1.25;
             color: #5b5a97;
         }
@@ -2929,7 +2929,7 @@
         }
         .feature-route-arrow {
             color: #4f46e5;
-            font-size: 1.5rem;
+            font-size: clamp(1.05rem, 3vw, 1.5rem);
             font-weight: 900;
             line-height: 1;
             padding: 0 0.18rem;
@@ -2939,10 +2939,10 @@
             display: flex;
             align-items: center;
             gap: 0.36rem;
-            font-size: 0.98rem;
+            font-size: clamp(0.8rem, 2vw, 0.98rem);
             font-weight: 800;
             color: #2f2d72;
-            margin-top: 0.42rem;
+            margin-top: clamp(0.3rem, 0.9vw, 0.42rem);
             line-height: 1.2;
             min-width: 0;
         }
