@@ -5138,12 +5138,12 @@ export function WeatherForecast({
                           isMobile ? 'overflow-hidden flex flex-col snap-end flex-1 min-h-0 rounded-lg' : 'overflow-hidden flex flex-col flex-1 min-h-0 rounded-lg'
                         } shadow-lg overflow-hidden ${
                           isBeingDraggedOver ? 'ring-4 ring-blue-500/80' : ''
-                        } ${isWeatherClosedDay ? 'ring-2 ring-blue-700 shadow-blue-200' : isAtCapacity ? 'ring-2 ring-blue-500 shadow-blue-100' : ''}`}
+                        } ${isAtCapacity ? 'ring-2 ring-blue-500 shadow-blue-100' : ''}`}
                         style={{
                           scrollSnapStop: isMobile ? 'always' : 'always',
                           background: LANDING_DAY_CARD_PURPLE_GRADIENT,
                         border: isWeatherClosedDay
-                          ? `2px solid ${LANDING_WEATHER_PALETTE.rain}`
+                          ? `2px solid ${LANDING_WEATHER_PALETTE.border}`
                           : (isAtCapacity ? `2px solid ${LANDING_WEATHER_PALETTE.ring}` : `2px solid ${LANDING_WEATHER_PALETTE.border}`)
                       }}
                     >
